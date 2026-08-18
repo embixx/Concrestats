@@ -1,0 +1,53 @@
+# --- segredos: NUNCA versionar -------------------------------------------
+.trello.json
+.env
+.env.*
+*.key
+*.pem
+*.keystore
+*.jks
+credenciais*.json
+
+# --- sistema e editor ------------------------------------------------------
+Thumbs.db
+desktop.ini
+.DS_Store
+__pycache__/
+*.pyc
+.vscode/
+.idea/
+*.swp
+
+# --- pacotes e caches ------------------------------------------------------
+node_modules/
+.venv/
+venv/
+.cache/
+
+# --- build do PyInstaller: 600 MB que sao gerados, nao escritos ------------
+Concrestats/
+Concrestats_Nativo/
+build/
+dist/
+*.spec
+
+# --- pacotes prontos -------------------------------------------------------
+*.rar
+*.zip
+*.7z
+*.exe
+*.dll
+*.pyd
+
+# --- dados de teste do usuario --------------------------------------------
+*.xlsx
+*.xls
+*.csv
+prefs.json
+
+# --- configuracao local de ferramenta de editor ---------------------------
+.claude/
+CLAUDE.md
+AGENTS.md
+.cursor/
+.aider*

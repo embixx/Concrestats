@@ -1,0 +1,7 @@
+# Dependências da VERSÃO WEB (hospedada). O app de mesa usa requirements.txt.
+Flask==3.0.3
+pandas>=2.0,<3
+openpyxl>=3.1
+xlrd>=2.0.1
+numpy>=1.24,<2
+gunicorn>=21.2        # servidor de produção (não funciona no Windows)

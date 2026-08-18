@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Concrestats — Proposta: Gráficos em Abas</title>
+<style>
+  @page { size: A4; margin: 13mm 13mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  :root{
+    --bg:#f4f3ef; --panel:#eeede8; --white:#fafaf7; --border:#d4d2ca; --border-d:#b8b5ac;
+    --text:#1c1b18; --text2:#5a5852; --text3:#9a968e; --accent:#2a5298; --accent2:#1a3a6e;
+    --accent-bg:#e8eef8; --success:#2a6640; --mono:'IBM Plex Mono','Consolas',monospace; --sans:'IBM Plex Sans','Segoe UI',sans-serif;
+  }
+  body{ font-family:var(--sans); color:var(--text); font-size:12px; line-height:1.5; background:#fff; }
+  h1{ font-size:22px; font-weight:600; letter-spacing:.01em; }
+  h2{ font-size:14px; font-weight:600; color:var(--text); margin:18px 0 8px; padding-bottom:5px; border-bottom:2px solid var(--accent); }
+  h2 .n{ display:inline-block; width:20px; height:20px; line-height:20px; text-align:center; background:var(--accent); color:#fff; border-radius:5px; font-size:11px; margin-right:8px; font-family:var(--mono); }
+  p{ margin:6px 0; color:var(--text2); }
+  .lead{ color:var(--text2); font-size:12.5px; }
+  strong{ color:var(--text); }
+  .mono{ font-family:var(--mono); }
+  .muted{ color:var(--text3); }
+  .page-break{ page-break-before:always; }
+
+  /* Cabeçalho do documento */
+  .doc-head{ display:flex; align-items:flex-end; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:12px; }
+  .brand{ display:flex; align-items:baseline; gap:8px; }
+  .brand .mark{ color:var(--accent); font-size:20px; }
+  .brand .name{ font-family:var(--mono); font-size:16px; font-weight:600; letter-spacing:.12em; }
+  .doc-meta{ text-align:right; color:var(--text3); font-family:var(--mono); font-size:9.5px; line-height:1.6; }
+  .title-block{ margin-top:14px; }
+  .title-block .sub{ color:var(--text3); font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
+
+  /* ── MOCKUP DA TELA ─────────────────────────── */
+  .mock{ border:1px solid var(--border-d); border-radius:8px; overflow:hidden; margin:10px 0 6px; box-shadow:0 2px 10px rgba(0,0,0,.08); }
+  .m-topbar{ background:var(--text); color:#fff; height:34px; display:flex; align-items:center; gap:18px; padding:0 12px; }
+  .m-logo{ font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.12em; }
+  .m-logo .mk{ color:#6b9fff; }
+  .m-nav{ display:flex; gap:3px; }
+  .m-nav span{ font-size:10px; color:#aaa; padding:3px 8px; border-radius:4px; }
+  .m-nav span.on{ background:rgba(107,159,255,.2); color:#6b9fff; }
+  .m-body{ background:var(--bg); padding:10px 12px 12px; }
+
+  /* barra de grupos */
+  .m-groups{ display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .m-groups .lbl{ font-family:var(--mono); font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:.06em; margin-right:2px; }
+  .chip{ font-size:10.5px; padding:4px 10px; border-radius:14px; border:1px solid var(--border-d); background:var(--white); color:var(--text2); }
+  .chip.on{ background:var(--accent); color:#fff; border-color:var(--accent); font-weight:500; }
+  .chip.add{ border-style:dashed; color:var(--text3); }
+
+  /* filtro do grupo */
+  .m-filter{ display:flex; align-items:center; gap:8px; background:var(--accent-bg); border:1px solid var(--accent); border-radius:6px; padding:6px 10px; margin-bottom:8px; }
+  .m-filter .tag{ font-family:var(--mono); font-size:9px; color:#fff; background:var(--accent); padding:2px 6px; border-radius:3px; letter-spacing:.04em; }
+  .m-filter .expr{ font-family:var(--mono); font-size:10px; color:var(--accent2); }
+
+  /* abas */
+  .m-tabs{ display:flex; gap:2px; border-bottom:1px solid var(--border); margin-bottom:10px; }
+  .m-tabs .tab{ font-size:10.5px; padding:6px 12px; color:var(--text2); border:1px solid transparent; border-bottom:none; }
+  .m-tabs .tab.on{ background:var(--white); border-color:var(--border); border-radius:5px 5px 0 0; color:var(--accent); font-weight:600; margin-bottom:-1px; }
+  .m-tabs .tab.add{ color:var(--text3); }
+
+  /* área de gráficos */
+  .m-grid{ display:grid; grid-template-columns:1.4fr 1fr; gap:10px; }
+  .m-card{ background:var(--white); border:1px solid var(--border); border-radius:6px; box-shadow:0 1px 2px rgba(28,27,24,.06); position:relative; overflow:hidden; }
+  .m-card::before{ content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px; background:var(--accent); border-radius:0 3px 3px 0; }
+  .m-card .h{ font-family:var(--mono); font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:var(--text2); padding:8px 10px 4px 14px; }
+  .m-card .b{ padding:2px 10px 10px 12px; }
+  .m-stat{ display:flex; flex-direction:column; gap:8px; }
+  .m-stat .big{ font-family:var(--mono); font-size:30px; font-weight:600; color:var(--text); padding-left:2px; }
+  .m-stat .big.ok{ color:var(--success); }
+  .m-stat .lab{ font-family:var(--mono); font-size:9px; text-transform:uppercase; color:var(--text3); letter-spacing:.05em; }
+  .m-cap{ font-size:9.5px; color:var(--text3); margin-top:7px; text-align:center; }
+
+  .flow{ background:var(--panel); border:1px solid var(--border); border-radius:7px; padding:12px 14px; font-family:var(--mono); font-size:11px; color:var(--text2); margin:8px 0; }
+  .flow b{ color:var(--accent); }
+
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  ul{ margin:6px 0 6px 18px; } li{ margin:4px 0; color:var(--text2); }
+  .qbox{ background:var(--white); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:5px; padding:9px 12px; margin:7px 0; }
+  .qbox b{ color:var(--text); }
+  .pill{ display:inline-block; font-family:var(--mono); font-size:9px; padding:2px 7px; border-radius:10px; }
+  .pill.keep{ background:#e7f1ea; color:var(--success); }
+  .pill.new{ background:var(--accent-bg); color:var(--accent); }
+  .foot{ margin-top:16px; padding-top:8px; border-top:1px solid var(--border); color:var(--text3); font-size:9.5px; font-family:var(--mono); display:flex; justify-content:space-between; }
+  svg{ display:block; }
+</style>
+</head>
+<body>
+
+  <div class="doc-head">
+    <div class="brand"><span class="mark">◈</span><span class="name">CONCRESTATS</span></div>
+    <div class="doc-meta">PROPOSTA DE EVOLUÇÃO · MÓDULO GRÁFICOS<br>Documento para alinhamento · v1 (provisório)</div>
+  </div>
+
+  <div class="title-block">
+    <div class="sub">Organização dos gráficos</div>
+    <h1>Gráficos em abas, com filtro compartilhado por grupo</h1>
+    <p class="lead">Cada <strong>grupo</strong> tem um <strong>filtro próprio</strong>. Esse filtro alimenta <strong>todas as abas</strong> do grupo —
+    então você ajusta o filtro uma vez e todas as visões daquele grupo atualizam juntas. Objetivo: <strong>inteligibilidade, conveniência e utilidade prática</strong>.</p>
+  </div>
+
+  <!-- ─────────── MOCKUP ─────────── -->
+  <div class="mock" role="img" aria-label="Mockup da tela de Gráficos com grupos, filtro e abas">
+    <div class="m-topbar">
+      <div class="m-logo"><span class="mk">◈</span> CONCRESTATS</div>
+      <div class="m-nav"><span>Planilhas</span><span>Receitas</span><span class="on">Gráficos</span><span>Dashboard</span><span>Relatório</span></div>
+    </div>
+    <div class="m-body">
+      <div class="m-groups">
+        <span class="lbl">Grupos</span>
+        <span class="chip on">Cliente · SPL 504</span>
+        <span class="chip">Obra · Oasis Amazônia</span>
+        <span class="chip">Comparativo FCK</span>
+        <span class="chip add">+ novo grupo</span>
+      </div>
+
+      <div class="m-filter">
+        <span class="tag">FILTRO DO GRUPO</span>
+        <span class="expr">CLIENTE = SPL 504 SINOP&nbsp;&nbsp;·&nbsp;&nbsp;DATA ≥ 2025-10-01&nbsp;&nbsp;·&nbsp;&nbsp;FCK ≥ 25</span>
+      </div>
+
+      <div class="m-tabs">
+        <span class="tab on">Resistência 28d</span>
+        <span class="tab">Evolução 7→28d</span>
+        <span class="tab">Aprovação</span>
+        <span class="tab">Volume</span>
+        <span class="tab add">+ aba</span>
+      </div>
+
+      <div class="m-grid">
+        <div class="m-card">
+          <div class="h">MPa 28 por receita</div>
+          <div class="b">
+            <svg viewBox="0 0 360 150" width="100%" height="118">
+              <line x1="34" y1="10" x2="34" y2="126" stroke="#ececea"/>
+              <line x1="34" y1="126" x2="350" y2="126" stroke="#ececea"/>
+              <line x1="34" y1="40" x2="350" y2="40" stroke="#f0efe9"/>
+              <line x1="34" y1="83" x2="350" y2="83" stroke="#f0efe9"/>
+              <text x="6" y="14" font-family="monospace" font-size="8" fill="#999">45</text>
+              <text x="6" y="86" font-family="monospace" font-size="8" fill="#999">25</text>
+              <g fill="#2a5298">
+                <rect x="46" y="58" width="26" height="68"/><rect x="84" y="44" width="26" height="82"/>
+                <rect x="122" y="70" width="26" height="56"/><rect x="160" y="36" width="26" height="90"/>
+                <rect x="198" y="62" width="26" height="64"/><rect x="236" y="50" width="26" height="76"/>
+                <rect x="274" y="74" width="26" height="52"/><rect x="312" y="46" width="26" height="80"/>
+              </g>
+              <line x1="34" y1="83" x2="350" y2="83" stroke="#e05c3a" stroke-width="1.3" stroke-dasharray="5 4"/>
+              <text x="300" y="79" font-family="monospace" font-size="8" fill="#e05c3a">FCK 25</text>
+            </svg>
+            <div class="m-cap">hover mostra o CP real · linha de referência = FCK</div>
+          </div>
+        </div>
+
+        <div class="m-card">
+          <div class="h">% Aprovação (≥ FCK)</div>
+          <div class="b">
+            <div class="m-stat">
+              <div><div class="big ok">94,2%</div><div class="lab">corpos de prova aprovados</div></div>
+              <svg viewBox="0 0 200 56" width="100%" height="50">
+                <polyline points="6,46 30,40 54,42 78,30 102,34 126,22 150,26 176,16 196,12" fill="none" stroke="#2a5298" stroke-width="2"/>
+                <g fill="#2a5298"><circle cx="78" cy="30" r="2.4"/><circle cx="126" cy="22" r="2.4"/><circle cx="176" cy="16" r="2.4"/></g>
+              </svg>
+              <div class="lab muted">tendência no período do filtro</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="m-cap">▲ Trocar o filtro do grupo recarrega <b style="color:#2a5298">todas</b> as abas (Resistência, Evolução, Aprovação, Volume…) com os mesmos dados.</div>
+    </div>
+  </div>
+  <p class="muted" style="font-size:10px">Mockup ilustrativo no visual atual do Concrestats. Layout e nomes das abas são exemplos — o desenho final segue o Excalidraw do Naor.</p>
+
+  <!-- ─────────── PÁGINA 2 ─────────── -->
+  <div class="page-break"></div>
+
+  <h2><span class="n">1</span>Como os dados fluem</h2>
+  <p>A estrutura é uma hierarquia simples. O ponto-chave é que o filtro vive no <strong>grupo</strong>, não em cada gráfico:</p>
+  <div class="flow">
+    Planilha (dados) &nbsp;→&nbsp; <b>[ Filtro do Grupo ]</b> &nbsp;→&nbsp; linhas filtradas &nbsp;→&nbsp; distribuídas a <b>TODAS as abas</b> do grupo &nbsp;→&nbsp; cada aba calcula seus próprios gráficos
+  </div>
+  <p>Assim, "grupos de abas lendo informações saídas de um mesmo filtro" vira algo direto de usar: o usuário monta um grupo por contexto (um cliente, uma obra, uma comparação de FCK), define o filtro uma vez, e navega pelas abas vendo recortes diferentes <strong>dos mesmos dados</strong>.</p>
+
+  <h2><span class="n">2</span>O que muda e o que permanece</h2>
+  <div class="two">
+    <div>
+      <p><span class="pill keep">PERMANECE</span></p>
+      <ul>
+        <li>Importação da planilha</li>
+        <li>Planilha / grid editável</li>
+        <li>Relatório técnico</li>
+        <li>Os tipos de gráfico e estatísticas atuais</li>
+        <li>A identidade visual do app</li>
+      </ul>
+    </div>
+    <div>
+      <p><span class="pill new">NOVO (só no módulo Gráficos)</span></p>
+      <ul>
+        <li>Barra de <strong>grupos</strong> (cada um com seu filtro)</li>
+        <li><strong>Abas</strong> dentro de cada grupo</li>
+        <li>Filtro do grupo alimentando todas as abas</li>
+        <li>Salvar/retomar grupos e abas</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top:8px"><strong>Baixo risco:</strong> a camada de filtro do app já foi unificada numa refatoração recente — as telas de Dashboard, Gráficos e Relatório já leem do mesmo filtro. As abas/grupos entram como uma camada <em>por cima</em> do que já existe e funciona, reaproveitando os gráficos atuais.</p>
+
+  <h2><span class="n">3</span>Pontos a confirmar no seu desenho (Excalidraw)</h2>
+  <div class="qbox"><b>Níveis.</b> Confirmamos grupos contendo abas (2 níveis), ou abas soltas com um seletor de filtro?</div>
+  <div class="qbox"><b>Escopo do filtro.</b> Só por grupo, ou existe também um filtro global + refinamento por grupo?</div>
+  <div class="qbox"><b>Filtros salvos.</b> Faz sentido nomear/salvar filtros e reutilizá-los entre grupos?</div>
+  <div class="qbox"><b>Critério das abas.</b> Por período (7/28 dias), por tipo de gráfico, por receita, ou livre?</div>
+  <div class="qbox"><b>Convivência.</b> Isso substitui os "containers por receita" + templates atuais, ou os dois coexistem?</div>
+
+  <div class="foot">
+    <span>CONCRESTATS · Proposta de evolução do módulo Gráficos</span>
+    <span>Documento provisório para alinhamento — sujeito ao desenho final</span>
+  </div>
+
+</body>
+</html>

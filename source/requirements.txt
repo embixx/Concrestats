@@ -1,0 +1,11 @@
+# Dependências de runtime do Concrestats (versões alinhadas ao build original)
+Flask==3.0.3
+pandas>=2.0,<3
+openpyxl>=3.1
+xlrd>=2.0.1             # planilhas .xls antigas (Excel 97-2003)
+numpy>=1.24,<2
+pywebview>=5.0          # app NATIVO (janela própria via WebView2). Win10/11 já têm o runtime.
+pythonnet>=3.0          # backend WinForms do pywebview no Windows
+
+# Necessário apenas para gerar o .exe (não vai dentro do executável):
+pyinstaller>=6.0
