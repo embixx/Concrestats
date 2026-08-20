@@ -32,6 +32,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIST = os.path.join(RAIZ, "source", "dist", "Concrestats")
 TITULO = "⬇ BUILD — baixar o app aqui"
 API = "https://api.trello.com/1"
+NL = chr(10)
 
 
 def credenciais():
@@ -127,13 +128,21 @@ def main():
         print(f"      anexo {i}/{len(partes)}: {r['name']} ({r.get('bytes', 0)/1024/1024:.1f} MB)")
 
     # 4) descricao + comentario
-    passos = ("COMO BAIXAR E INSTALAR\n\n"
-              f"1. Baixe as {len(partes)} partes para a MESMA pasta\n"
-              "2. Botao direito no arquivo \".part01.rar\" -> \"Extrair aqui\"\n"
-              "   (o WinRAR junta as partes sozinho)\n"
-              "3. Abra a pasta \"Concrestats\" e clique em \"Concrestats.exe\"\n\n"
-              "Nao precisa instalar nada. Windows 10/11 ja tem o necessario.\n\n"
-              f"Versao publicada em: {args.versao}\n")
+    n = str(len(partes))
+    passos = NL.join([
+        "COMO INSTALAR (3 passos - vale ler)", "",
+        "1. BAIXE AS " + n + " PARTES na MESMA pasta e espere todas terminarem.",
+        "   Se voce usa gerenciador de download (Gopeed, IDM), ele pode",
+        "   atrapalhar: pause/desative e baixe pelo proprio navegador.", "",
+        "2. SELECIONE AS " + n + " PARTES DE UMA VEZ (clique na primeira, segure",
+        "   SHIFT, clique na ultima) - botao direito - Extrair aqui.",
+        "   Extrair uma de cada vez NAO funciona: sozinhas elas nao abrem.",
+        "   (Alternativa: com as " + n + " na mesma pasta, botao direito so na .part01)", "",
+        "3. Abra a pasta Concrestats e clique em Concrestats.exe.",
+        "   Nao precisa instalar nada. Se o Windows avisar editor desconhecido:",
+        "   Mais informacoes - Executar assim mesmo.", "",
+        "Versao publicada em: " + args.versao,
+    ])
     if args.novidades:
         passos += "\nNOVIDADES\n" + "\n".join(f"- {n}" for n in args.novidades)
     chamar("PUT", f"/cards/{card['id']}", key, token, name=TITULO, desc=passos)
@@ -145,7 +154,7 @@ def main():
             chamar("POST", f"/cards/{card['id']}/idMembers", key, token, value=naor["id"])
         except Exception:
             pass  # ja e membro do cartao
-    texto = "@naorleitzke build nova publicada aqui — baixe as partes na mesma pasta e extraia a part01."
+    texto = "@naorleitzke build nova. IMPORTANTE: baixe TODAS as partes na mesma pasta, depois SELECIONE TODAS de uma vez, botao direito, Extrair aqui. Extrair uma de cada vez nao funciona."
     if args.novidades:
         texto += " Novidades: " + "; ".join(args.novidades)
     chamar("POST", f"/cards/{card['id']}/actions/comments", key, token, text=texto)

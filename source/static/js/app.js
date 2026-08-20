@@ -20,6 +20,9 @@ let state = {
   isEditing: false,
   clipboard: null,   // { rows: [[...]] }
   undoStack: [],
+  redoStack: [],
+  congelarCols: 0,      // quantas colunas ficam fixas ao rolar na horizontal
+  regrasCor: [],        // [{col, op, val, cor}] formatação condicional
   contextRow: -1,
   sortState: { col: -1, dir: 'asc' },
 };
@@ -139,6 +142,7 @@ function renderGrid() {
   updateFooter();
   // Column resize (handles ficam no thead, recriado a cada render)
   initColResize();
+  posicionarColunasFixas();
 }
 
 function renderHead() {
@@ -146,7 +150,8 @@ function renderHead() {
   let hRow = '<tr><th class="row-num row-num-header">№</th>';
   state.headers.forEach((h, i) => {
     const sortIcon = state.sortState.col === i ? (state.sortState.dir === 'asc' ? '↓' : '↑') : '';
-    hRow += `<th data-col="${i}"><span>${escHtml(h)}</span><span class="sort-indicator">${sortIcon}</span><div class="col-resize" data-col="${i}"></div></th>`;
+    const fx = i < state.congelarCols ? ' col-fixa' : '';
+    hRow += `<th data-col="${i}" class="${fx.trim()}"><span>${escHtml(h)}</span><span class="sort-indicator">${sortIcon}</span><div class="col-resize" data-col="${i}"></div></th>`;
   });
   hRow += '</tr>';
   head.innerHTML = hRow;
@@ -194,6 +199,33 @@ function ehNegativo(v) {
   return contabil || t.startsWith('-');
 }
 
+// ── Formatação condicional ────────────────────────────────────
+// Regras do usuário: {col, op, val, cor}. "val" aceita número, texto ou
+// [Outra Coluna] — assim dá para pintar "MPA 28 < [FCK]".
+const PALETA_COR = {
+  vermelho: { fundo: '#fbe3df', texto: '#8c2c1c' },
+  verde:    { fundo: '#dff0e4', texto: '#1d5c34' },
+  amarelo:  { fundo: '#fdf1d3', texto: '#7a5a10' },
+  azul:     { fundo: '#e2ebfa', texto: '#1d3f75' },
+};
+function corDaRegra(ci, txt, row) {
+  if (!state.regrasCor.length) return null;
+  const nomeCol = state.headers[ci];
+  for (const r of state.regrasCor) {
+    if (r.col !== nomeCol) continue;
+    try {
+      if (applyOperator(txt, r.op, r.val, row)) return PALETA_COR[r.cor] || PALETA_COR.amarelo;
+    } catch (_) { /* regra inválida: ignora */ }
+  }
+  return null;
+}
+function salvarPrefsGrid() {
+  try {
+    fetch('/api/prefs', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grid: { congelarCols: state.congelarCols, regrasCor: state.regrasCor } }) });
+  } catch (_) {}
+}
+
 // Linhas atualmente exibidas (respeita filtro ativo).
 function getDisplayRows() {
   return state.filterActive ? state.filteredData : state.data;
@@ -238,7 +270,10 @@ function renderBody() {
       const txt = String(val);
       const neg = ehNegativo(txt) ? ' cel-neg' : '';
       const hit = (busca.termo && txt.toLowerCase().includes(busca.termo)) ? ' cel-busca' : '';
-      html += `<td data-row="${ri}" data-col="${ci}" class="${isFormula ? 'is-formula' : ''}${active}${neg}${hit}">${escHtml(txt)}</td>`;
+      const fx  = ci < state.congelarCols ? ' col-fixa' : '';
+      const cor = corDaRegra(ci, txt, row);
+      const est = cor ? ` style="background:${cor.fundo};color:${cor.texto}"` : '';
+      html += `<td data-row="${ri}" data-col="${ci}" class="${isFormula ? 'is-formula' : ''}${active}${neg}${hit}${fx}"${est}>${escHtml(txt)}</td>`;
     }
     html += '</tr>';
   }
@@ -497,7 +532,8 @@ function setDataCell(row, col, val) {
 }
 
 // ── Undo ───────────────────────────────────────────
-function pushUndo() {
+function pushUndo(limparRedo = true) {
+  if (limparRedo) state.redoStack = [];   // ação nova invalida o "refazer"
   state.undoStack.push({
     data: JSON.parse(JSON.stringify(state.data)),
     headers: JSON.parse(JSON.stringify(state.headers))
@@ -508,12 +544,32 @@ function pushUndo() {
 function undo() {
   if (!state.undoStack.length) return;
   const snapshot = state.undoStack.pop();
+  // guarda o estado ATUAL para permitir refazer
+  state.redoStack.push({
+    data: JSON.parse(JSON.stringify(state.data)),
+    headers: JSON.parse(JSON.stringify(state.headers))
+  });
   state.data = snapshot.data;
   state.headers = snapshot.headers;
   recomputeFilters();   // desfazer não desliga mais o filtro ativo
   renderGrid();
   notifyDataChanged('undo');
-  toast('Desfeito');
+  saveToServer();
+  toast(`Desfeito (${state.undoStack.length} restante(s))`);
+}
+
+// Refazer — Ctrl+Y ou Ctrl+Shift+Z
+function redo() {
+  if (!state.redoStack.length) { toast('Nada para refazer'); return; }
+  const snapshot = state.redoStack.pop();
+  pushUndo(false);                     // permite desfazer o refazer
+  state.data = snapshot.data;
+  state.headers = snapshot.headers;
+  recomputeFilters();
+  renderGrid();
+  notifyDataChanged('redo');
+  saveToServer();
+  toast('Refeito');
 }
 
 // Recalcula o filtro a partir de state.filters (independente do DOM).
@@ -1311,7 +1367,10 @@ document.addEventListener('keydown', e => {
   if (appEl && appEl.style.display === 'none') return;
 
   // Ctrl+Z — undo
-  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+    e.preventDefault(); redo(); return;
+  }
 
   // Ctrl+C — copy selected rows
   if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
@@ -1796,3 +1855,97 @@ document.addEventListener('DOMContentLoaded', carregarRecentes);
     if (st) st.textContent = 'Versão web';
   }).catch(() => {});
 })();
+
+// ── Regras de cor (formatação condicional) ─────────
+function abrirModalCores() {
+  if (!state.headers.length) { toast('Abra uma planilha primeiro', 'error'); return; }
+  const opsHtml = FILTER_OPS.map(o => `<option value="${o.v}">${o.l}</option>`).join('');
+  const colsHtml = state.headers.map(h => `<option value="${escHtml(h)}">${escHtml(h)}</option>`).join('');
+  const coresHtml = [['vermelho','Vermelho'],['verde','Verde'],['amarelo','Amarelo'],['azul','Azul']]
+    .map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+
+  openModal('Regras de cor', `
+    <p class="rc-dica">Pinta a célula quando a regra for verdadeira. No valor dá para usar
+      <b>[Outra Coluna]</b> — por exemplo <b>MPA 28</b> <b>&lt;</b> <b>[FCK]</b> deixa o reprovado em vermelho.</p>
+    <div id="rc-lista"></div>
+    <button type="button" id="rc-add" class="rc-add">+ regra</button>
+  `, () => {
+    state.regrasCor = [...document.querySelectorAll('#rc-lista .regra-cor-row')].map(d => ({
+      col: d.querySelector('.rc-col').value,
+      op:  d.querySelector('.rc-op').value,
+      val: d.querySelector('.rc-val').value,
+      cor: d.querySelector('.rc-cor').value,
+    })).filter(r => r.col && r.val !== '');
+    salvarPrefsGrid();
+    renderGrid();
+    closeModal();
+    toast(state.regrasCor.length ? `${state.regrasCor.length} regra(s) aplicada(s)` : 'Regras removidas', 'success');
+  });
+
+  const linha = (r = {}) => {
+    const d = document.createElement('div');
+    d.className = 'regra-cor-row';
+    d.innerHTML = `<select class="rc-col">${colsHtml}</select>
+      <select class="rc-op" style="max-width:110px">${opsHtml}</select>
+      <input class="rc-val" placeholder="valor ou [Coluna]">
+      <select class="rc-cor" style="max-width:110px">${coresHtml}</select>
+      <button type="button" class="rc-del" title="Remover">×</button>`;
+    if (r.col) d.querySelector('.rc-col').value = r.col;
+    if (r.op)  d.querySelector('.rc-op').value = r.op;
+    if (r.val !== undefined) d.querySelector('.rc-val').value = r.val;
+    if (r.cor) d.querySelector('.rc-cor').value = r.cor;
+    d.querySelector('.rc-del').addEventListener('click', () => d.remove());
+    return d;
+  };
+  setTimeout(() => {
+    const box = document.getElementById('rc-lista');
+    if (!box) return;
+    (state.regrasCor.length ? state.regrasCor : [{}]).forEach(r => box.appendChild(linha(r)));
+    document.getElementById('rc-add').addEventListener('click', () => box.appendChild(linha()));
+  }, 30);
+}
+document.getElementById('btn-cores')?.addEventListener('click', abrirModalCores);
+
+// ── Congelar colunas ───────────────────────────────
+document.getElementById('btn-congelar')?.addEventListener('click', () => {
+  if (!state.headers.length) { toast('Abra uma planilha primeiro', 'error'); return; }
+  const max = Math.min(3, state.headers.length);
+  state.congelarCols = (state.congelarCols + 1) % (max + 1);   // 0 → 1 → 2 → 3 → 0
+  salvarPrefsGrid();
+  renderGrid();
+  toast(state.congelarCols
+    ? `${state.congelarCols} coluna(s) congelada(s)`
+    : 'Colunas descongeladas');
+});
+
+// Posiciona as colunas congeladas (o "left" depende da largura das anteriores).
+function posicionarColunasFixas() {
+  if (!state.congelarCols) return;
+  const head = document.querySelector('#data-table thead tr');
+  if (!head) return;
+  const larguras = [];
+  let acumulado = head.children[0]?.offsetWidth || 40;   // coluna do número
+  for (let i = 0; i < state.congelarCols; i++) {
+    larguras.push(acumulado);
+    acumulado += head.children[i + 1]?.offsetWidth || 0;
+  }
+  document.querySelectorAll('#data-table .col-fixa').forEach(el => {
+    const ci = parseInt(el.dataset.col);
+    if (!isNaN(ci) && larguras[ci] !== undefined) el.style.left = larguras[ci] + 'px';
+  });
+  // a coluna do número também acompanha
+  document.querySelectorAll('#data-table .row-num').forEach(el => {
+    el.style.position = 'sticky'; el.style.left = '0'; el.style.zIndex = '6';
+  });
+}
+
+// Carrega preferências do grid salvas (cores + congelamento).
+document.addEventListener('DOMContentLoaded', () => {
+  fetch('/api/prefs').then(r => r.ok ? r.json() : null).then(p => {
+    if (p && p.grid) {
+      state.congelarCols = p.grid.congelarCols || 0;
+      state.regrasCor = Array.isArray(p.grid.regrasCor) ? p.grid.regrasCor : [];
+      if (state.headers.length) renderGrid();
+    }
+  }).catch(() => {});
+});
