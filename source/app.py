@@ -20,6 +20,8 @@ import sys
 import io
 import json
 import datetime
+import re
+import shutil
 import threading
 import time
 import webbrowser
@@ -165,7 +167,8 @@ def read_any(path_or_buffer, filename):
     if name.endswith(".csv"):
         for enc in ("utf-8-sig", "utf-8", "latin-1"):
             try:
-                df = pd.read_csv(path_or_buffer, sep=None, engine="python", encoding=enc)
+                df = pd.read_csv(path_or_buffer, sep=None, engine="python",
+                                 encoding=enc, dtype=object)
                 return {"Plan1": df}
             except Exception:  # noqa: BLE001 -- tenta a próxima codificação
                 if hasattr(path_or_buffer, "seek"):
@@ -174,9 +177,12 @@ def read_any(path_or_buffer, filename):
         # último recurso
         if hasattr(path_or_buffer, "seek"):
             path_or_buffer.seek(0)
-        return {"Plan1": pd.read_csv(path_or_buffer, engine="python")}
-    # Excel: todas as planilhas
-    sheets = pd.read_excel(path_or_buffer, sheet_name=None)
+        return {"Plan1": pd.read_csv(path_or_buffer, engine="python", dtype=object)}
+    # Excel: todas as planilhas.
+    # dtype=object e' obrigatorio: sem ele o pandas "adivinha" e transforma
+    # codigos como 007 em 7 e 1E5 em 100000 — corpo de prova e nota fiscal
+    # perdiam os zeros a' esquerda.
+    sheets = pd.read_excel(path_or_buffer, sheet_name=None, dtype=object)
     return sheets
 
 
@@ -201,6 +207,8 @@ def load_into_session(sid, sheets, path=None, mode="replace"):
         sess["active"] = next(iter(sess["sheets"]), None)
         if path:
             sess["path"] = path
+            # quem veio do arquivo: so' estas podem ser apagadas la' no Salvar
+            sess["abas_origem"] = list(novos.keys())
     return sess
 
 
@@ -371,6 +379,11 @@ def api_join_sheets():
                 name = f"{la} + {lb} ({k})"; k += 1
             sess["sheets"][name] = payload
             sess["active"] = name
+            # Cruzamento de abas de demonstracao continua sendo demonstracao:
+            # o resultado nao pode acabar dentro do arquivo de quem usa.
+            demo = set(sess.get("demo") or [])
+            if la in demo and lb in demo:
+                sess.setdefault("demo", []).append(name)
         return sheet_response(sess, extra={"matched": matched, "total": len(dfa)})
     except Exception as e:  # noqa: BLE001
         return jsonify({"success": False, "error": str(e)}), 500
@@ -449,12 +462,15 @@ def api_save_data():
     body = request.get_json(force=True, silent=True) or {}
     sess = _session(body.get("session_id", "default"))
     name = body.get("sheet_name")
-    if name:
-        sess["sheets"][name] = {
-            "headers": body.get("headers", []),
-            "data": body.get("data", []),
-        }
-        sess["active"] = name
+    if not name:
+        # sem nome nao ha' o que gravar: devolver "ok" aqui escondia perda de
+        # dados (o front achava que salvou).
+        return jsonify({"success": False, "error": "sheet_name ausente"}), 400
+    sess["sheets"][name] = {
+        "headers": body.get("headers", []),
+        "data": body.get("data", []),
+    }
+    sess["active"] = name
     return jsonify({"success": True})
 
 
@@ -511,17 +527,145 @@ def api_save_file():
             if not reais:
                 return jsonify({"success": False,
                                 "error": "so' ha planilha de demonstracao aberta"}), 400
-            with pd.ExcelWriter(path, engine="openpyxl") as w:
-                for sheet_name, payload in reais.items():
-                    df = payload_to_df(payload["headers"], payload["data"])
-                    df.to_excel(w, sheet_name=_safe_sheet_name(sheet_name, used),
-                                index=False)
+            ext = os.path.splitext(path)[1].lower()
+            if os.path.exists(path) and ext in (".xlsx", ".xlsm"):
+                # arquivo ja' existe: gravar POR CIMA, mexendo so' no que mudou
+                _gravar_preservando(path, reais, sess.get("abas_origem"))
+            else:
+                if ext == ".xls":          # openpyxl nao escreve .xls
+                    path = path[:-4] + ".xlsx"
+                    sess["path"] = path
+                with pd.ExcelWriter(path, engine="openpyxl") as w:
+                    for sheet_name, payload in reais.items():
+                        df = payload_to_df(payload["headers"], payload["data"])
+                        # numeros e datas como numeros e datas, nao como texto
+                        df = df.map(_tipar) if hasattr(df, "map") else df.applymap(_tipar)
+                        df.to_excel(w, sheet_name=_safe_sheet_name(sheet_name, used),
+                                    index=False)
         return jsonify({"success": True, "path": path})
     except PermissionError:
         return jsonify({"success": False,
                         "error": "arquivo em uso — feche-o no Excel e salve de novo"}), 500
     except Exception as e:  # noqa: BLE001
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Gravacao preservando o arquivo do usuario
+# ──────────────────────────────────────────────────────────────────────────
+_RE_INT = re.compile(r"^-?\d+$")
+_RE_DEC_PONTO = re.compile(r"^-?\d*\.\d+$")
+_RE_DEC_VIRG = re.compile(r"^-?\d*,\d+$")
+_RE_MILHAR_BR = re.compile(r"^-?\d{1,3}(\.\d{3})+(,\d+)?$")
+_RE_DATA_ISO = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
+
+
+def _tipar(txt):
+    """Texto da grade → valor com o tipo certo para o Excel. Sem isso todo
+    numero vira 'numero armazenado como texto' e SOMA/grafico param de somar."""
+    if txt is None:
+        return None
+    s = str(txt).strip()
+    if s == "":
+        return None
+    if _RE_INT.match(s):
+        try:
+            return int(s)
+        except ValueError:
+            return s
+    if _RE_DEC_PONTO.match(s):
+        return float(s)
+    if _RE_DEC_VIRG.match(s):
+        return float(s.replace(",", "."))
+    if _RE_MILHAR_BR.match(s):
+        return float(s.replace(".", "").replace(",", "."))
+    m = _RE_DATA_ISO.match(s)
+    if m:
+        try:
+            return datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            return s
+    return s
+
+
+def _igual_ao_que_o_app_mostra(valor_arquivo, texto_app):
+    """O app so' enxerga texto. Se o texto bate com o que ja' esta' na celula,
+    a celula NAO e' reescrita — e assim formula, formato e tipo ficam de pe'."""
+    a = _cell(valor_arquivo)
+    b = "" if texto_app is None else str(texto_app)
+    if a == b.strip() or a.strip() == b.strip():
+        return True
+    na, nb = _tipar(a), _tipar(b)
+    if isinstance(na, (int, float)) and isinstance(nb, (int, float)):
+        try:
+            return abs(float(na) - float(nb)) < 1e-9
+        except (TypeError, ValueError):
+            return False
+    return False
+
+
+def _gravar_preservando(path, reais, abas_origem):
+    """Grava por cima do .xlsx/.xlsm mexendo SO' nas celulas que mudaram.
+    Mantem formatacao, largura de coluna, celulas mescladas, paineis
+    congelados, validacoes e — o mais importante — as formulas."""
+    from openpyxl import load_workbook
+
+    ext = os.path.splitext(path)[1].lower()
+    wb = load_workbook(path, keep_vba=(ext == ".xlsm"))
+
+    # O 2o carregamento (valores ja' calculados) custa caro e so' serve para
+    # planilha com formula — por isso e' feito na primeira formula encontrada.
+    caixa = {"calc": None, "tentou": False}
+
+    def valor_calculado(aba, i, j):
+        if not caixa["tentou"]:
+            caixa["tentou"] = True
+            try:
+                caixa["calc"] = load_workbook(path, data_only=True)
+            except Exception:  # noqa: BLE001
+                caixa["calc"] = None
+        c = caixa["calc"]
+        if not c or aba not in c.sheetnames:
+            return None
+        return c[aba].cell(row=i, column=j).value
+
+    usados = set(wb.sheetnames)
+    for nome, payload in reais.items():
+        headers = payload.get("headers") or []
+        data = payload.get("data") or []
+        if nome in wb.sheetnames:
+            ws = wb[nome]
+        else:
+            ws = wb.create_sheet(title=_safe_sheet_name(nome, usados))
+        linhas = [headers] + list(data)
+        for i, linha in enumerate(linhas, start=1):
+            for j in range(1, len(headers) + 1):
+                novo = linha[j - 1] if j - 1 < len(linha) else ""
+                cel = ws.cell(row=i, column=j)
+                atual = cel.value
+                # Celula com formula: comparar com o VALOR CALCULADO. Se o
+                # usuario nao mexeu, a formula continua viva.
+                if isinstance(atual, str) and atual.startswith("="):
+                    ref = valor_calculado(ws.title, i, j)
+                    if _igual_ao_que_o_app_mostra(ref, novo):
+                        continue
+                elif _igual_ao_que_o_app_mostra(atual, novo):
+                    continue
+                cel.value = _tipar(novo)
+
+        # sobras de quando a planilha encolheu
+        fim = len(data) + 1
+        if ws.max_row > fim:
+            ws.delete_rows(fim + 1, ws.max_row - fim)
+        if ws.max_column > len(headers) and len(headers) > 0:
+            ws.delete_cols(len(headers) + 1, ws.max_column - len(headers))
+
+    # abas que vieram do arquivo e o usuario apagou dentro do app
+    for nome in list(abas_origem or []):
+        if nome not in reais and nome in wb.sheetnames and len(wb.sheetnames) > 1:
+            del wb[nome]
+
+    wb.save(path)
 
 
 def _send_dataframe(df, fmt, base_name):
@@ -546,7 +690,9 @@ def _send_dataframe(df, fmt, base_name):
     # xlsx (default)
     buf = io.BytesIO()
     with pd.ExcelWriter(buf, engine="openpyxl") as w:
-        df.to_excel(w, index=False, sheet_name=_excel_sheet_name(base_name))
+        # numeros como numeros: senao o Excel abre tudo como texto e nao soma
+        saida = df.map(_tipar) if hasattr(df, "map") else df.applymap(_tipar)
+        saida.to_excel(w, index=False, sheet_name=_excel_sheet_name(base_name))
     buf.seek(0)
     return send_file(
         buf,
@@ -606,6 +752,9 @@ def api_export_aoa():
         linhas = [list(r) + [""] * (ncol - len(r)) for r in aoa]
         df = pd.DataFrame(linhas[1:], columns=[str(c) for c in linhas[0]]) \
             if len(linhas) > 1 else pd.DataFrame(columns=[str(c) for c in linhas[0]])
+        # mesma regra do Salvar: numero sai numero, data sai data
+        if len(df):
+            df = df.map(_tipar) if hasattr(df, "map") else df.applymap(_tipar)
         if path:
             if not os.path.splitext(path)[1]:
                 path += ".xlsx"
@@ -650,6 +799,100 @@ def api_salvar_binario():
         return jsonify({"success": True, "path": path})
     except Exception as e:  # noqa: BLE001
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/autoteste_arquivo", methods=["POST"])
+def api_autoteste_arquivo():
+    """Prova, num arquivo descartavel, que o Salvar nao estraga a planilha de
+    quem usa: formula, formatacao, data, zero a' esquerda e numero de verdade.
+    E' o unico teste que NAO da' para fazer pela tela — so' olhando o .xlsx."""
+    if MODO_WEB:
+        return _bloqueado_na_web()
+    import tempfile
+    from openpyxl import Workbook, load_workbook
+    from openpyxl.styles import Font, PatternFill
+
+    checks = []
+
+    def anota(nome, ok, detalhe):
+        checks.append({"nome": nome, "ok": bool(ok), "detalhe": detalhe})
+
+    pasta = tempfile.mkdtemp(prefix="concre_teste_")
+    caminho = os.path.join(pasta, "teste_do_modo_teste.xlsx")
+    try:
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Ensaios"
+        ws.append(["CP", "DATA", "FCK", "MPA", "SITUACAO"])
+        ws.append(["007", datetime.date(2026, 3, 1), 25, 28.4, None])
+        ws.append(["008", datetime.date(2026, 3, 2), 25, 22.1, None])
+        for r in (2, 3):
+            ws.cell(r, 5).value = f'=IF(D{r}>=C{r},"OK","NAO")'
+        ws["A1"].font = Font(bold=True, color="FFFFFF")
+        ws["A1"].fill = PatternFill("solid", fgColor="1D1C18")
+        ws.column_dimensions["B"].width = 21
+        ws.freeze_panes = "A2"
+        ws["D2"].number_format = "0.00"
+        wb.create_sheet("Nao mexer")["A1"] = "intacto"
+        wb.save(caminho)
+
+        sid = "__autoteste_arquivo__"
+        SESSIONS.pop(sid, None)
+        load_into_session(sid, read_any(caminho, caminho), path=caminho)
+        sess = _session(sid)
+        grade = sess["sheets"]["Ensaios"]
+
+        anota("Código com zero à esquerda (007) não vira 7",
+              grade["data"][0][0] == "007",
+              f'a grade mostra "{grade["data"][0][0]}"')
+
+        # o usuario corrige um ensaio e salva
+        grade["data"][0][3] = "29,9"
+        _gravar_preservando(caminho, sess["sheets"], sess.get("abas_origem"))
+
+        wb2 = load_workbook(caminho)
+        w2 = wb2["Ensaios"]
+        anota("A correção foi gravada como NÚMERO, não como texto",
+              isinstance(w2["D2"].value, (int, float)) and abs(float(w2["D2"].value) - 29.9) < 1e-9,
+              f"D2 = {w2['D2'].value!r} ({type(w2['D2'].value).__name__})")
+        anota("As fórmulas da planilha continuam vivas",
+              isinstance(w2["E2"].value, str) and w2["E2"].value.startswith("="),
+              f"E2 = {w2['E2'].value!r}")
+        anota("As datas continuam datas",
+              isinstance(w2["B2"].value, (datetime.date, datetime.datetime)),
+              f"B2 = {w2['B2'].value!r}")
+        anota("O que não foi tocado ficou igual",
+              w2["D3"].value == 22.1 and w2["A3"].value == "008",
+              f"D3 = {w2['D3'].value!r}, A3 = {w2['A3'].value!r}")
+        anota("Negrito, cor e largura de coluna continuam iguais",
+              bool(w2["A1"].font.bold) and str(w2["A1"].fill.fgColor.rgb).endswith("1D1C18")
+              and float(w2.column_dimensions["B"].width) == 21,
+              f"largura B = {w2.column_dimensions['B'].width}")
+        anota("Painel congelado e formato de número continuam iguais",
+              w2.freeze_panes == "A2" and w2["D2"].number_format == "0.00",
+              f"congelado em {w2.freeze_panes}, formato {w2['D2'].number_format}")
+        anota("As outras abas do arquivo não foram mexidas",
+              "Nao mexer" in wb2.sheetnames and wb2["Nao mexer"]["A1"].value == "intacto",
+              f"abas: {wb2.sheetnames}")
+
+        # a planilha de demonstracao nunca pode entrar no arquivo
+        sess["sheets"]["DEMONSTRACAO_FALSA"] = {"headers": ["X"], "data": [["lixo"]]}
+        sess.setdefault("demo", []).append("DEMONSTRACAO_FALSA")
+        reais = {n: p for n, p in sess["sheets"].items()
+                 if n not in set(sess.get("demo") or [])}
+        _gravar_preservando(caminho, reais, sess.get("abas_origem"))
+        anota("A planilha de demonstração não entra no arquivo",
+              "DEMONSTRACAO_FALSA" not in load_workbook(caminho).sheetnames,
+              f"abas: {load_workbook(caminho).sheetnames}")
+
+        SESSIONS.pop(sid, None)
+    except Exception as e:  # noqa: BLE001
+        anota("O teste do arquivo rodou até o fim", False, f"{type(e).__name__}: {e}")
+    finally:
+        shutil.rmtree(pasta, ignore_errors=True)
+
+    return jsonify({"success": True, "checks": checks,
+                    "ok": all(c["ok"] for c in checks)})
 
 
 @app.route("/api/prefs", methods=["GET", "POST"])
@@ -779,6 +1022,7 @@ if __name__ == "__main__":
             width=1280, height=820, min_size=(900, 600),
             js_api=JsApi(),
         )
+
         # private_mode=False + storage_path: o WebView2 usa um perfil PERSISTENTE
         # ao lado do exe (por padrão o pywebview é "anônimo" e o localStorage —
         # templates, layouts, campos fixos — sumia ao fechar o app).
