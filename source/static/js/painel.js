@@ -276,8 +276,11 @@
     canvas.style.width = '100%';
     canvas.style.height = ((it.h || 240) - HEADER_H - 16) + 'px';
     body.appendChild(canvas);
+    // O TIPO escolhido manda. Antes, um gráfico com séries extras ignorava o
+    // tipo (pizza/empilhado) e continuava desenhando o combo — parecia que
+    // "editar as propriedades não muda nada".
     if (c.tipo === 'empilhado' && c.serieCat) return desenharEmpilhado(f, it, canvas);
-    if ((c.series || []).length) return desenharCombo(f, it, canvas);
+    if ((c.tipo === 'barra' || !c.tipo) && (c.series || []).length) return desenharCombo(f, it, canvas);
 
     const dat = agrupar(f, f.rows, c);
     if (!dat.length) {
@@ -827,7 +830,13 @@
     if (it.type === 'grafico') {
       corpo += '<label>Operação</label>' + opSel('pw-op', c.op || 'Soma');
       corpo += selHtml('pw-seriecat', H, c.serieCat, 'Dividir barras por (empilhado)');
-      corpo += '<label>Séries extras — combo barra + linha</label><div id="pw-series" class="pw-cols"></div>' +
+      corpo += '<label>Séries extras — combo barra + linha</label>';
+      if ((c.series || []).length) {
+        corpo += '<p class="rc-dica">Este gráfico usa as séries abaixo. Enquanto houver série, ' +
+          'os campos <b>Coluna de valor</b> e <b>Operação</b> acima não são usados — quem manda são as séries. ' +
+          'Remova todas para voltar ao gráfico simples.</p>';
+      }
+      corpo += '<div id="pw-series" class="pw-cols"></div>' +
         '<button type="button" id="pw-addserie" class="pw-add">+ gráfico (série)</button>';
       corpo += '<label>Máximo de grupos</label><input id="pw-topn" type="number" min="0" max="500" value="' + (c.topN || 12) + '">';
     }

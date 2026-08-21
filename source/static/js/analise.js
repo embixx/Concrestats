@@ -768,13 +768,38 @@
         y += 24;
       });
     }
+    const nomeArq = `analise_${(state.sheet || 'dados').replace(/[^\w\-]+/g, '_')}.png`;
+    // No app instalado o download do navegador nao pergunta onde salvar e o
+    // arquivo "sumia". Aqui usamos o dialogo do Windows e gravamos no disco.
+    if (window.pywebview?.api?.save_file_dialog) {
+      out.toBlob(async b => {
+        try {
+          const caminho = await window.pywebview.api.save_file_dialog(nomeArq);
+          if (!caminho) return;                         // cancelou
+          const b64 = await new Promise(res => {
+            const fr = new FileReader();
+            fr.onload = () => res(String(fr.result));
+            fr.readAsDataURL(b);
+          });
+          const r = await fetch('/api/salvar_binario', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: caminho, base64: b64 })
+          });
+          const j = await r.json();
+          window.showToast?.(j.success
+            ? `Imagem salva em "${String(j.path).split(/[\/]/).pop()}"`
+            : 'Erro ao salvar: ' + (j.error || ''), j.success ? 'success' : 'error');
+        } catch (_) { window.showToast?.('Falha ao salvar a imagem', 'error'); }
+      });
+      return;
+    }
     out.toBlob(b => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(b);
-      a.download = `analise_${(state.sheet || 'dados').replace(/[^\w\-]+/g, '_')}.png`;
+      a.download = nomeArq;
       a.click(); URL.revokeObjectURL(a.href);
+      window.showToast?.('Imagem baixada', 'success');
     });
-    window.showToast?.('Imagem exportada', 'success');
   }
 
   /* ── init ──────────────────────────────────────── */

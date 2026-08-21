@@ -35,6 +35,17 @@ import urllib.request
 API = "https://api.trello.com/1"
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# O console do Windows abre em cp1252, que nao tem emoji. Um cartao chamado
+# "⬇ BUILD" derrubava o `listar` inteiro com UnicodeEncodeError - e o quadro e'
+# do cliente, entao o titulo do cartao nao esta' sob o nosso controle. Aqui o
+# terminal passa a escrever UTF-8; onde nem isso da', o caractere vira "?" em
+# vez de matar o comando.
+for _fluxo in (sys.stdout, sys.stderr):
+    try:
+        _fluxo.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 
 def credenciais():
     arq = os.path.join(RAIZ, ".trello.json")

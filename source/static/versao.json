@@ -1,0 +1,12 @@
+{
+  "versao": "21/08/2026 16:50",
+  "novidades": [
+    "MODO TESTE: botao 'Testar' no canto inferior direito",
+    "Planilha de exemplo com todos os casos, em 1 clique",
+    "Autoteste roda 13 verificacoes sozinho e mostra o resultado",
+    "Roteiro 'Levar ate la' para o que precisa de olho humano",
+    "A planilha de exemplo NUNCA entra no seu arquivo, nem se salvar com ela aberta",
+    "Botao 'Remover demonstracao' devolve sua aba original",
+    "Corrigido: ensaio sem resultado (n/d) era pintado como aprovado"
+  ]
+}

@@ -938,7 +938,9 @@ td.is-formula::after {
 .graf-containers-area {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  /* auto (era hidden): sem isto o container rolavel do widget largo ficava
+     preso a largura da tela — o grafico era cortado por volta de 1000px */
+  overflow-x: auto;
   padding: 20px 24px;
   background: var(--bg);
   display: flex;
@@ -1057,6 +1059,7 @@ td.is-formula::after {
 
 /* ── CONTAINER DE WIDGETS ─────────────────────── */
 .graf-container {
+  flex: none;              /* nao encolhe: respeita a largura do widget */
   background: var(--bg-white);
   border: 1px solid var(--border);
   border-top: none;
@@ -2204,3 +2207,53 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 }
 .rc-add:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
 .rc-dica { font-size: 11px; color: var(--text-3); margin: 8px 0 4px; line-height: 1.5; }
+
+/* ══════════════════════════════════════════════════════
+   MODO TESTE — roteiro, autoteste e planilha de exemplo
+══════════════════════════════════════════════════════ */
+.btn-modo-teste {
+  position: fixed; right: 18px; bottom: 18px; z-index: 800;
+  background: var(--text); color: #fff; border: none;
+  border-radius: 22px; padding: 9px 18px; cursor: pointer;
+  font-family: var(--sans); font-size: 12.5px; font-weight: 500;
+  box-shadow: 0 3px 12px rgba(28,27,24,.28);
+  transition: transform .14s ease, box-shadow .14s ease;
+}
+.btn-modo-teste:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(28,27,24,.34); }
+.ana-presenting .btn-modo-teste { display: none; }
+@media print { .btn-modo-teste { display: none; } }
+
+.tst-novidades {
+  background: var(--accent-bg); border: 1px solid #cfdcf3;
+  border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 12px;
+}
+.tst-novidades b { display: block; margin-bottom: 5px; font-size: 11.5px; }
+.tst-novidades ul { margin: 0; padding-left: 18px; }
+.tst-novidades li { margin: 2px 0; }
+.tst-acoes { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.tst-resumo { font-family: var(--mono); font-size: 11.5px; color: var(--text-2); margin-left: auto; }
+.tst-resumo.ok { color: var(--success); }
+.tst-resumo.falhou { color: var(--danger); }
+.tst-aviso { font-size: 11px; color: var(--text-3); margin: 0 0 10px; line-height: 1.5; }
+.tst-lista { max-height: 46vh; overflow-y: auto; border-top: 1px solid var(--border-light); }
+.tst-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 4px; border-bottom: 1px solid var(--border-light);
+}
+.tst-status {
+  flex: none; width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; background: var(--bg-panel); color: var(--text-3);
+}
+.tst-status.ok { background: #dff0e4; color: #1d5c34; }
+.tst-status.falhou { background: #fbe3df; color: #8c2c1c; }
+.tst-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tst-txt b { font-size: 12.5px; }
+.tst-txt span { font-size: 11px; color: var(--text-2); line-height: 1.45; }
+.tst-msg { font-family: var(--mono); font-size: 10.5px !important; color: var(--text-3) !important; }
+.tst-ir {
+  flex: none; align-self: center; background: var(--bg-white);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 5px 11px; cursor: pointer; font-size: 11px; color: var(--text-2);
+}
+.tst-ir:hover { border-color: var(--accent); color: var(--accent); }

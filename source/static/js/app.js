@@ -208,11 +208,16 @@ const PALETA_COR = {
   amarelo:  { fundo: '#fdf1d3', texto: '#7a5a10' },
   azul:     { fundo: '#e2ebfa', texto: '#1d3f75' },
 };
+const OPS_NUMERICOS = ['>', '>=', '<', '<='];
 function corDaRegra(ci, txt, row) {
   if (!state.regrasCor.length) return null;
   const nomeCol = state.headers[ci];
   for (const r of state.regrasCor) {
     if (r.col !== nomeCol) continue;
+    // Comparação numérica só vale em célula numérica. Sem isto, um corpo de
+    // prova com "n/d" (sem resultado) era pintado de VERDE por "MPA >= FCK" —
+    // ensaio que nem existe aparecendo como aprovado.
+    if (OPS_NUMERICOS.includes(r.op) && isNaN(parseNumberBR(txt))) continue;
     try {
       if (applyOperator(txt, r.op, r.val, row)) return PALETA_COR[r.cor] || PALETA_COR.amarelo;
     } catch (_) { /* regra inválida: ignora */ }
@@ -1949,3 +1954,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }).catch(() => {});
 });
+
+// Lista de recentes acessivel de qualquer lugar (a tela inicial some assim
+// que uma planilha e aberta, entao os recentes ficavam invisiveis).
+function abrirModalRecentes() {
+  const soNome = v => { const t = String(v || ''); const i = Math.max(t.lastIndexOf('\\'), t.lastIndexOf('/')); return i >= 0 ? t.slice(i + 1) : t; };
+  if (!_recentes.length) { toast('Nenhum arquivo recente ainda', 'error'); return; }
+  const html = '<div class="recentes-box" style="margin:0;width:100%">' +
+    _recentes.map((r, i) =>
+      `<div class="recente-item" data-i="${i}" title="${escHtml(r.path)}">
+         <span class="recente-nome">${escHtml(soNome(r.path))}</span>
+         <span class="recente-path">${escHtml(r.path)}</span>
+       </div>`).join('') + '</div>';
+  openModal('Arquivos recentes', html, () => closeModal());
+  setTimeout(() => {
+    document.querySelectorAll('#modal-content .recente-item').forEach(el => {
+      el.addEventListener('click', async () => {
+        const rec = _recentes[parseInt(el.dataset.i)];
+        closeModal();
+        setStatus('Abrindo...', 'busy');
+        const res = await apiFetch('/api/load_path', { method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: SESSION_ID, path: rec.path }) });
+        if (res && res.success) {
+          loadSheetData(res); markSaved();
+          window.__concreSourcePath = res.path || rec.path;
+          registrarRecente(rec.path);
+          toast(`"${soNome(rec.path)}" carregado`, 'success');
+        } else {
+          toast('Não foi possível abrir (o arquivo foi movido?)', 'error');
+          setStatus('Erro', 'error');
+          _recentes = _recentes.filter(x => x.path !== rec.path);
+          renderRecentes();
+        }
+      });
+    });
+  }, 30);
+}
+document.getElementById('btn-recentes')?.addEventListener('click', abrirModalRecentes);

@@ -106,7 +106,8 @@ def _usuario():
 
 
 def _session(sid):
-    return SESSIONS.setdefault(sid, {"sheets": {}, "active": None, "path": None})
+    return SESSIONS.setdefault(sid, {"sheets": {}, "active": None, "path": None,
+                                 "demo": []})
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -418,6 +419,11 @@ def api_new_sheet():
         n += 1
     sess["sheets"][name] = {"headers": ["A", "B", "C"], "data": [["", "", ""]]}
     sess["active"] = name
+    # Aba criada pelo Modo Teste: nunca deve entrar no arquivo do usuario.
+    if body.get("demo"):
+        sess.setdefault("demo", [])
+        if name not in sess["demo"]:
+            sess["demo"].append(name)
     return sheet_response(sess)
 
 
@@ -498,8 +504,15 @@ def api_save_file():
                 path, index=False, encoding="utf-8-sig")
         else:
             used = set()
+            # As abas de demonstracao do Modo Teste ficam de fora: elas existem
+            # so' para o teste e nao podem contaminar a planilha de trabalho.
+            demo = set(sess.get("demo") or [])
+            reais = {n: p for n, p in sess["sheets"].items() if n not in demo}
+            if not reais:
+                return jsonify({"success": False,
+                                "error": "so' ha planilha de demonstracao aberta"}), 400
             with pd.ExcelWriter(path, engine="openpyxl") as w:
-                for sheet_name, payload in sess["sheets"].items():
+                for sheet_name, payload in reais.items():
                     df = payload_to_df(payload["headers"], payload["data"])
                     df.to_excel(w, sheet_name=_safe_sheet_name(sheet_name, used),
                                 index=False)
@@ -612,6 +625,29 @@ def api_export_aoa():
     except PermissionError:
         return jsonify({"success": False,
                         "error": "arquivo em uso — feche-o no Excel e tente de novo"}), 500
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/salvar_binario", methods=["POST"])
+def api_salvar_binario():
+    """Grava um arquivo binario (ex.: PNG) no caminho escolhido pelo usuario.
+    Existe porque no app nativo o download do navegador nao pergunta onde
+    salvar — o arquivo 'sumia'."""
+    if MODO_WEB:
+        return _bloqueado_na_web()
+    import base64
+    body = request.get_json(force=True, silent=True) or {}
+    path = (body.get("path") or "").strip()
+    dados = body.get("base64") or ""
+    if not path or not dados:
+        return jsonify({"success": False, "error": "caminho ou conteudo ausente"}), 400
+    try:
+        if "," in dados[:64]:            # remove prefixo data:image/png;base64,
+            dados = dados.split(",", 1)[1]
+        with open(path, "wb") as fh:
+            fh.write(base64.b64decode(dados))
+        return jsonify({"success": True, "path": path})
     except Exception as e:  # noqa: BLE001
         return jsonify({"success": False, "error": str(e)}), 500
 
