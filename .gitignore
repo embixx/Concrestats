@@ -52,3 +52,7 @@ AGENTS.md
 .cursor/
 .aider*
 .ultima_build.json
+
+# perfil do WebView2 criado ao rodar o app
+webview_data/
+source/webview_data/
