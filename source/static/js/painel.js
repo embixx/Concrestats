@@ -253,6 +253,21 @@
     return (c.valor || 'Contagem') + ' por ' + alvo;
   }
 
+  // Colunas que servem para dividir/agrupar: texto com poucos valores repetidos.
+  function colunasDeTexto(f) {
+    const viz = V();
+    const out = [];
+    f.headers.forEach((h, i) => {
+      const amostra = f.rows.slice(0, 200).map(r => r[i]).filter(v => String(v || '').trim());
+      if (!amostra.length) return;
+      const numericos = amostra.filter(v => !isNaN(viz.num(v))).length;
+      if (numericos > amostra.length * 0.5) return;          // e' coluna de numero
+      const distintos = new Set(amostra.map(v => String(v))).size;
+      if (distintos > 1 && distintos <= Math.max(12, amostra.length * 0.4)) out.push(h);
+    });
+    return out;
+  }
+
   /* ── desenho por tipo ──────────────────────────── */
   function desenhar(f, it, body) {
     const c = it.config, viz = V();
@@ -271,15 +286,66 @@
     }
     if (it.type === 'tabela') return desenharTabela(f, it, body);
 
+    desenharGrafico(f, it, body);
+    // Insights valem para QUALQUER tipo de grafico — antes so' a tabela tinha
+    // a opcao, e no empilhado a faixa nem aparecia.
+    if (c.insights) anexarInsights(f, it, body);
+  }
+
+  function anexarInsights(f, it, body) {
+    const c = it.config, viz = V();
+    let dados = [];
+    try { dados = agrupar(f, f.rows, c) || []; } catch (e) { dados = []; }
+    if (!dados.length) return;
+    const faixa = document.createElement('div');
+    faixa.className = 'pan-ins-faixa';
+    faixa.innerHTML = montarInsightsTabela(dados, viz);
+    if (!faixa.innerHTML.trim()) return;
+    body.appendChild(faixa);
+    // devolve ao desenho a altura que a faixa ocupou
+    const cv = body.querySelector('canvas');
+    if (cv) {
+      const altura = Math.max(90,
+        (it.h || 240) - HEADER_H - 16 - faixa.offsetHeight - 8);
+      if (Math.abs(parseFloat(cv.style.height) - altura) > 4) {
+        cv.style.height = altura + 'px';
+        const antes = body.querySelector('.pan-ins-faixa');
+        desenharGrafico(f, it, body, cv);
+        if (antes) body.appendChild(antes);
+      }
+    }
+  }
+
+  function desenharGrafico(f, it, body, canvasExistente) {
+    const c = it.config, viz = V();
     if (c.tipo === 'calor') return desenharCalor(f, it, body);
-    const canvas = document.createElement('canvas');
-    canvas.style.width = '100%';
-    canvas.style.height = ((it.h || 240) - HEADER_H - 16) + 'px';
-    body.appendChild(canvas);
+    let canvas = canvasExistente;
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.style.width = '100%';
+      canvas.style.height = ((it.h || 240) - HEADER_H - 16) + 'px';
+      body.appendChild(canvas);
+    }
     // O TIPO escolhido manda. Antes, um gráfico com séries extras ignorava o
     // tipo (pizza/empilhado) e continuava desenhando o combo — parecia que
     // "editar as propriedades não muda nada".
-    if (c.tipo === 'empilhado' && c.serieCat) return desenharEmpilhado(f, it, canvas);
+    if (c.tipo === 'empilhado') {
+      // Escolher "Barra empilhada" sem dizer POR QUE dividir nao tem como
+      // funcionar. Antes caia num grafico comum, e parecia que a edicao do
+      // painel nao fazia efeito nenhum.
+      if (c.serieCat) return desenharEmpilhado(f, it, canvas);
+      const cand = colunasDeTexto(f).filter(h => h !== c.grupo);
+      if (cand.length) {
+        c.serieCat = cand[0];
+        salvar();
+        return desenharEmpilhado(f, it, canvas);
+      }
+      canvas.remove();
+      body.innerHTML = '<p class="pan-vazio">Para empilhar, escolha em ' +
+        '<b>Dividir barras por</b> qual coluna separa as fatias ' +
+        '(ex.: CLIENTE, REGIÃO).</p>';
+      return;
+    }
     if ((c.tipo === 'barra' || !c.tipo) && (c.series || []).length) return desenharCombo(f, it, canvas);
 
     const dat = agrupar(f, f.rows, c);
@@ -291,6 +357,7 @@
     const fv = v => viz.fmt0(v) + sufixo;
     if (c.tipo === 'pizza') viz.drawDonut(canvas, dat.map(d => d.k), dat.map(d => d.v), null);
     else viz.drawBars(canvas, dat.map(d => d.k), dat.map(d => d.v), null, fv);
+
   }
 
   function desenharDado(f, it, body) {
@@ -390,16 +457,24 @@
 
   // Insights da própria tabela (o Naor pediu insights on/off por widget).
   function montarInsightsTabela(base, viz) {
-    if (!base.length) return '';
-    const tot = base.reduce((s, x) => s + (isNaN(x.v) ? 0 : Math.abs(x.v)), 0) || 1;
-    const top = base[0];
+    const vals = (base || []).filter(x => x && !isNaN(x.v));
+    if (!vals.length) return '';
+    // Maior e menor calculados de verdade. Antes assumia a lista ja' ordenada
+    // por valor — num grafico por mes (ordenado por data) saia "Maior: 220" e
+    // "Menor: 340", que e' visivelmente errado.
+    const tot = vals.reduce((s, x) => s + Math.abs(x.v), 0) || 1;
+    let top = vals[0], baixo = vals[0];
+    vals.forEach(x => { if (x.v > top.v) top = x; if (x.v < baixo.v) baixo = x; });
     const cards = [{
       cls: 'info', ico: '★',
       txt: 'Maior: ' + top.k + ' (' + viz.fmt0(top.v) + ' · ' + viz.fmt(Math.abs(top.v) / tot * 100, 1) + '%)'
     }];
-    if (base.length > 1) {
-      const ult = base[base.length - 1];
-      cards.push({ cls: 'down', ico: '▼', txt: 'Menor: ' + ult.k + ' (' + viz.fmt0(ult.v) + ')' });
+    if (vals.length > 1 && baixo.k !== top.k) {
+      cards.push({ cls: 'down', ico: '▼', txt: 'Menor: ' + baixo.k + ' (' + viz.fmt0(baixo.v) + ')' });
+    }
+    if (vals.length > 2) {
+      const media = vals.reduce((s, x) => s + x.v, 0) / vals.length;
+      cards.push({ cls: 'info', ico: '~', txt: 'Média: ' + viz.fmt0(media) + ' por ' + (vals.length) + ' grupos' });
     }
     const conc = Math.abs(top.v) / tot * 100;
     if (conc > 50) cards.push({ cls: 'warn', ico: '!', txt: '"' + top.k + '" concentra ' + viz.fmt(conc, 1) + '% do total' });
@@ -407,6 +482,7 @@
       '<div class="ins-card ' + i.cls + '"><span class="ins-ico">' + i.ico + '</span><span>' +
       esc(i.txt) + '</span></div>').join('') + '</div>';
   }
+
 
   function desenharEmpilhado(f, it, canvas) {
     const c = it.config, viz = V(), num = viz.num;
@@ -829,6 +905,8 @@
     }
     if (it.type === 'grafico') {
       corpo += '<label>Operação</label>' + opSel('pw-op', c.op || 'Soma');
+      corpo += '<label class="pw-check"><input type="checkbox" id="pw-ins"' +
+        (c.insights ? ' checked' : '') + '> Mostrar insights abaixo do gráfico</label>';
       corpo += selHtml('pw-seriecat', H, c.serieCat, 'Dividir barras por (empilhado)');
       corpo += '<label>Séries extras — combo barra + linha</label>';
       if ((c.series || []).length) {

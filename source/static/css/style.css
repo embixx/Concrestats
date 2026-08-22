@@ -2196,6 +2196,15 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   background: var(--bg-white);
   box-shadow: 1px 0 0 var(--border);
 }
+/* A ultima coluna congelada ganha uma sombra de verdade: sem isso nao dava
+   para ver onde terminava a parte fixa e a planilha parecia normal. */
+#data-table th.col-fixa.fixa-fim, #data-table td.col-fixa.fixa-fim {
+  box-shadow: 3px 0 5px -2px rgba(28,27,24,.22), 1px 0 0 var(--border-dark);
+}
+#data-table tbody td.col-fixa { background: var(--bg-white); }
+.toolbar-btn.ativo, #btn-congelar.ativo {
+  background: var(--accent-bg); border-color: var(--accent); color: var(--accent);
+}
 #data-table thead th.col-fixa { z-index: 12; background: var(--text); }
 #data-table tbody tr.selected td.col-fixa { background: #e8eef8; }
 
@@ -2327,3 +2336,37 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   font-size: 11px; cursor: pointer; font-family: var(--sans); transition: all .15s;
 }
 .tst-ir:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Faixa de insights por baixo de um grafico do Painel */
+.pan-ins-faixa { margin-top: 6px; }
+.pan-ins-faixa .ana-ins, .pan-ins-faixa .pan-ins {
+  display: flex; flex-wrap: wrap; gap: 5px;
+}
+.pan-ins-faixa .ins-card { font-size: 10.5px; padding: 3px 7px; }
+
+/* Modal de cruzamento: explicado em portugues, com previa */
+.modal-box.modal-join { max-width: 620px; width: min(620px, 94vw); max-height: 90vh;
+  display: flex; flex-direction: column; }
+.modal-box.modal-join .modal-body { overflow-y: auto; }
+.jn-ajuda { background: var(--accent-bg); border: 1px solid #d5e0f2; border-radius: 6px;
+  padding: 9px 11px; font-size: 11.5px; color: var(--text-2); line-height: 1.5; margin-bottom: 4px; }
+.jn-ajuda b { color: var(--text); }
+.jn-exemplo { margin-top: 6px; padding-top: 6px; border-top: 1px dashed #cbd8ec;
+  font-size: 11px; color: var(--text-2); }
+.jn-chaves { display: flex; align-items: flex-end; gap: 8px; }
+.jn-chaves > div { flex: 1; }
+.jn-chaves span { display: block; font-size: 10px; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--text-3); margin-bottom: 3px; }
+.jn-chaves .jn-igual { flex: none; font-family: var(--mono); font-size: 15px;
+  color: var(--text-3); padding-bottom: 7px; }
+.jn-previa { margin-top: 8px; font-size: 11.5px; line-height: 1.5; padding: 7px 10px;
+  border-radius: 5px; background: var(--bg-panel); color: var(--text-2); }
+.jn-previa.bom { background: #e7f2ea; color: #1d5c34; }
+.jn-previa.meio { background: #fdf3e3; color: #7a5312; }
+.jn-previa.aviso { background: var(--danger-bg); color: var(--danger); }
+.jn-cont { text-transform: none; letter-spacing: 0; color: var(--text-3); font-size: 10.5px; }
+.jn-cols { max-height: 148px; overflow: auto; border: 1px solid var(--border);
+  border-radius: 4px; padding: 6px 8px; background: var(--bg); }
+.jn-col { display: flex; gap: 7px; align-items: center; margin: 3px 0; font-size: 12px;
+  text-transform: none; letter-spacing: 0; color: var(--text); cursor: pointer; }
+.jn-vazio { font-size: 11.5px; color: var(--text-3); margin: 4px 0; }

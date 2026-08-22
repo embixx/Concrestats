@@ -1,13 +1,13 @@
 {
-  "versao": "21/08/2026 17:55",
+  "versao": "22/08/2026 16:46",
   "novidades": [
-    "MODO TESTE refeito: 25 verificacoes automaticas, agrupadas e com barra de progresso",
-    "Botao 'Copiar resultado': o teste vira um texto pronto para colar",
-    "O Salvar agora GRAVA POR CIMA: formulas, formatacao, largura e datas ficam de pe",
-    "Numero volta como numero (antes virava texto e o Excel parava de somar)",
-    "Codigo com zero a esquerda (007) nao vira 7",
-    "A ultima alteracao antes de clicar em Salvar nao se perde mais",
-    "A planilha de demonstracao nunca entra no seu arquivo e some no fim",
-    "Corrigido: ensaio sem resultado (n/d) era pintado como aprovado"
+    "Salvar por arrastar: nao diz mais 'salvo' gravando numa copia — pergunta onde gravar",
+    "Arquivos recentes agora enchem de verdade (antes a lista nascia e morria vazia)",
+    "Importar traz as COLUNAS NOVAS do arquivo, em vez de descarta-las",
+    "Cruzar refeito: explicado em portugues e com previa de quantas linhas casam",
+    "Painel: empilhado funciona sem configurar nada e aceita insights em qualquer grafico",
+    "Insights corrigidos: 'maior' e 'menor' estavam trocados em grafico por mes",
+    "Congelar colunas: mostra o que ficou fixo e avisa quando nao ha coluna fora da tela",
+    "Codigo com zero a esquerda (007) preservado tambem ao exportar"
   ]
 }

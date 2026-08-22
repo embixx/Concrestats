@@ -150,7 +150,8 @@ function renderHead() {
   let hRow = '<tr><th class="row-num row-num-header">№</th>';
   state.headers.forEach((h, i) => {
     const sortIcon = state.sortState.col === i ? (state.sortState.dir === 'asc' ? '↓' : '↑') : '';
-    const fx = i < state.congelarCols ? ' col-fixa' : '';
+    const fx = i < state.congelarCols
+      ? ' col-fixa' + (i === state.congelarCols - 1 ? ' fixa-fim' : '') : '';
     hRow += `<th data-col="${i}" class="${fx.trim()}"><span>${escHtml(h)}</span><span class="sort-indicator">${sortIcon}</span><div class="col-resize" data-col="${i}"></div></th>`;
   });
   hRow += '</tr>';
@@ -275,7 +276,8 @@ function renderBody() {
       const txt = String(val);
       const neg = ehNegativo(txt) ? ' cel-neg' : '';
       const hit = (busca.termo && txt.toLowerCase().includes(busca.termo)) ? ' cel-busca' : '';
-      const fx  = ci < state.congelarCols ? ' col-fixa' : '';
+      const fx  = ci < state.congelarCols
+        ? ' col-fixa' + (ci === state.congelarCols - 1 ? ' fixa-fim' : '') : '';
       const cor = corDaRegra(ci, txt, row);
       const est = cor ? ` style="background:${cor.fundo};color:${cor.texto}"` : '';
       html += `<td data-row="${ri}" data-col="${ci}" class="${isFormula ? 'is-formula' : ''}${active}${neg}${hit}${fx}"${est}>${escHtml(txt)}</td>`;
@@ -836,10 +838,13 @@ async function importMerge(file) {
     state.data = res.data.data;
     recomputeFilters();   // mantém o filtro ativo após alterar os dados
     renderGrid();
-    toast('Dados importados com sucesso', 'success');
+    saveToServer();
+    const novas = res.colunas_novas || [];
+    toast(`${res.linhas_add || 0} linha(s) importada(s)` +
+      (novas.length ? ` — coluna(s) nova(s): ${novas.join(', ')}` : ''), 'success');
     setStatus(state.activeSheet);
   } else {
-    toast('Erro na importação', 'error');
+    toast('Erro na importação: ' + ((res && res.error) || 'falha'), 'error');
     setStatus('Erro', 'error');
   }
 }
@@ -1320,12 +1325,17 @@ async function saveFile() {
   });
   let res = await post({ session_id: SESSION_ID, sheet_name: state.activeSheet });
 
-  // Sem arquivo de origem (planilha criada do zero): "Salvar como" nativo.
-  if (res && !res.success && /sem arquivo de origem/i.test(res.error || '')
-      && window.pywebview?.api?.save_file_dialog) {
+  // Sem arquivo de origem (planilha criada do zero) OU arquivo aberto por
+  // arrastar (o app so' tem uma copia): pergunta onde gravar, em vez de
+  // gravar escondido numa copia e dizer que salvou.
+  const pedeDestino = res && !res.success &&
+      (res.precisa_destino || /sem arquivo de origem/i.test(res.error || ''));
+  if (pedeDestino && window.pywebview?.api?.save_file_dialog) {
     try {
+      if (res.precisa_destino) toast('Escolha onde gravar este arquivo', 'info');
       const path = await window.pywebview.api.save_file_dialog(
-        (state.activeSheet || 'planilha') + '.xlsx');
+        (window.__concreNomeArquivo || state.activeSheet || 'planilha')
+          .replace(/\.(xlsx|xls|csv)$/i, '') + '.xlsx');
       if (!path) { setStatus('Pronto'); _salvandoAgora = false; return; } // cancelou
       res = await post({ session_id: SESSION_ID, sheet_name: state.activeSheet, path });
     } catch (_) { /* mantém o res original */ }
@@ -1333,6 +1343,7 @@ async function saveFile() {
 
   if (res && res.success) {
     markSaved();
+    if (res.path) registrarRecente(res.path);
     const nome = res.path ? String(res.path).split(/[\\\/]/).pop() : 'arquivo';
     toast(`Salvo em "${nome}"`, 'success');
     setStatus(state.activeSheet);
@@ -1519,6 +1530,7 @@ async function abrirArquivoNativo() {
         loadSheetData(res);
         markSaved();
         window.__concreSourcePath = res.path || path;
+        registrarRecente(res.path || path);   // sem isto a lista de recentes ficava sempre vazia
         toast(`"${String(path).split(/[\\\/]/).pop()}" carregado`, 'success');
       } else {
         toast('Erro: ' + (res && res.error ? res.error : 'falha ao abrir'), 'error');
@@ -1576,28 +1588,84 @@ async function abrirModalJoin() {
   }
   const A = state.activeSheet && names.includes(state.activeSheet) ? state.activeSheet : names[0];
   const selOpts = (arr, cur) => arr.map(n => `<option ${n === cur ? 'selected' : ''}>${escHtml(n)}</option>`).join('');
-  openModal('Cruzar planilhas', `
-    <label>Planilha base (recebe as colunas)</label><select id="jn-a">${selOpts(names, A)}</select>
-    <label>Chave na base</label><select id="jn-ka"></select>
-    <label>Planilha de origem (fornece as colunas)</label><select id="jn-b">${selOpts(names, names.find(n => n !== A) || names[0])}</select>
-    <label>Chave na origem</label><select id="jn-kb"></select>
-    <label>Colunas para trazer</label>
-    <div id="jn-cols" style="max-height:150px;overflow:auto;border:1px solid var(--border);border-radius:4px;padding:6px 8px;background:var(--bg)"></div>
-    <label>Resultado</label>
-    <select id="jn-dest"><option value="nova">Nova planilha</option><option value="atual">Adicionar colunas na planilha base</option></select>
-  `, executarJoin);
+
+  // O nome "cruzar" nao dizia nada para quem usa. Agora o modal explica em
+  // portugues o que vai acontecer, mostra um exemplo e faz uma PREVIA de
+  // quantas linhas vao casar antes de confirmar.
+  openModal('Trazer colunas de outra planilha', `
+    <div class="jn-ajuda">
+      <b>O que isto faz:</b> procura cada linha desta planilha na outra, usando uma
+      coluna em comum, e traz as informações que faltam.
+      <div class="jn-exemplo">
+        Exemplo: sua planilha tem <b>CLIENTE</b>; a outra tem <b>CLIENTE</b> e <b>REGIÃO</b>.
+        Cruzando pelo CLIENTE, a REGIÃO entra na sua planilha.
+      </div>
+    </div>
+    <label>1. Planilha que vai RECEBER as colunas</label><select id="jn-a">${selOpts(names, A)}</select>
+    <label>2. Planilha que vai FORNECER as colunas</label><select id="jn-b">${selOpts(names, names.find(n => n !== A) || names[0])}</select>
+    <label>3. Coluna em comum entre as duas</label>
+    <div class="jn-chaves">
+      <div><span>nesta</span><select id="jn-ka"></select></div>
+      <div class="jn-igual">=</div>
+      <div><span>na outra</span><select id="jn-kb"></select></div>
+    </div>
+    <div id="jn-previa" class="jn-previa">conferindo...</div>
+    <label>4. O que trazer <span id="jn-cont" class="jn-cont"></span></label>
+    <div id="jn-cols" class="jn-cols"></div>
+    <label>5. Onde colocar o resultado</label>
+    <select id="jn-dest">
+      <option value="nova">Numa planilha nova (não mexe na atual)</option>
+      <option value="atual">Acrescentar as colunas nesta mesma planilha</option>
+    </select>
+  `, executarJoin, 'modal-join');
+
+  const previa = async () => {
+    const el = document.getElementById('jn-previa');
+    if (!el) return;
+    const a = document.getElementById('jn-a').value, b = document.getElementById('jn-b').value;
+    const ka = document.getElementById('jn-ka').value, kb = document.getElementById('jn-kb').value;
+    if (a === b) { el.className = 'jn-previa aviso'; el.textContent =
+      'Escolha duas planilhas diferentes.'; return; }
+    el.className = 'jn-previa'; el.textContent = 'conferindo...';
+    try {
+      const r = await apiFetch('/api/join_preview', { method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ session_id: SESSION_ID, left_sheet: a, right_sheet: b,
+                               left_key: ka, right_key: kb }) });
+      if (!r || !r.success) { el.className = 'jn-previa aviso'; el.textContent = (r && r.error) || 'não consegui conferir'; return; }
+      const pct = r.total ? Math.round(r.matched / r.total * 100) : 0;
+      el.className = 'jn-previa ' + (pct === 0 ? 'aviso' : pct < 60 ? 'meio' : 'bom');
+      el.textContent = pct === 0
+        ? 'Nenhuma linha casou por estas colunas — provavelmente não são a mesma informação.'
+        : `${r.matched} de ${r.total} linhas encontram par (${pct}%)` +
+          (r.exemplo ? ` · ex.: "${r.exemplo}"` : '') +
+          (pct < 100 ? '. As demais ficam em branco, sem sumir.' : '');
+    } catch (e) { el.className = 'jn-previa aviso'; el.textContent = 'não consegui conferir'; }
+  };
+
   const fill = () => {
     const a = document.getElementById('jn-a').value, b = document.getElementById('jn-b').value;
     const ha = info.sheets[a] || [], hb = info.sheets[b] || [];
     const guess = ha.find(h => hb.includes(h));
     document.getElementById('jn-ka').innerHTML = selOpts(ha, guess || ha[0]);
     document.getElementById('jn-kb').innerHTML = selOpts(hb, guess || hb[0]);
-    document.getElementById('jn-cols').innerHTML = hb.map(h =>
-      `<label style="display:flex;gap:6px;align-items:center;margin:3px 0;font-size:12px;text-transform:none;letter-spacing:0;color:var(--text)">
-         <input type="checkbox" value="${escHtml(h)}"> ${escHtml(h)}</label>`).join('');
+    const chave = document.getElementById('jn-kb').value;
+    document.getElementById('jn-cols').innerHTML = hb.filter(h => h !== chave).map(h =>
+      `<label class="jn-col"><input type="checkbox" value="${escHtml(h)}"> ${escHtml(h)}</label>`).join('')
+      || '<p class="jn-vazio">A outra planilha não tem outras colunas para trazer.</p>';
+    document.getElementById('jn-cols').addEventListener('change', contar);
+    contar();
+    previa();
+  };
+  const contar = () => {
+    const n = document.querySelectorAll('#jn-cols input:checked').length;
+    const el = document.getElementById('jn-cont');
+    if (el) el.textContent = n ? `(${n} selecionada${n > 1 ? 's' : ''})` : '(marque ao menos uma)';
   };
   document.getElementById('jn-a').addEventListener('change', fill);
   document.getElementById('jn-b').addEventListener('change', fill);
+  document.getElementById('jn-ka').addEventListener('change', previa);
+  document.getElementById('jn-kb').addEventListener('change', () => { fill(); });
   fill();
 }
 async function executarJoin() {
@@ -1761,7 +1829,15 @@ document.addEventListener('dragover', e => e.preventDefault());
 document.addEventListener('drop', e => {
   e.preventDefault();
   const file = e.dataTransfer.files[0];
-  if (file && /\.(xlsx|xls|csv)$/i.test(file.name)) uploadFile(file);
+  if (!file || !/\.(xlsx|xls|csv)$/i.test(file.name)) return;
+  window.__concreNomeArquivo = file.name;
+  uploadFile(file);
+  // O Windows nao entrega o caminho de um arquivo arrastado, entao o app fica
+  // com uma copia. Melhor avisar agora do que na hora de salvar.
+  if (window.pywebview?.api?.open_file_dialog) {
+    setTimeout(() => toast('Arrastado: o app está com uma cópia. Ao salvar, ele vai '
+      + 'perguntar onde gravar. Para editar o original, use Abrir.', 'info'), 900);
+  }
 });
 
 // ── Busca na planilha (Ctrl+F) ─────────────────────
@@ -1968,9 +2044,19 @@ document.getElementById('btn-congelar')?.addEventListener('click', () => {
   state.congelarCols = (state.congelarCols + 1) % (max + 1);   // 0 → 1 → 2 → 3 → 0
   salvarPrefsGrid();
   renderGrid();
-  toast(state.congelarCols
-    ? `${state.congelarCols} coluna(s) congelada(s)`
-    : 'Colunas descongeladas');
+  const btn = document.getElementById('btn-congelar');
+  if (btn) btn.classList.toggle('ativo', state.congelarCols > 0);
+  if (!state.congelarCols) { toast('Colunas descongeladas'); return; }
+  const nomes = state.headers.slice(0, state.congelarCols).join(', ');
+  // Sem coluna fora da tela nao ha' o que congelar — e' o caso em que o botao
+  // parece nao fazer nada. Melhor dizer isso do que deixar no ar.
+  const sc = document.getElementById('grid-scroll');
+  const rolaDeLado = sc && sc.scrollWidth > sc.clientWidth + 4;
+  toast(rolaDeLado
+    ? `${nomes} ficam fixas ao rolar para o lado`
+    : `${nomes} marcadas. Esta planilha cabe inteira na tela, então o efeito só `
+      + `aparece quando houver coluna fora dela (ou com a janela menor).`,
+    rolaDeLado ? 'success' : 'info');
 });
 
 // Posiciona as colunas congeladas (o "left" depende da largura das anteriores).
@@ -1999,6 +2085,8 @@ document.addEventListener('DOMContentLoaded', () => {
   window.prefsGet().then(p => {
     if (p && p.grid) {
       state.congelarCols = p.grid.congelarCols || 0;
+      const bc = document.getElementById('btn-congelar');
+      if (bc) bc.classList.toggle('ativo', state.congelarCols > 0);
       state.regrasCor = Array.isArray(p.grid.regrasCor) ? p.grid.regrasCor : [];
       if (state.headers.length) renderGrid();
     }
@@ -2009,7 +2097,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // que uma planilha e aberta, entao os recentes ficavam invisiveis).
 function abrirModalRecentes() {
   const soNome = v => { const t = String(v || ''); const i = Math.max(t.lastIndexOf('\\'), t.lastIndexOf('/')); return i >= 0 ? t.slice(i + 1) : t; };
-  if (!_recentes.length) { toast('Nenhum arquivo recente ainda', 'error'); return; }
+  if (!_recentes.length) {
+    openModal('Arquivos recentes',
+      '<p style="font-size:12px;color:var(--text-2);line-height:1.6;margin:0">' +
+      'Ainda nao ha nenhum. Assim que voce abrir uma planilha pelo botao <b>Abrir</b>, ' +
+      'ela passa a aparecer aqui — e continua aparecendo depois de fechar o app.<br><br>' +
+      'Arquivo arrastado para a janela nao entra na lista: o Windows nao informa onde ' +
+      'ele esta.</p>', () => closeModal());
+    return;
+  }
   const html = '<div class="recentes-box" style="margin:0;width:100%">' +
     _recentes.map((r, i) =>
       `<div class="recente-item" data-i="${i}" title="${escHtml(r.path)}">

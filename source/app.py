@@ -186,7 +186,7 @@ def read_any(path_or_buffer, filename):
     return sheets
 
 
-def load_into_session(sid, sheets, path=None, mode="replace"):
+def load_into_session(sid, sheets, path=None, mode="replace", copia=False):
     """mode='replace' troca a sessão; mode='add' ANEXA as abas do arquivo às
     existentes (permite cruzar planilhas de arquivos diferentes)."""
     sess = _session(sid)
@@ -207,6 +207,7 @@ def load_into_session(sid, sheets, path=None, mode="replace"):
         sess["active"] = next(iter(sess["sheets"]), None)
         if path:
             sess["path"] = path
+            sess["copia"] = bool(copia)
             # quem veio do arquivo: so' estas podem ser apagadas la' no Salvar
             sess["abas_origem"] = list(novos.keys())
     return sess
@@ -250,8 +251,11 @@ def api_upload():
         f.save(path)
         sheets = read_any(path, safe)
         mode = request.form.get("mode", "replace")
-        sess = load_into_session(sid, sheets, path=path, mode=mode)
-        return sheet_response(sess)
+        # ATENCAO: este 'path' e' a copia dentro de uploads/, NAO o arquivo do
+        # usuario. Marcamos como copia para o Salvar nao mentir dizendo que
+        # gravou no original (era exatamente o que acontecia ao arrastar).
+        sess = load_into_session(sid, sheets, path=path, mode=mode, copia=True)
+        return sheet_response(sess, extra={"copia": True})
     except Exception as e:  # noqa: BLE001
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -303,6 +307,19 @@ def api_import_merge():
                           "Para juntar por uma chave, use o botão Cruzar; "
                           "para abrir como outra aba, use Adicionar.")
             }), 400
+        # Coluna que so' existe no arquivo importado ENTRA na planilha, em vez
+        # de ser jogada fora em silencio (as linhas antigas ficam vazias nela).
+        ja_tem = {norm(h) for h in cur["headers"]}
+        novas = []
+        for h in inc_payload["headers"]:
+            if norm(h) not in ja_tem:
+                novas.append(h)
+                ja_tem.add(norm(h))
+        if novas:
+            cur["headers"] = list(cur["headers"]) + novas
+            for linha in cur["data"]:
+                linha.extend([""] * len(novas))
+
         for row in inc_payload["data"]:
             new_row = []
             for h in cur["headers"]:
@@ -311,10 +328,44 @@ def api_import_merge():
             cur["data"].append(new_row)
         return jsonify({"success": True, "data": cur,
                         "colunas_casadas": len(casadas),
+                        "colunas_novas": novas,
                         "colunas_total": len(cur["headers"]),
                         "linhas_add": len(inc_payload["data"])})
     except Exception as e:  # noqa: BLE001
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/join_preview", methods=["POST"])
+def api_join_preview():
+    """Diz ANTES de confirmar quantas linhas vao achar par. Sem isto, o
+    cruzamento era um salto no escuro: so' dava para saber depois de feito."""
+    body = request.get_json(force=True, silent=True) or {}
+    sess = _session(body.get("session_id", "default"))
+    la, lb = body.get("left_sheet"), body.get("right_sheet")
+    ka, kb = body.get("left_key"), body.get("right_key")
+    if la not in sess["sheets"] or lb not in sess["sheets"]:
+        return jsonify({"success": False, "error": "planilha invalida"}), 400
+    pa, pb = sess["sheets"][la], sess["sheets"][lb]
+    try:
+        ia = pa["headers"].index(ka)
+        ib = pb["headers"].index(kb)
+    except ValueError:
+        return jsonify({"success": False, "error": "coluna invalida"}), 400
+
+    def chave(v):
+        return str(v).strip().upper()
+
+    direita = {chave(r[ib]) for r in pb["data"] if ib < len(r)}
+    total = len(pa["data"])
+    casaram = 0
+    exemplo = ""
+    for r in pa["data"]:
+        if ia < len(r) and chave(r[ia]) in direita:
+            casaram += 1
+            if not exemplo:
+                exemplo = str(r[ia]).strip()[:28]
+    return jsonify({"success": True, "matched": casaram, "total": total,
+                    "exemplo": exemplo})
 
 
 @app.route("/api/sheets_info", methods=["POST"])
@@ -506,9 +557,16 @@ def api_save_file():
         if not os.path.splitext(new_path)[1]:
             new_path += ".xlsx"
         sess["path"] = new_path
+        sess["copia"] = False
     path = sess.get("path")
     if not path or not sess["sheets"]:
         return jsonify({"success": False, "error": "sem arquivo de origem"}), 400
+    if sess.get("copia") and not new_path:
+        # O arquivo entrou por arrastar/anexar: o app so' tem uma copia e nao
+        # sabe onde esta' o original. Antes gravava na copia e dizia "salvo".
+        return jsonify({"success": False, "precisa_destino": True,
+                        "error": "este arquivo foi aberto por arrastar, entao o app "
+                                 "tem so' uma copia dele. Escolha onde gravar."}), 400
     try:
         if path.lower().endswith(".csv"):
             # CSV só comporta uma planilha: grava a ativa.
@@ -569,6 +627,11 @@ def _tipar(txt):
     if s == "":
         return None
     if _RE_INT.match(s):
+        # "007" e' codigo, nao numero: virar 7 perde o zero a' esquerda (o
+        # Excel faz igual). "0" sozinho continua sendo numero.
+        semSinal = s[1:] if s[:1] == "-" else s
+        if len(semSinal) > 1 and semSinal[0] == "0":
+            return s
         try:
             return int(s)
         except ValueError:
