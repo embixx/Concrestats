@@ -1,13 +1,13 @@
 {
-  "versao": "22/08/2026 16:46",
+  "versao": "22/08/2026 19:23",
   "novidades": [
-    "Salvar por arrastar: nao diz mais 'salvo' gravando numa copia — pergunta onde gravar",
-    "Arquivos recentes agora enchem de verdade (antes a lista nascia e morria vazia)",
-    "Importar traz as COLUNAS NOVAS do arquivo, em vez de descarta-las",
-    "Cruzar refeito: explicado em portugues e com previa de quantas linhas casam",
-    "Painel: empilhado funciona sem configurar nada e aceita insights em qualquer grafico",
-    "Insights corrigidos: 'maior' e 'menor' estavam trocados em grafico por mes",
-    "Congelar colunas: mostra o que ficou fixo e avisa quando nao ha coluna fora da tela",
-    "Codigo com zero a esquerda (007) preservado tambem ao exportar"
+    "Crescimento nao inventa mais numero: so compara meses vizinhos, senao diz que nao da para comparar",
+    "Mapa de calor comeca onde os dados comecam (uma data solta esticava tudo e deixava o mapa vazio)",
+    "Grafico empilhado limita as barras e avisa quantas ficaram de fora, em vez de virar um borrao",
+    "Botao CRUZAR virou TRAZER COLUNAS, que e o que ele faz",
+    "Ao arrastar arquivo, o Salvar pergunta onde gravar em vez de dizer 'salvo' numa copia",
+    "Arquivos recentes funcionam de verdade",
+    "Importar traz as colunas novas do arquivo",
+    "Painel: empilhado funciona sozinho e aceita insights em qualquer grafico"
   ]
 }

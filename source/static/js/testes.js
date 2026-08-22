@@ -192,7 +192,7 @@
      grupo:  organiza a lista em blocos                                   */
   const G_ARQ = 'O seu arquivo';
   const G_PLAN = 'Planilha';
-  const G_JUNTAR = 'Juntar e importar';
+  const G_JUNTAR = 'Trazer colunas e importar';
   const G_VIS = 'Análise, gráficos e painel';
   const G_OLHO = 'Precisa do seu olho';
 
@@ -469,8 +469,8 @@
     {
       id: 'cruzar',
       grupo: G_JUNTAR,
-      titulo: 'Cruzar planilhas (trazer REGIAO do Cadastro)',
-      olhar: 'Cruzar: base DEMONSTRAÇÃO, origem Cadastro, chave CLIENTE, trazendo REGIAO.',
+      titulo: 'Trazer colunas de outra planilha (REGIAO do Cadastro)',
+      olhar: 'Trazer colunas: recebe DEMONSTRAÇÃO, fornece Cadastro, coluna em comum CLIENTE, trazendo REGIAO.',
       auto: async () => {
         const r = await apiFetch('/api/join_sheets', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },

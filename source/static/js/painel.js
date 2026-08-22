@@ -134,6 +134,19 @@
     return saida;
   }
 
+  // Dois periodos sao vizinhos? (evita comparar dezembro com janeiro do mesmo
+  // ano e chamar isso de "crescimento")
+  function periodosVizinhos(a, b, grao) {
+    if (!a || !b) return false;
+    if (grao === 'ano') return (+b - +a) === 1;
+    if (grao === 'dia') {
+      const d = (k) => { const p = k.split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]); };
+      return Math.round((d(b) - d(a)) / 86400000) === 1;
+    }
+    const meses = k => { const p = k.split('-'); return (+p[0]) * 12 + (+p[1] - 1); };
+    return (meses(b) - meses(a)) === 1;
+  }
+
   const ehPct = op => op === '% do total' || op === 'Crescimento %';
   // Contagem é inteira; % ganha sufixo; demais usam o formato padrão.
   function fmtOp(v, op) {
@@ -263,9 +276,12 @@
       const numericos = amostra.filter(v => !isNaN(viz.num(v))).length;
       if (numericos > amostra.length * 0.5) return;          // e' coluna de numero
       const distintos = new Set(amostra.map(v => String(v))).size;
-      if (distintos > 1 && distintos <= Math.max(12, amostra.length * 0.4)) out.push(h);
+      // No maximo 12 valores distintos: com mais que isso o empilhado vira um
+      // arco-iris ilegivel (foi o que aconteceu na planilha real do Naor).
+      if (distintos > 1 && distintos <= 12) out.push({ h: h, n: distintos });
     });
-    return out;
+    // menos categorias primeiro: da' o empilhado mais legivel
+    return out.sort((a, b) => a.n - b.n).map(x => x.h);
   }
 
   /* ── desenho por tipo ──────────────────────────── */
@@ -371,12 +387,24 @@
         grupo: '__periodo__', colData: c.colData, grao: c.grao || 'mes',
         valor: c.valor, op: c.opBase || 'Soma'
       });
+      // Comparar o ULTIMO periodo com o ANTERIOR so' faz sentido se eles forem
+      // vizinhos. Numa planilha com um registro solto em janeiro e o resto em
+      // dezembro, saia "-99,9% (2026-12 vs 2026-01)" — numero sem significado.
       if (g.length >= 2) {
-        const a = g[g.length - 2].v, b = g[g.length - 1].v;
-        valor = a ? (b - a) / Math.abs(a) * 100 : NaN;
-        pct = true;
-        sub = sub || (g[g.length - 1].k + ' vs ' + g[g.length - 2].k);
-      } else valor = NaN;
+        const ult = g[g.length - 1], ant = g[g.length - 2];
+        if (!periodosVizinhos(ant.k, ult.k, c.grao || 'mes')) {
+          valor = NaN;
+          sub = 'sem ' + (c.grao === 'ano' ? 'ano' : c.grao === 'dia' ? 'dia' : 'mês') +
+                ' anterior para comparar (' + ant.k + ' → ' + ult.k + ')';
+        } else {
+          valor = ant.v ? (ult.v - ant.v) / Math.abs(ant.v) * 100 : NaN;
+          pct = true;
+          sub = sub || (ult.k + ' vs ' + ant.k);
+        }
+      } else {
+        valor = NaN;
+        sub = sub || 'só há um período nos dados';
+      }
     } else if (c.op === '% do total' && c.grupo && c.filtroValor) {
       const g = agrupar(f, f.rows, { grupo: c.grupo, valor: c.valor, op: c.opBase || 'Soma' });
       const t = g.reduce((s, x) => s + (isNaN(x.v) ? 0 : Math.abs(x.v)), 0) || 1;
@@ -504,6 +532,31 @@
       catTot.set(cat, (catTot.get(cat) || 0) + v);
     });
     xs.sort((a, b) => String(a).localeCompare(String(b)));
+
+    // Sem limite de barras, uma coluna com centenas de valores virava um borrao
+    // com os nomes ilegiveis embaixo. Fica o que importa: por periodo, os
+    // ultimos N; por categoria, os N maiores.
+    const limite = c.topN > 0 ? c.topN : 12;
+    let deFora = 0;
+    if (xs.length > limite) {
+      deFora = xs.length - limite;
+      if (porPeriodo) {
+        xs.splice(0, deFora);
+      } else {
+        const totalPorX = new Map();
+        xs.forEach(k => {
+          let t = 0;
+          (mapa.get(k) || new Map()).forEach(v => { t += v; });
+          totalPorX.set(k, t);
+        });
+        const mantidos = xs.slice()
+          .sort((a, b) => (totalPorX.get(b) || 0) - (totalPorX.get(a) || 0))
+          .slice(0, limite);
+        xs.length = 0;
+        mantidos.forEach(k => xs.push(k));
+      }
+    }
+
     const arr = [];
     catTot.forEach((v, k) => arr.push([k, v]));
     const top = arr.sort((a, b) => b[1] - a[1]).slice(0, 6).map(e => e[0]);
@@ -520,6 +573,20 @@
     };
     if (outros.vals.some(v => v > 0)) series.push(outros);
     viz.drawStacked(canvas, xs, series, null);
+    if (deFora > 0) marcarCorte(canvas, deFora, porPeriodo);
+  }
+
+  // Avisa, sem atrapalhar, que o grafico esta' mostrando so' uma parte.
+  function marcarCorte(canvas, quantos, porPeriodo) {
+    const pai = canvas.parentElement;
+    if (!pai || pai.querySelector('.pan-nota-corte')) return;
+    const p = document.createElement('p');
+    p.className = 'pan-nota pan-nota-corte';
+    p.textContent = porPeriodo
+      ? 'Mostrando os últimos períodos — ' + quantos + ' anteriores ficaram de fora.'
+      : 'Mostrando os maiores — outros ' + quantos + ' ficaram de fora (aumente o ' +
+        '"Máximo de grupos" nas propriedades para ver mais).';
+    pai.appendChild(p);
   }
 
   /* ── combo: várias séries (barra + linha, 2 eixos) ──
@@ -647,7 +714,19 @@
     keys.sort();
     if (!keys.length) { body.innerHTML = '<p class="pan-vazio">Sem datas válidas.</p>'; return; }
     const parse = k => { const p = k.split('-'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); };
-    const d0 = parse(keys[0]), d1 = parse(keys[keys.length - 1]);
+
+    // Uma data solta no comeco do ano esticava o mapa por 52 semanas vazias e
+    // o que interessa ficava fora da tela. Agora o mapa comeca onde os dados
+    // realmente comecam: o trecho mais recente que cobre 98% do movimento.
+    let totalMov = 0;
+    dias.forEach(v => { totalMov += v; });
+    let acumulado = 0, corte = 0;
+    for (let i = keys.length - 1; i >= 0; i--) {
+      acumulado += dias.get(keys[i]) || 0;
+      if (acumulado >= totalMov * 0.98) { corte = i; break; }
+    }
+    const forasDeFora = corte;                      // quantos dias ficaram de fora
+    const d0 = parse(keys[corte]), d1 = parse(keys[keys.length - 1]);
     let maxV = 1;
     dias.forEach(v => { if (v > maxV) maxV = v; });
     const cor = v => v <= 0 ? '#ebedf0'
@@ -666,6 +745,11 @@
       cols.push(semana);
       if (cur > d1 && ((cur.getUTCDay() + 6) % 7) === 0) break;
     }
+    const nota = forasDeFora > 0
+      ? '<p class="pan-nota">Mostrando de ' + keys[corte].split('-').reverse().join('/') +
+        ' em diante — ' + forasDeFora + ' dia(s) mais antigo(s) e isolado(s) ficaram de fora ' +
+        'para o mapa nao virar uma faixa vazia.</p>'
+      : '';
     const C = 12, G = 3;
     let svg = '<svg width="' + (cols.length * (C + G) + 46) + '" height="' + (7 * (C + G) + 34) +
       '" style="font-family:IBM Plex Mono,monospace">';
@@ -691,7 +775,7 @@
       });
     });
     svg += '</svg>';
-    body.innerHTML = '<div class="pan-calor">' + svg + '</div>';
+    body.innerHTML = '<div class="pan-calor">' + svg + '</div>' + nota;
   }
 
   /* ── mover e redimensionar ─────────────────────── */

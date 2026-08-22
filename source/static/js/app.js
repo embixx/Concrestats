@@ -1577,13 +1577,13 @@ document.getElementById('addfile-input').addEventListener('change', e => {
   e.target.value = '';
 });
 
-// ── Cruzar planilhas (PROCV automático) ────────────
+// ── Trazer colunas de outra planilha (o PROCV, automatico) ──
 async function abrirModalJoin() {
   const info = await apiFetch('/api/sheets_info', { method: 'POST',
     headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ session_id: SESSION_ID }) });
   const names = info && info.success ? Object.keys(info.sheets || {}) : [];
   if (names.length < 2) {
-    toast('Para cruzar são necessárias 2 planilhas. Use "Adicionar" para abrir outro arquivo sem perder este.', 'error');
+    toast('É preciso ter 2 planilhas abertas. Use "Adicionar" para abrir outro arquivo sem perder este.', 'error');
     return;
   }
   const A = state.activeSheet && names.includes(state.activeSheet) ? state.activeSheet : names[0];
@@ -1672,14 +1672,14 @@ async function executarJoin() {
   const g = id => document.getElementById(id).value;
   const cols = [...document.querySelectorAll('#jn-cols input:checked')].map(i => i.value);
   if (!cols.length) { toast('Escolha ao menos uma coluna para trazer', 'error'); return; }
-  setStatus('Cruzando...', 'busy');
+  setStatus('Trazendo colunas...', 'busy');
   await enviarPendencias();
   const res = await apiFetch('/api/join_sheets', { method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ session_id: SESSION_ID, left_sheet: g('jn-a'), right_sheet: g('jn-b'),
       left_key: g('jn-ka'), right_key: g('jn-kb'), columns: cols, destino: g('jn-dest') }) });
   if (res && res.success) {
     closeModal(); loadSheetData(res); markDirty();
-    toast(`Cruzamento concluído: ${res.matched} de ${res.total} linhas casaram`, 'success');
+    toast(`Pronto: ${res.matched} de ${res.total} linhas receberam os dados`, 'success');
   } else {
     toast('Erro: ' + (res && res.error ? res.error : 'falha no cruzamento'), 'error');
     setStatus('Erro', 'error');

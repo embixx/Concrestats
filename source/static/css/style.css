@@ -2370,3 +2370,5 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .jn-col { display: flex; gap: 7px; align-items: center; margin: 3px 0; font-size: 12px;
   text-transform: none; letter-spacing: 0; color: var(--text); cursor: pointer; }
 .jn-vazio { font-size: 11.5px; color: var(--text-3); margin: 4px 0; }
+
+.pan-nota { font-size: 10px; color: var(--text-3); margin: 4px 2px 0; line-height: 1.4; }
