@@ -107,9 +107,31 @@ def _usuario():
     return "".join(ch for ch in u if ch.isalnum() or ch in "-_")[:40] or "default"
 
 
+SESSOES_MAX = 6          # quantas sessoes ficam na memoria
+SESSOES_TTL = 3600       # segundos sem uso ate' poder descartar
+
+
+def _limpar_sessoes():
+    """Cada recarregar da janela cria uma sessao nova. Sem limpeza, a planilha
+    inteira ficava na memoria uma vez por recarregada."""
+    agora = time.time()
+    for chave in [c for c, v in SESSIONS.items()
+                  if agora - v.get("visto", 0) > SESSOES_TTL]:
+        SESSIONS.pop(chave, None)
+    if len(SESSIONS) >= SESSOES_MAX:
+        antigas = sorted(SESSIONS.items(), key=lambda kv: kv[1].get("visto", 0))
+        for chave, _ in antigas[:len(SESSIONS) - SESSOES_MAX + 1]:
+            SESSIONS.pop(chave, None)
+
+
 def _session(sid):
-    return SESSIONS.setdefault(sid, {"sheets": {}, "active": None, "path": None,
-                                 "demo": []})
+    sess = SESSIONS.get(sid)
+    if sess is None:
+        _limpar_sessoes()
+        sess = SESSIONS[sid] = {"sheets": {}, "active": None, "path": None,
+                                "demo": []}
+    sess["visto"] = time.time()
+    return sess
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -205,6 +227,11 @@ def load_into_session(sid, sheets, path=None, mode="replace", copia=False):
     else:
         sess["sheets"] = novos
         sess["active"] = next(iter(sess["sheets"]), None)
+        # A marca de "planilha de demonstracao" vale so' para as abas criadas
+        # pelo Modo Teste. Ao abrir um arquivo, tudo que entra e' do usuario —
+        # sem isto, uma aba dele chamada "Cadastro" herdava a marca e ficava
+        # de fora do Salvar, em silencio.
+        sess["demo"] = []
         if path:
             sess["path"] = path
             sess["copia"] = bool(copia)
@@ -335,6 +362,100 @@ def api_import_merge():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+BACKUP_DIR = os.path.join(app_dir(), "copias")
+BACKUP_MAX = 10          # quantas copias por arquivo
+
+
+def _guardar_copia(path):
+    """Guarda o arquivo ANTES de grava-lo por cima. E' a rede de seguranca de
+    quem salva errado: da' para voltar a versao anterior sem depender do Excel."""
+    try:
+        if not path or not os.path.isfile(path):
+            return None
+        os.makedirs(BACKUP_DIR, exist_ok=True)
+        nome = os.path.basename(path)
+        base, ext = os.path.splitext(nome)
+        base = "".join(ch for ch in base if ch.isalnum() or ch in " -_")[:40].strip() or "planilha"
+        carimbo = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        destino = os.path.join(BACKUP_DIR, f"{base}__{carimbo}{ext}")
+        shutil.copy2(path, destino)
+
+        # mantem so' as ultimas BACKUP_MAX copias DESTE arquivo
+        anteriores = sorted(
+            (f for f in os.listdir(BACKUP_DIR) if f.startswith(base + "__")),
+            reverse=True)
+        for velho in anteriores[BACKUP_MAX:]:
+            try:
+                os.remove(os.path.join(BACKUP_DIR, velho))
+            except OSError:
+                pass
+        return destino
+    except Exception:  # noqa: BLE001 -- copia e' proteção extra, nunca impede salvar
+        return None
+
+
+@app.route("/api/copias", methods=["POST"])
+def api_copias():
+    """Lista as copias guardadas do arquivo aberto (as mais novas primeiro)."""
+    if MODO_WEB:
+        return _bloqueado_na_web()
+    body = request.get_json(force=True, silent=True) or {}
+    sess = _session(body.get("session_id", "default"))
+    path = sess.get("path") or ""
+    if not path:
+        return jsonify({"success": True, "copias": []})
+    base, _ = os.path.splitext(os.path.basename(path))
+    base = "".join(ch for ch in base if ch.isalnum() or ch in " -_")[:40].strip()
+    saida = []
+    try:
+        for f in sorted(os.listdir(BACKUP_DIR), reverse=True):
+            if not f.startswith(base + "__"):
+                continue
+            inteiro = os.path.join(BACKUP_DIR, f)
+            marca = f[len(base) + 2:].rsplit(".", 1)[0]
+            try:                       # 2026-08-23_18-36-58 -> 23/08/2026 18:36
+                d, h = marca.split("_")
+                a_, m_, d_ = d.split("-")
+                hh, mm, _ss = h.split("-")
+                quando = f"{d_}/{m_}/{a_} às {hh}:{mm}"
+            except ValueError:
+                quando = marca
+            saida.append({
+                "arquivo": inteiro,
+                "quando": quando,
+                "tamanho": os.path.getsize(inteiro),
+            })
+    except OSError:
+        pass
+    return jsonify({"success": True, "copias": saida, "pasta": BACKUP_DIR})
+
+
+@app.route("/api/restaurar_copia", methods=["POST"])
+def api_restaurar_copia():
+    """Volta o arquivo aberto para uma copia anterior (guardando o estado atual
+    antes, para o 'voltar atras' tambem ter volta)."""
+    if MODO_WEB:
+        return _bloqueado_na_web()
+    body = request.get_json(force=True, silent=True) or {}
+    sid = body.get("session_id", "default")
+    sess = _session(sid)
+    copia = (body.get("arquivo") or "").strip()
+    destino = sess.get("path")
+    if not copia or not os.path.isfile(copia):
+        return jsonify({"success": False, "error": "copia nao encontrada"}), 400
+    if os.path.dirname(os.path.abspath(copia)) != os.path.abspath(BACKUP_DIR):
+        return jsonify({"success": False, "error": "caminho invalido"}), 400
+    if not destino:
+        return jsonify({"success": False, "error": "sem arquivo aberto"}), 400
+    try:
+        _guardar_copia(destino)          # o estado de agora vira copia tambem
+        shutil.copy2(copia, destino)
+        sess_novo = load_into_session(sid, read_any(destino, destino), path=destino)
+        return sheet_response(sess_novo, extra={"restaurado": True})
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/join_preview", methods=["POST"])
 def api_join_preview():
     """Diz ANTES de confirmar quantas linhas vao achar par. Sem isto, o
@@ -378,6 +499,9 @@ def api_sheets_info():
         "sheets": {n: p.get("headers", []) for n, p in sess["sheets"].items()},
         "active": sess["active"],
         "path": sess.get("path"),
+        # quem e' de demonstracao: o Modo Teste limpa POR ESTA marca, nunca
+        # pelo nome — o usuario pode ter uma aba chamada "Cadastro" de verdade
+        "demo": list(sess.get("demo") or []),
     })
 
 
@@ -498,6 +622,8 @@ def api_delete_sheet():
     name = body.get("sheet_name")
     if name in sess["sheets"] and len(sess["sheets"]) > 1:
         sess["sheets"].pop(name, None)
+        if name in (sess.get("demo") or []):
+            sess["demo"].remove(name)      # nome livre de novo
         if sess["active"] == name:
             sess["active"] = next(iter(sess["sheets"]), None)
     return jsonify({
@@ -571,9 +697,15 @@ def api_save_file():
         if path.lower().endswith(".csv"):
             # CSV só comporta uma planilha: grava a ativa.
             name = body.get("sheet_name") or sess["active"]
+            if name in (sess.get("demo") or []):
+                return jsonify({"success": False,
+                                "error": "a planilha aberta e' a de demonstracao "
+                                         "do Modo Teste — ela nao vai para o seu "
+                                         "arquivo"}), 400
             payload = sess["sheets"].get(name)
             if not payload:
                 return jsonify({"success": False, "error": "planilha inválida"}), 400
+            _guardar_copia(path)
             payload_to_df(payload["headers"], payload["data"]).to_csv(
                 path, index=False, encoding="utf-8-sig")
         else:
@@ -586,6 +718,7 @@ def api_save_file():
                 return jsonify({"success": False,
                                 "error": "so' ha planilha de demonstracao aberta"}), 400
             ext = os.path.splitext(path)[1].lower()
+            _guardar_copia(path)        # rede de seguranca antes de sobrescrever
             if os.path.exists(path) and ext in (".xlsx", ".xlsm"):
                 # arquivo ja' existe: gravar POR CIMA, mexendo so' no que mudou
                 _gravar_preservando(path, reais, sess.get("abas_origem"))
@@ -819,6 +952,10 @@ def api_export_aoa():
         if len(df):
             df = df.map(_tipar) if hasattr(df, "map") else df.applymap(_tipar)
         if path:
+            # Na versao web ninguem pode escolher onde gravar no servidor:
+            # gravar em caminho livre so' faz sentido no app de mesa.
+            if MODO_WEB:
+                return _bloqueado_na_web()
             if not os.path.splitext(path)[1]:
                 path += ".xlsx"
             with pd.ExcelWriter(path, engine="openpyxl") as w:
@@ -911,6 +1048,7 @@ def api_autoteste_arquivo():
 
         # o usuario corrige um ensaio e salva
         grade["data"][0][3] = "29,9"
+        _guardar_copia(caminho)        # mesmo caminho do botao Salvar
         _gravar_preservando(caminho, sess["sheets"], sess.get("abas_origem"))
 
         wb2 = load_workbook(caminho)
@@ -937,6 +1075,14 @@ def api_autoteste_arquivo():
         anota("As outras abas do arquivo não foram mexidas",
               "Nao mexer" in wb2.sheetnames and wb2["Nao mexer"]["A1"].value == "intacto",
               f"abas: {wb2.sheetnames}")
+
+        # o app tem que ter guardado uma copia ANTES de sobrescrever
+        base_copia = "".join(ch for ch in os.path.splitext(os.path.basename(caminho))[0]
+                             if ch.isalnum() or ch in " -_")[:40].strip()
+        copias = [f for f in os.listdir(BACKUP_DIR)] if os.path.isdir(BACKUP_DIR) else []
+        anota("Guardou uma copia do arquivo antes de gravar por cima",
+              any(f.startswith(base_copia + "__") for f in copias),
+              f"{len([f for f in copias if f.startswith(base_copia + '__')])} copia(s) na pasta 'copias'")
 
         # a planilha de demonstracao nunca pode entrar no arquivo
         sess["sheets"]["DEMONSTRACAO_FALSA"] = {"headers": ["X"], "data": [["lixo"]]}

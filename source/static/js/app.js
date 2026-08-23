@@ -1221,8 +1221,9 @@ async function exportData(fmt) {
       window.ConcrestatsOpenModule('relatorio');
       toast('Relatório técnico aberto', 'success');
     } else {
-      const relBtn = document.querySelector('.nav-btn[data-module="relatorio"]');
-      if (relBtn) relBtn.click();
+      // O relatorio saiu da barra de cima (estava repetido); este botao e' a
+      // unica porta de entrada agora.
+      toast('Não consegui abrir o relatório', 'error');
     }
     return;
   }
@@ -1374,6 +1375,13 @@ function openModal(title, bodyHtml, onConfirm, classe) {
   const firstInput = document.querySelector('#modal-content input');
   if (firstInput) setTimeout(() => firstInput.focus(), 50);
 }
+// Confirmacao dentro do app. O confirm() do navegador abre uma caixa do
+// Windows que, na janela nativa, pode ficar ATRAS do app — parece travado.
+function confirmar(titulo, texto, aoConfirmar) {
+  openModal(titulo, '<p style="font-size:12.5px;color:var(--text-2);line-height:1.6;margin:0">' +
+    texto + '</p>', aoConfirmar);
+}
+
 function closeModal() {
   document.getElementById('modal-overlay').style.display = 'none';
   const caixa = document.getElementById('modal-box');
@@ -2138,3 +2146,63 @@ function abrirModalRecentes() {
   }, 30);
 }
 document.getElementById('btn-recentes')?.addEventListener('click', abrirModalRecentes);
+
+// ── Versoes anteriores do arquivo ──────────────────
+// Antes de cada Salvar o app guarda uma copia. Aqui ele volta atras sem
+// precisar do Excel nem de backup manual.
+function tamanhoLegivel(b) {
+  if (b > 1048576) return (b / 1048576).toFixed(1) + ' MB';
+  if (b > 1024) return Math.round(b / 1024) + ' KB';
+  return b + ' B';
+}
+
+async function abrirModalCopias() {
+  const r = await apiFetch('/api/copias', { method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ session_id: SESSION_ID }) });
+  const copias = (r && r.copias) || [];
+  if (!copias.length) {
+    openModal('Versões anteriores',
+      '<p style="font-size:12px;color:var(--text-2);line-height:1.6;margin:0">' +
+      'Ainda não há nenhuma. O app guarda uma cópia do arquivo <b>antes de cada ' +
+      'Salvar</b> — depois do primeiro Salvar, as versões aparecem aqui e você ' +
+      'pode voltar para qualquer uma delas.</p>', () => closeModal());
+    return;
+  }
+  const html = '<p class="cp-ajuda">Cada linha é como o arquivo estava ANTES de um Salvar. ' +
+    'Ao voltar, o estado de agora também vira uma cópia — dá para desfazer a volta.</p>' +
+    '<div class="cp-lista">' + copias.map((c, i) =>
+      '<div class="cp-item"><div class="cp-txt"><b>' + escHtml(c.quando) + '</b>' +
+      '<span>' + tamanhoLegivel(c.tamanho) + '</span></div>' +
+      '<button class="cp-voltar" data-i="' + i + '">Voltar para esta</button></div>').join('') +
+    '</div>';
+  openModal('Versões anteriores', html, () => closeModal());
+  setTimeout(() => {
+    document.querySelectorAll('.cp-voltar').forEach(b => {
+      b.addEventListener('click', () => {
+        const c = copias[parseInt(b.dataset.i)];
+        confirmar('Voltar versão',
+          'O arquivo vai voltar para como estava em <b>' + escHtml(c.quando) + '</b>. ' +
+          'O conteúdo de agora será guardado como mais uma versão, então dá para desfazer.',
+          () => restaurarCopia(c));
+      });
+    });
+  }, 40);
+}
+
+async function restaurarCopia(c) {
+  setStatus('Restaurando...', 'busy');
+  const res = await apiFetch('/api/restaurar_copia', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ session_id: SESSION_ID, arquivo: c.arquivo })
+  });
+  if (res && res.success) {
+    closeModal(); loadSheetData(res); markSaved();
+    toast('Arquivo voltou para a versão de ' + c.quando, 'success');
+    setStatus(state.activeSheet);
+  } else {
+    toast('Erro: ' + ((res && res.error) || 'não consegui restaurar'), 'error');
+    setStatus('Erro', 'error');
+  }
+}
+document.getElementById('btn-copias')?.addEventListener('click', abrirModalCopias);

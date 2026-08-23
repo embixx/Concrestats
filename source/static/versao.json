@@ -1,13 +1,12 @@
 {
-  "versao": "22/08/2026 19:23",
+  "versao": "23/08/2026 18:43",
   "novidades": [
-    "Crescimento nao inventa mais numero: so compara meses vizinhos, senao diz que nao da para comparar",
-    "Mapa de calor comeca onde os dados comecam (uma data solta esticava tudo e deixava o mapa vazio)",
-    "Grafico empilhado limita as barras e avisa quantas ficaram de fora, em vez de virar um borrao",
-    "Botao CRUZAR virou TRAZER COLUNAS, que e o que ele faz",
-    "Ao arrastar arquivo, o Salvar pergunta onde gravar em vez de dizer 'salvo' numa copia",
-    "Arquivos recentes funcionam de verdade",
-    "Importar traz as colunas novas do arquivo",
-    "Painel: empilhado funciona sozinho e aceita insights em qualquer grafico"
+    "Relatorio Tecnico saiu da barra de cima (ficava repetido) — usar o da barra de baixo",
+    "NOVO botao VERSOES: o app guarda uma copia antes de cada Salvar e da para voltar atras",
+    "Corrigido grave: uma aba sua chamada 'Cadastro' era apagada pelo Modo Teste",
+    "Avisos do Relatorio deixaram de usar a caixa do Windows, que sumia atras da janela",
+    "Memoria: sessoes antigas eram guardadas para sempre a cada recarregada",
+    "Versao web: exportar nao pode mais gravar em caminho livre do servidor",
+    "Salvar em CSV tambem recusa gravar a planilha de demonstracao"
   ]
 }

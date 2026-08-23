@@ -1,3 +1,9 @@
+// Avisos usam o toast do app (o alert do Windows trava a janela e some
+// atras dela em algumas maquinas).
+function aviso(msg, tipo) {
+  if (window.toast) window.toast(msg, tipo || 'success');
+  else alert(msg);
+}
 (function(){
   'use strict';
 
@@ -294,7 +300,7 @@
     const current = new Set(selectedCols || defaultCols(d.headers));
     const html = '<div class="rep-cols-box">' + d.headers.map(h => `
       <label class="rep-col-option"><input type="checkbox" class="rep-col-cb" value="${esc(h)}" ${current.has(h)?'checked':''}> <span>${esc(h)}</span></label>`).join('') + '</div><button id="rep-apply-cols" class="primary-btn" style="margin-top:12px">Aplicar colunas</button>';
-    if(window.openModal) openModal('Colunas do relatório', html, () => {}); else alert('Seleção indisponível');
+    if(window.openModal) openModal('Colunas do relatório', html, () => {}); else aviso('Não consegui abrir a seleção de colunas', 'error');
     setTimeout(() => {
       const b = $('rep-apply-cols');
       if(b) b.onclick = () => {
@@ -351,7 +357,7 @@
     // HTML: gera o certificado client-side (idêntico à tela) — não depende do backend.
     if(fmt === 'html'){
       const paper = $('rep-body')?.querySelector('.report-ensaio');
-      if(!paper){ alert('Gere o relatório primeiro (clique em Atualizar).'); return; }
+      if(!paper){ aviso('Gere o relatório primeiro: clique em Atualizar', 'error'); return; }
       const clone = paper.cloneNode(true);
       // cloneNode não copia .value editado — lê do DOM vivo, par a par.
       const liveInps = paper.querySelectorAll('.ensaio-inp');
@@ -375,15 +381,15 @@ body{background:#fff;padding:18px}.report-table-wrap{overflow:visible;max-height
     // "pegar o conteúdo do html e transformar em planilha"). Abre no Excel e
     // pode ser reimportado no app sem o erro de "engine".
     const paper = $('rep-body')?.querySelector('.report-ensaio');
-    if(!paper){ alert('Gere o relatório primeiro (clique em Atualizar).'); return; }
-    if(!lastReport || !lastReport.data || !lastReport.data.length){ alert('Sem dados para exportar (verifique o filtro).'); return; }
+    if(!paper){ aviso('Gere o relatório primeiro: clique em Atualizar', 'error'); return; }
+    if(!lastReport || !lastReport.data || !lastReport.data.length){ aviso('Sem dados para exportar — confira o filtro', 'error'); return; }
     const aoa  = buildEnsaioAOA(paper);
 
     // 1ª opção: gerar o .xlsx NO SERVIDOR (openpyxl embutido no app). O download
     // via JS falhava em algumas máquinas — aqui o arquivo é escrito direto.
     if(await exportAoaBackend(aoa, 'ensaio_de_compressao', 'Ensaio de Compressão')) return;
 
-    if(typeof XLSX === 'undefined'){ alert('Não foi possível gerar a planilha.'); return; }
+    if(typeof XLSX === 'undefined'){ aviso('Não foi possível gerar a planilha', 'error'); return; }
     const ws   = XLSX.utils.aoa_to_sheet(aoa);
     const ncol = aoa.reduce((m, r) => Math.max(m, r.length), 1);
     ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:ncol-1}}, {s:{r:1,c:0},e:{r:1,c:ncol-1}}];
@@ -410,7 +416,7 @@ body{background:#fff;padding:18px}.report-table-wrap{overflow:visible;max-height
       const ct = r.headers.get('content-type') || '';
       if(ct.includes('json')){
         const j = await r.json();
-        if(!j.success){ alert('Erro ao salvar: ' + (j.error || '')); return true; }
+        if(!j.success){ aviso('Erro ao salvar: ' + (j.error || ''), 'error'); return true; }
         window.showToast?.(`Planilha salva em "${String(j.path).split(/[\\\/]/).pop()}"`, 'success');
         return true;
       }
@@ -467,7 +473,7 @@ body{background:#fff;padding:18px}.report-table-wrap{overflow:visible;max-height
     const campos = [['email','E-mail'],['cnpj','CNPJ'],['fone','Fone'],['endereco','Endereço'],['cidade','Cidade'],['contato','Contato'],['obra','Obra'],['finalidade','Finalidade'],['dimensao','Dimensão CP'],['prensa','Prensa'],['responsavel','Responsável Técnico']];
     const body = '<p style="font-size:11px;color:var(--text-2);margin-bottom:10px">Estes valores ficam salvos e preenchem o certificado automaticamente. Você ainda pode editar qualquer campo direto na tela.</p>'
       + campos.map(([f,lab]) => `<label style="display:block;margin:8px 0 2px;font-size:11px;color:var(--text-3)">${lab}</label><input class="rec-search-input fx-inp" data-f="${f}" value="${esc(fx[f]||'')}" style="width:100%">`).join('');
-    if(!window.openModal){ alert('Indisponível'); return; }
+    if(!window.openModal){ aviso('Indisponível', 'error'); return; }
     openModal('Campos fixos do certificado', body, () => {
       const o = {};
       document.querySelectorAll('.fx-inp').forEach(i => { if(i.value.trim()) o[i.dataset.f] = i.value.trim(); });

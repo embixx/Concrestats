@@ -74,22 +74,21 @@
   let abaDoUsuario = null;      // para devolver o app como estava
   let nomeDemo = 'DEMONSTRAÇÃO';
   let nomeCadastro = 'Cadastro';
+  const criadasAqui = new Set();   // abas que ESTE teste criou nesta sessao
 
   async function limparDemo(preparando) {
-    const alvos = new Set(['DEMONSTRAÇÃO', 'Cadastro', nomeDemo, nomeCadastro,
-      `${nomeDemo} + ${nomeCadastro}`, 'DEMONSTRAÇÃO + Cadastro']);
-    (state.sheets || []).forEach(n => { if (/DEMONSTRA|^Cadastro/.test(n)) alvos.add(n); });
-    // A lista do cliente fica velha: o cruzamento cria a aba NO SERVIDOR e a
-    // tela nem sempre soube dela. Entao a limpeza pergunta a quem sabe.
+    // SO' apaga o que o servidor marcou como demonstracao. Apagar pelo NOME
+    // era perigoso: uma planilha de verdade pode ter uma aba "Cadastro", e ela
+    // sumia da sessao — e sumiria do arquivo no Salvar seguinte.
+    const alvos = new Set();
+    [nomeDemo, nomeCadastro].forEach(n => { if (criadasAqui.has(n)) alvos.add(n); });
     try {
       const info = await apiFetch('/api/sheets_info', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: SESSION_ID })
       });
-      Object.keys((info && info.sheets) || {}).forEach(n => {
-        if (/DEMONSTRA|^Cadastro/.test(n)) alvos.add(n);
-      });
-    } catch (e) { /* sem a lista, segue com os nomes conhecidos */ }
+      ((info && info.demo) || []).forEach(n => alvos.add(n));
+    } catch (e) { /* sem a lista, fica so' com o que este teste criou */ }
     for (const nome of alvos) {
       try {
         await apiFetch('/api/delete_sheet', {
@@ -143,8 +142,8 @@
   }
 
   async function carregarDemo(comCadastro) {
-    if (state.activeSheet && !/DEMONSTRA|^Cadastro/.test(state.activeSheet)) {
-      abaDoUsuario = state.activeSheet;
+    if (state.activeSheet && !criadasAqui.has(state.activeSheet)) {
+      abaDoUsuario = state.activeSheet;   // a aba dele, para voltar no fim
     }
     // Apaga sobras de uma rodada anterior. Sem isto a segunda execução criava
     // "Cadastro (2)" e o teste de cruzamento falhava sozinho — um bug que não
@@ -156,6 +155,7 @@
     });
     if (!res || !res.success) throw new Error('não consegui criar a planilha de demonstração');
     nomeDemo = res.active_sheet || 'DEMONSTRAÇÃO';
+    criadasAqui.add(nomeDemo);
     loadSheetData(res);
     state.headers = DEMO_HEADERS.slice();
     state.data = dadosDemo();
@@ -170,6 +170,7 @@
       });
       if (r2 && r2.success) {
         nomeCadastro = r2.active_sheet || 'Cadastro';
+        criadasAqui.add(nomeCadastro);
         await gravarAgora(nomeCadastro, CADASTRO_HEADERS, CADASTRO_DADOS);
         // volta o foco para a demonstração (o new_sheet ativou o Cadastro)
         const volta = await apiFetch('/api/get_sheet', {
@@ -868,7 +869,7 @@
         if (!it) return;
         closeModal();
         try {
-          if (!state.headers.length || !/DEMONSTRA/.test(state.activeSheet || '')) await carregarDemo(true);
+          if (!state.headers.length || !criadasAqui.has(state.activeSheet)) await carregarDemo(true);
           it.ir();
           toast(it.olhar, 'success');
         } catch (e) { toast('Erro: ' + e.message, 'error'); }
