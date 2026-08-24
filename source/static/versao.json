@@ -1,12 +1,12 @@
 {
-  "versao": "23/08/2026 20:41",
+  "versao": "24/08/2026 07:32",
   "novidades": [
-    "Versoes: o PRIMEIRO Salvar ja aparece na lista (antes so a partir do segundo)",
-    "Formula: o resultado continua na tela ao sair da celula (voltava a mostrar =30/0)",
-    "Painel: os graficos ROLAM de lado quando ha muitas categorias, como o mapa de calor",
-    "Painel: ate 60 grupos por grafico em vez de 12, ja que agora rola",
-    "Crescimento volta a mostrar o numero, com aviso de 'sem dados no meio'",
-    "Filtro 'regex' saiu da lista de opcoes",
-    "Servidor recusa apagar aba que veio do seu arquivo, mesmo se a tela errar o alvo"
+    "ICONE NOVO: lupa sobre grafico, no lugar do losango azul",
+    "A marca nova aparece tambem dentro do app e nas telas vazias",
+    "Versoes: o primeiro Salvar ja aparece na lista",
+    "Formula: o resultado continua na tela ao sair da celula",
+    "Painel: graficos rolam de lado quando ha muitas categorias",
+    "Crescimento volta a mostrar o numero, avisando quando ha buraco entre os meses",
+    "Filtro 'regex' saiu da lista de opcoes"
   ]
 }

@@ -51,7 +51,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .topbar-left { display: flex; align-items: center; gap: 28px; }
 
 .logo { display: flex; align-items: baseline; gap: 7px; }
-.logo-mark { font-size: 16px; color: #6b9fff; }
+.logo-mark { display: inline-flex; align-items: center; color: #fff; }
+.logo-svg { width: 19px; height: 19px; display: block; }
 .logo-text { font-family: var(--mono); font-size: 14px; font-weight: 600; letter-spacing: 0.12em; color: #fff; }
 .logo-version { font-family: var(--mono); font-size: 9px; color: #666; letter-spacing: 0.05em; }
 
@@ -343,7 +344,8 @@ td.is-formula::after {
   height: 100%; gap: 10px; color: var(--text-3);
   text-align: center;
 }
-.empty-icon { font-size: 48px; color: var(--border-dark); margin-bottom: 8px; }
+.empty-icon { display: flex; justify-content: center; color: var(--border-dark); margin-bottom: 8px; }
+.empty-svg { width: 54px; height: 54px; }
 .empty-state p { font-size: 14px; }
 .empty-state .empty-sub { font-size: 12px; color: var(--text-3); }
 .empty-actions { display: flex; gap: 10px; margin-top: 16px; }
