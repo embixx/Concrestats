@@ -1,12 +1,12 @@
 {
-  "versao": "23/08/2026 18:43",
+  "versao": "23/08/2026 20:41",
   "novidades": [
-    "Relatorio Tecnico saiu da barra de cima (ficava repetido) — usar o da barra de baixo",
-    "NOVO botao VERSOES: o app guarda uma copia antes de cada Salvar e da para voltar atras",
-    "Corrigido grave: uma aba sua chamada 'Cadastro' era apagada pelo Modo Teste",
-    "Avisos do Relatorio deixaram de usar a caixa do Windows, que sumia atras da janela",
-    "Memoria: sessoes antigas eram guardadas para sempre a cada recarregada",
-    "Versao web: exportar nao pode mais gravar em caminho livre do servidor",
-    "Salvar em CSV tambem recusa gravar a planilha de demonstracao"
+    "Versoes: o PRIMEIRO Salvar ja aparece na lista (antes so a partir do segundo)",
+    "Formula: o resultado continua na tela ao sair da celula (voltava a mostrar =30/0)",
+    "Painel: os graficos ROLAM de lado quando ha muitas categorias, como o mapa de calor",
+    "Painel: ate 60 grupos por grafico em vez de 12, ja que agora rola",
+    "Crescimento volta a mostrar o numero, com aviso de 'sem dados no meio'",
+    "Filtro 'regex' saiu da lista de opcoes",
+    "Servidor recusa apagar aba que veio do seu arquivo, mesmo se a tela errar o alvo"
   ]
 }

@@ -1,0 +1,43 @@
+[
+  {
+    "criadaEm": "23/08/2026",
+    "id": "REC-MT6I34JI2",
+    "nome": "Nova Receita",
+    "status": "ativa",
+    "versaoAtiva": "VRS-MT6I34IW1",
+    "versoes": [
+      {
+        "criadaEm": "23/08/2026",
+        "editadaEm": "23/08/2026",
+        "id": "VRS-MT6I34IW1",
+        "nome": "Versão 1",
+        "propriedades": [
+          {
+            "consumo": null,
+            "nome": "Cimento",
+            "tipo": "Cimento",
+            "unidade": "kg/m³"
+          },
+          {
+            "consumo": null,
+            "nome": "Areia",
+            "tipo": "Areia",
+            "unidade": "kg/m³"
+          },
+          {
+            "consumo": null,
+            "nome": "Brita",
+            "tipo": "Brita",
+            "unidade": "kg/m³"
+          },
+          {
+            "consumo": null,
+            "nome": "Água",
+            "tipo": "Água",
+            "unidade": "L/m³"
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -308,6 +308,16 @@
     if (c.insights) anexarInsights(f, it, body);
   }
 
+  // Largura minima por barra para o nome embaixo continuar legivel.
+  const PX_POR_GRUPO = 38;
+  function esticarParaCaber(canvas, quantos) {
+    if (!canvas) return;
+    const area = canvas.parentElement;
+    const disponivel = (area && area.clientWidth) || 600;
+    const preciso = quantos * PX_POR_GRUPO;
+    canvas.style.width = preciso > disponivel ? preciso + 'px' : '100%';
+  }
+
   function anexarInsights(f, it, body) {
     const c = it.config, viz = V();
     let dados = [];
@@ -340,7 +350,13 @@
       canvas = document.createElement('canvas');
       canvas.style.width = '100%';
       canvas.style.height = ((it.h || 240) - HEADER_H - 16) + 'px';
-      body.appendChild(canvas);
+      // O grafico vive dentro de uma area que ROLA de lado. Com muitas
+      // categorias ele fica largo em vez de espremer tudo e virar um borrao
+      // (era a diferenca que o Naor viu entre o Painel e o mapa de calor).
+      const rolagem = document.createElement('div');
+      rolagem.className = 'pan-graf-scroll';
+      rolagem.appendChild(canvas);
+      body.appendChild(rolagem);
     }
     // O TIPO escolhido manda. Antes, um gráfico com séries extras ignorava o
     // tipo (pizza/empilhado) e continuava desenhando o combo — parecia que
@@ -364,15 +380,24 @@
     }
     if ((c.tipo === 'barra' || !c.tipo) && (c.series || []).length) return desenharCombo(f, it, canvas);
 
-    const dat = agrupar(f, f.rows, c);
+    // O grafico agora ROLA de lado, entao nao precisa se limitar a poucas
+    // barras. A tabela continua enxuta; aqui a leitura ganha com o detalhe.
+    const cfgGraf = (!c.topN || c.topN === 12)
+      ? Object.assign({}, c, { topN: 60 }) : c;
+    const dat = agrupar(f, f.rows, cfgGraf);
     if (!dat.length) {
       body.innerHTML = '<p class="pan-vazio">Sem dados para os campos escolhidos.</p>';
       return;
     }
     const sufixo = ehPct(c.op) ? '%' : '';
     const fv = v => viz.fmt0(v) + sufixo;
-    if (c.tipo === 'pizza') viz.drawDonut(canvas, dat.map(d => d.k), dat.map(d => d.v), null);
-    else viz.drawBars(canvas, dat.map(d => d.k), dat.map(d => d.v), null, fv);
+    esticarParaCaber(canvas, dat.length);
+    if (c.tipo === 'pizza') {
+      canvas.style.width = '100%';          // pizza nao rola: nao tem eixo
+      viz.drawDonut(canvas, dat.map(d => d.k), dat.map(d => d.v), null);
+    } else {
+      viz.drawBars(canvas, dat.map(d => d.k), dat.map(d => d.v), null, fv);
+    }
 
   }
 
@@ -393,9 +418,12 @@
       if (g.length >= 2) {
         const ult = g[g.length - 1], ant = g[g.length - 2];
         if (!periodosVizinhos(ant.k, ult.k, c.grao || 'mes')) {
-          valor = NaN;
-          sub = 'sem ' + (c.grao === 'ano' ? 'ano' : c.grao === 'dia' ? 'dia' : 'mês') +
-                ' anterior para comparar (' + ant.k + ' → ' + ult.k + ')';
+          // Periodos nao vizinhos: o numero continua valendo (o Naor confirmou
+          // que fazia sentido na planilha dele), mas a legenda avisa que ha'
+          // um buraco no meio — senao parece comparacao de meses seguidos.
+          valor = ant.v ? (ult.v - ant.v) / Math.abs(ant.v) * 100 : NaN;
+          pct = true;
+          sub = ult.k + ' vs ' + ant.k + ' · sem dados no meio';
         } else {
           valor = ant.v ? (ult.v - ant.v) / Math.abs(ant.v) * 100 : NaN;
           pct = true;
@@ -536,7 +564,8 @@
     // Sem limite de barras, uma coluna com centenas de valores virava um borrao
     // com os nomes ilegiveis embaixo. Fica o que importa: por periodo, os
     // ultimos N; por categoria, os N maiores.
-    const limite = c.topN > 0 ? c.topN : 12;
+    // Com a area rolando, da' para mostrar bem mais do que cabia antes.
+    const limite = c.topN > 0 ? c.topN : 60;
     let deFora = 0;
     if (xs.length > limite) {
       deFora = xs.length - limite;
@@ -572,6 +601,7 @@
       })
     };
     if (outros.vals.some(v => v > 0)) series.push(outros);
+    esticarParaCaber(canvas, xs.length);
     viz.drawStacked(canvas, xs, series, null);
     if (deFora > 0) marcarCorte(canvas, deFora, porPeriodo);
   }
@@ -595,10 +625,12 @@
     const c = it.config, viz = V();
     const eixoX = agrupar(f, f.rows, {
       grupo: c.grupo, colData: c.colData, grao: c.grao,
-      valor: (c.series[0] || {}).valor, op: (c.series[0] || {}).op || 'Soma', topN: c.topN
+      valor: (c.series[0] || {}).valor, op: (c.series[0] || {}).op || 'Soma',
+      topN: (!c.topN || c.topN === 12) ? 60 : c.topN
     });
     if (!eixoX.length) { viz.drawBars(canvas, [], [], null); return; }
     const labels = eixoX.map(d => d.k);
+    esticarParaCaber(canvas, labels.length);   // area rola quando nao cabe
     const series = c.series.map(s => {
       const m = new Map();
       agrupar(f, f.rows, { grupo: c.grupo, colData: c.colData, grao: c.grao, valor: s.valor, op: s.op })

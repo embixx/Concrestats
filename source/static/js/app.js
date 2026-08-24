@@ -273,7 +273,10 @@ function renderBody() {
       const isFormula = String(val).startsWith('=');
       const active = (state.activeCell.row === ri && state.activeCell.col === ci) ? ' active-cell' : '';
       // Formatação automática: número negativo em vermelho e realce da busca.
-      const txt = String(val);
+      // A célula mostra o RESULTADO da fórmula, não o texto dela. Antes o
+      // resultado só era escrito ao confirmar a edição: bastava clicar em
+      // outra célula (que redesenha a grade) para o #DIV/0! virar "=30/0".
+      const txt = isFormula ? String(valorDaFormula(val, row)) : String(val);
       const neg = ehNegativo(txt) ? ' cel-neg' : '';
       const hit = (busca.termo && txt.toLowerCase().includes(busca.termo)) ? ' cel-busca' : '';
       const fx  = ci < state.congelarCols
@@ -476,6 +479,20 @@ function commitEdit() {
   saveToServer();
 }
 
+// Resultado de uma fórmula para exibição. Cache curto: a grade redesenha a
+// cada rolagem e recalcular tudo toda vez pesa em planilha grande.
+const _cacheFormula = new Map();
+function valorDaFormula(formula, rowData) {
+  const chave = formula + '' + rowData.join('');
+  if (_cacheFormula.has(chave)) return _cacheFormula.get(chave);
+  let r;
+  try { r = evaluateFormula(formula, rowData, state.headers); }
+  catch (e) { r = '#ERRO'; }
+  if (_cacheFormula.size > 4000) _cacheFormula.clear();
+  _cacheFormula.set(chave, r);
+  return r;
+}
+
 function evaluateFormula(formula, rowData, headers) {
   if (!formula.startsWith('=')) return formula;
   const expr = formula.slice(1);
@@ -531,6 +548,8 @@ function setDataCell(row, col, val) {
   const display = getDisplayRows();
   if (!display[row]) return;
   display[row][col] = val;
+  // o dado mudou: formulas que dependem dele precisam ser recalculadas
+  if (typeof _cacheFormula !== 'undefined') _cacheFormula.clear();
   if (state.filterActive) {
     const targetRow = display[row];
     const mainIdx = state.data.indexOf(targetRow);
@@ -899,8 +918,10 @@ const FILTER_OPS = [
   { v: '<=',       l: '≤'        },
   { v: 'começa',   l: 'começa'   },
   { v: 'termina',  l: 'termina'  },
-  { v: 'regex',    l: 'regex'    },
 ];
+// 'regex' saiu da lista de opcoes a pedido de quem usa ("nem sabemos o que e'
+// isso"). A AVALIACAO continua existindo para nao quebrar filtro ja' salvo em
+// analise .concre ou nas preferencias.
 
 // Tenta parsear uma string como data (YYYY-MM-DD ou DD/MM/YYYY).
 // Retorna timestamp (ms) ou null.

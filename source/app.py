@@ -376,7 +376,7 @@ def _guardar_copia(path):
         nome = os.path.basename(path)
         base, ext = os.path.splitext(nome)
         base = "".join(ch for ch in base if ch.isalnum() or ch in " -_")[:40].strip() or "planilha"
-        carimbo = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        carimbo = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]
         destino = os.path.join(BACKUP_DIR, f"{base}__{carimbo}{ext}")
         shutil.copy2(path, destino)
 
@@ -416,8 +416,11 @@ def api_copias():
             try:                       # 2026-08-23_18-36-58 -> 23/08/2026 18:36
                 d, h = marca.split("_")
                 a_, m_, d_ = d.split("-")
-                hh, mm, _ss = h.split("-")
-                quando = f"{d_}/{m_}/{a_} às {hh}:{mm}"
+                partes = h.split("-")
+                hh, mm = partes[0], partes[1]
+                ss = partes[2] if len(partes) > 2 else "00"
+                # com os segundos da' para diferenciar dois Salvar seguidos
+                quando = f"{d_}/{m_}/{a_} às {hh}:{mm}:{ss}"
             except ValueError:
                 quando = marca
             saida.append({
@@ -620,6 +623,13 @@ def api_delete_sheet():
     body = request.get_json(force=True, silent=True) or {}
     sess = _session(body.get("session_id", "default"))
     name = body.get("sheet_name")
+    # O Modo Teste pede a limpeza com somente_demo=True. Assim, mesmo que a tela
+    # erre o alvo, o servidor recusa apagar uma aba que veio do arquivo.
+    if body.get("somente_demo") and name not in (sess.get("demo") or []):
+        return jsonify({"success": False,
+                        "error": "esta aba nao e' de demonstracao",
+                        "sheets": list(sess["sheets"].keys()),
+                        "active_sheet": sess["active"]}), 400
     if name in sess["sheets"] and len(sess["sheets"]) > 1:
         sess["sheets"].pop(name, None)
         if name in (sess.get("demo") or []):
@@ -705,7 +715,7 @@ def api_save_file():
             payload = sess["sheets"].get(name)
             if not payload:
                 return jsonify({"success": False, "error": "planilha inválida"}), 400
-            _guardar_copia(path)
+            copia_anterior = _guardar_copia(path)
             payload_to_df(payload["headers"], payload["data"]).to_csv(
                 path, index=False, encoding="utf-8-sig")
         else:
@@ -718,7 +728,7 @@ def api_save_file():
                 return jsonify({"success": False,
                                 "error": "so' ha planilha de demonstracao aberta"}), 400
             ext = os.path.splitext(path)[1].lower()
-            _guardar_copia(path)        # rede de seguranca antes de sobrescrever
+            copia_anterior = _guardar_copia(path)   # como estava antes deste Salvar
             if os.path.exists(path) and ext in (".xlsx", ".xlsm"):
                 # arquivo ja' existe: gravar POR CIMA, mexendo so' no que mudou
                 _gravar_preservando(path, reais, sess.get("abas_origem"))
@@ -733,6 +743,11 @@ def api_save_file():
                         df = df.map(_tipar) if hasattr(df, "map") else df.applymap(_tipar)
                         df.to_excel(w, sheet_name=_safe_sheet_name(sheet_name, used),
                                     index=False)
+        # Arquivo novo (Salvar como): nao havia estado anterior para guardar.
+        # Sem isto, o primeiro Salvar deixava a lista de Versoes vazia e parecia
+        # que o recurso nao funcionava.
+        if not copia_anterior:
+            _guardar_copia(path)
         return jsonify({"success": True, "path": path})
     except PermissionError:
         return jsonify({"success": False,

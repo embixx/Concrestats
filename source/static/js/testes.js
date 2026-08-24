@@ -93,7 +93,8 @@
       try {
         await apiFetch('/api/delete_sheet', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: SESSION_ID, sheet_name: nome })
+          body: JSON.stringify({ session_id: SESSION_ID, sheet_name: nome,
+                               somente_demo: true })
         });
       } catch (_) {}
     }
@@ -118,7 +119,8 @@
       try {
         await apiFetch('/api/delete_sheet', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: SESSION_ID, sheet_name: nome })
+          body: JSON.stringify({ session_id: SESSION_ID, sheet_name: nome,
+                               somente_demo: true })
         });
       } catch (e) {}
     }
@@ -449,24 +451,36 @@
       ir: () => ConcrestatsOpenModule('spreadsheet'),
     },
     {
-      id: 'regex',
+      id: 'formula-fica',
       grupo: G_PLAN,
-      titulo: 'Filtro avisa quando a expressão está quebrada',
-      olhar: 'Filtro tipo regex com o valor [a- deve avisar, e não dizer "nada encontrado".',
+      titulo: 'O resultado da fórmula continua depois de sair da célula',
+      olhar: 'Escreva =MPA 28/0 numa célula e clique em outra: tem que continuar #DIV/0!, não voltar a fórmula.',
       auto: async () => {
-        document.querySelectorAll('.toast').forEach(t => t.remove());
-        state.filters = [{ col: 'CLIENTE', op: 'regex', val: '[a-' }];
-        recomputeFilters();
-        await ate(() => [].slice.call(document.querySelectorAll('.toast')).some(t => /inv[aá]lida/i.test(t.textContent)));
-        const avisou = [].slice.call(document.querySelectorAll('.toast'))
-          .some(t => /inválida|invalida/i.test(t.textContent));
-        state.filters = []; recomputeFilters(); renderGrid();
-        return { ok: avisou, msg: avisou ? 'avisou que a expressão está quebrada' : 'não avisou' };
+        const ci = state.headers.length;
+        state.headers.push('TESTE_FORMULA');
+        state.data.forEach(l => l.push(''));
+        state.data[0][ci] = '=[FCK]*2';
+        state.data[1][ci] = '=[FCK]/0';
+        renderGrid();
+        await ate(() => document.querySelector('#table-body td[data-col="' + ci + '"]'));
+        const ler = r => (document.querySelector(
+          '#table-body td[data-row="' + r + '"][data-col="' + ci + '"]') || {}).textContent;
+        const calc1 = ler(0), erro1 = ler(1);
+        selectCell(3, 0);                 // sai da celula: redesenha a grade
+        renderGrid();
+        await espera(200);
+        const calc2 = ler(0), erro2 = ler(1);
+        // devolve a planilha como estava
+        state.headers.pop();
+        state.data.forEach(l => l.pop());
+        renderGrid();
+        const ok = calc1 === calc2 && erro1 === erro2 &&
+                   String(erro1).indexOf('DIV/0') >= 0 && !isNaN(parseFloat(calc1));
+        return { ok, msg: ok ? 'valor ' + calc1 + ' e ' + erro1 + ' continuam apos sair'
+                             : calc1 + '/' + calc2 + ' e ' + erro1 + '/' + erro2 };
       },
       ir: () => ConcrestatsOpenModule('spreadsheet'),
     },
-
-    /* ── grupo: juntar e importar ────────────────────── */
     {
       id: 'cruzar',
       grupo: G_JUNTAR,

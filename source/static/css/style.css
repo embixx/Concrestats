@@ -2385,3 +2385,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   border-radius: 5px; padding: 4px 10px; font-size: 11px; cursor: pointer;
   font-family: var(--sans); transition: all .15s; }
 .cp-voltar:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Graficos do Painel: rolam de lado quando ha' muitas categorias */
+.pan-graf-scroll { overflow-x: auto; overflow-y: hidden; width: 100%; }
+.pan-graf-scroll canvas { display: block; }
+.pan-graf-scroll::-webkit-scrollbar { height: 8px; }
+.pan-graf-scroll::-webkit-scrollbar-track { background: var(--bg-panel); border-radius: 4px; }
+.pan-graf-scroll::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 4px; }
