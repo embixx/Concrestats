@@ -1250,9 +1250,14 @@ if __name__ == "__main__":
         # private_mode=False + storage_path: o WebView2 usa um perfil PERSISTENTE
         # ao lado do exe (por padrão o pywebview é "anônimo" e o localStorage —
         # templates, layouts, campos fixos — sumia ao fechar o app).
+        # Icone da JANELA: sem isto o pywebview extrai o icone de sys.executable
+        # — que no modo de desenvolvimento e' o python.exe, e a janela abria com
+        # o icone da cobrinha.
+        _ico = resource_path("icon.ico")
         webview.start(
             private_mode=False,
             storage_path=os.path.join(app_dir(), "webview_data"),
+            icon=_ico if os.path.isfile(_ico) else None,
         )  # bloqueia até fechar a janela
     except Exception:  # noqa: BLE001 -- fallback: navegador
         threading.Timer(1.0, open_browser).start()

@@ -1,12 +1,11 @@
 {
-  "versao": "24/08/2026 07:32",
+  "versao": "24/08/2026 11:18",
   "novidades": [
-    "ICONE NOVO: lupa sobre grafico, no lugar do losango azul",
-    "A marca nova aparece tambem dentro do app e nas telas vazias",
-    "Versoes: o primeiro Salvar ja aparece na lista",
-    "Formula: o resultado continua na tela ao sair da celula",
-    "Painel: graficos rolam de lado quando ha muitas categorias",
-    "Crescimento volta a mostrar o numero, avisando quando ha buraco entre os meses",
-    "Filtro 'regex' saiu da lista de opcoes"
+    "CORRIGIDO: a janela abria com o icone do Python — agora usa o icone do app",
+    "Icone afinado: nos tamanhos pequenos (16 e 24px) o desenho e simplificado, para ficar legivel",
+    "NOVO botao ALERTAS: escreva a regra uma vez e o app avisa sozinho",
+    "Ex.: 'avisar quando MPA 28 for menor que [FCK]' — o sino mostra quantos bateram",
+    "A lista dos alertas leva direto a linha na planilha",
+    "As regras ficam salvas por planilha e voltam ao reabrir o app"
   ]
 }
