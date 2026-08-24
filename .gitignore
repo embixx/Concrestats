@@ -56,3 +56,6 @@ AGENTS.md
 # perfil do WebView2 criado ao rodar o app
 webview_data/
 source/webview_data/
+mobile/app/build/
+mobile/.gradle/
+mobile/local.properties

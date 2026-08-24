@@ -1,0 +1,95 @@
+/* mobile.css — ajustes para tablet/celular
+ *
+ * Só vale quando a ponte marca o <body> com .modo-mobile, então o app de
+ * computador continua exatamente como está.
+ *
+ * A regra que guia tudo aqui: dedo não é mouse. Alvo de toque abaixo de ~44px
+ * erra, e numa planilha errar significa editar a célula errada.
+ */
+
+body.modo-mobile {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;              /* sem "puxar para recarregar" */
+}
+
+/* respeita recorte de tela (câmera/entalhe) */
+body.modo-mobile .topbar {
+  padding-top: env(safe-area-inset-top, 0);
+  height: calc(var(--topbar-h) + env(safe-area-inset-top, 0));
+}
+
+/* ── barra de ferramentas: alvos de dedo ─────────────────── */
+body.modo-mobile .toolbar {
+  height: 52px;
+  padding: 0 10px;
+  gap: 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+body.modo-mobile .toolbar::-webkit-scrollbar { height: 4px; }
+body.modo-mobile .toolbar::-webkit-scrollbar-thumb {
+  background: var(--border-dark); border-radius: 2px;
+}
+body.modo-mobile .tool-btn {
+  min-height: 40px;
+  padding: 8px 13px;
+  font-size: 13px;
+  border-color: var(--border-light);
+  background: var(--bg-white);
+}
+body.modo-mobile .tool-btn svg { width: 15px; height: 15px; }
+body.modo-mobile .toolbar-sep { height: 26px; margin: 0 6px; }
+
+/* ── abas do topo ─────────────────────────────────────────── */
+body.modo-mobile .top-nav { overflow-x: auto; scrollbar-width: none; }
+body.modo-mobile .top-nav::-webkit-scrollbar { display: none; }
+body.modo-mobile .nav-btn {
+  min-height: 38px; padding: 8px 14px; font-size: 12.5px;
+}
+
+/* ── grade: linha mais alta, texto maior ─────────────────── */
+body.modo-mobile {
+  --cell-h: 38px;
+  --header-h: 42px;
+  --toolbar-h: 52px;
+}
+body.modo-mobile #data-table td,
+body.modo-mobile #data-table th {
+  font-size: 13px;
+  padding: 0 10px;
+}
+body.modo-mobile #data-table td { height: 38px; }
+body.modo-mobile .sheet-tab { min-height: 36px; padding: 8px 14px; font-size: 12.5px; }
+
+/* ── janelas: ocupam a tela no aparelho ──────────────────── */
+body.modo-mobile .modal-box {
+  max-width: min(92vw, 720px) !important;
+  width: 92vw;
+  max-height: 88vh;
+  display: flex; flex-direction: column;
+}
+body.modo-mobile .modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+body.modo-mobile .modal-body input,
+body.modo-mobile .modal-body select,
+body.modo-mobile .modal-body textarea {
+  min-height: 42px; font-size: 15px;      /* 15px+ evita o zoom automático */
+}
+body.modo-mobile .primary-btn,
+body.modo-mobile .secondary-btn { min-height: 42px; padding: 10px 18px; font-size: 13.5px; }
+
+/* ── painel e gráficos ───────────────────────────────────── */
+body.modo-mobile .pan-graf-scroll { -webkit-overflow-scrolling: touch; }
+body.modo-mobile .pan-w-head { min-height: 34px; }
+
+/* ── celular em pé: a barra vira duas linhas ─────────────── */
+@media (max-width: 640px) {
+  body.modo-mobile .toolbar { flex-wrap: nowrap; }
+  body.modo-mobile .tool-btn { padding: 8px 10px; font-size: 12px; }
+  body.modo-mobile .logo-text { display: none; }   /* sobra espaço para as abas */
+}
+
+/* ── tablet deitado: aproveita a largura ─────────────────── */
+@media (min-width: 900px) {
+  body.modo-mobile .modal-box { max-width: 720px !important; width: auto; }
+}
