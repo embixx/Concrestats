@@ -20,17 +20,18 @@ body.modo-mobile .topbar {
 }
 
 /* ── barra de ferramentas: alvos de dedo ─────────────────── */
+/* No tablet ela QUEBRA EM DUAS LINHAS em vez de rolar: botao escondido atras
+   de uma rolagem horizontal e' botao que ninguem acha no dedo. */
 body.modo-mobile .toolbar {
-  height: 52px;
-  padding: 0 10px;
-  gap: 6px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
+  height: auto;
+  min-height: 52px;
+  flex-wrap: wrap;
+  align-content: center;
+  padding: 6px 10px;
+  gap: 6px 6px;
+  overflow-x: visible;
 }
-body.modo-mobile .toolbar::-webkit-scrollbar { height: 4px; }
-body.modo-mobile .toolbar::-webkit-scrollbar-thumb {
-  background: var(--border-dark); border-radius: 2px;
-}
+body.modo-mobile .toolbar .toolbar-sep { display: none; }   /* separador atrapalha ao quebrar */
 body.modo-mobile .tool-btn {
   min-height: 40px;
   padding: 8px 13px;
@@ -52,8 +53,16 @@ body.modo-mobile .nav-btn {
 body.modo-mobile {
   --cell-h: 38px;
   --header-h: 42px;
-  --toolbar-h: 52px;
+  --toolbar-h: 104px;        /* duas linhas de botoes */
 }
+
+/* Barra de navegacao do Android cobria o rodape do app: reserva o espaco dela */
+body.modo-mobile .grid-container,
+body.modo-mobile .dashboard-body,
+body.modo-mobile #pan-body {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+body.modo-mobile #grid-scroll { padding-bottom: env(safe-area-inset-bottom, 0px); }
 body.modo-mobile #data-table td,
 body.modo-mobile #data-table th {
   font-size: 13px;
@@ -93,3 +102,61 @@ body.modo-mobile .pan-w-head { min-height: 34px; }
 @media (min-width: 900px) {
   body.modo-mobile .modal-box { max-width: 720px !important; width: auto; }
 }
+
+/* ── ajustes de toque, só no APK ─────────────────────────── */
+
+/* enquanto o dedo segura, a célula/bloco acende: dá a entender que algo vem */
+body.modo-mobile .segurando {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: var(--accent-bg) !important;
+  transition: background .12s;
+}
+
+/* rolagem com inércia na grade e nas listas */
+body.modo-mobile #grid-scroll,
+body.modo-mobile .dashboard-body,
+body.modo-mobile .modal-body,
+body.modo-mobile .tst-lista { -webkit-overflow-scrolling: touch; }
+
+/* número da linha: alvo maior para selecionar a linha com o dedo */
+body.modo-mobile #data-table td.row-num,
+body.modo-mobile #data-table th.row-num { min-width: 46px; font-size: 12px; }
+
+/* abas de planilha maiores e com respiro */
+body.modo-mobile .sheet-tabs { min-height: 44px; padding: 0 6px; }
+body.modo-mobile .sheet-tab { min-height: 38px; }
+
+/* barra de fórmula: mais alta e com botão de confirmar */
+body.modo-mobile .formula-bar { min-height: 46px; }
+body.modo-mobile #formula-input { font-size: 15px; min-height: 40px; }
+body.modo-mobile .toque-ok {
+  flex: none; margin-left: 6px; width: 44px; min-height: 40px;
+  border: 1px solid var(--accent); background: var(--accent); color: #fff;
+  border-radius: 6px; font-size: 17px; line-height: 1; cursor: pointer;
+}
+body.modo-mobile .toque-ok:active { opacity: .8; }
+
+/* aviso flutuante do primeiro toque */
+.toque-dica {
+  position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%) translateY(8px);
+  background: rgba(28,27,24,.92); color: #fff; padding: 8px 14px; border-radius: 999px;
+  font-family: var(--sans); font-size: 12.5px; pointer-events: none;
+  opacity: 0; transition: opacity .18s, transform .18s; z-index: 99999;
+}
+.toque-dica.vendo { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* menu de contexto: itens no tamanho de dedo */
+body.modo-mobile .context-menu div,
+body.modo-mobile .pan-menu button,
+body.modo-mobile .ctx-item { min-height: 44px; display: flex; align-items: center; font-size: 13.5px; }
+
+/* blocos do painel: cabeçalho e alças maiores para arrastar */
+body.modo-mobile .pan-w-head { min-height: 40px; }
+body.modo-mobile .pan-w-resize { width: 26px; height: 26px; }
+
+/* Os botoes vinham agrupados em caixas que NAO quebram, entao um grupo largo
+   estourava a barra em pe'. Com display:contents os botoes viram itens diretos
+   da barra e quebram um a um. */
+body.modo-mobile .toolbar-group { display: contents; }
+body.modo-mobile .tool-label { display: none; }   /* rotulo do grupo perde sentido ao quebrar */

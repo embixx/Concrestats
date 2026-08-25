@@ -648,12 +648,25 @@ function sortData() {
     const n = Number(x);
     return isFinite(n) ? n : null;
   };
+  // Célula vazia ou sem valor ("n/d") vai SEMPRE para o fim, nas duas direções.
+  // Sem isto, ordenar MPA do maior para o menor punha o "n/d" acima do maior
+  // resultado — um ensaio sem resultado aparecia como o melhor da lista.
+  const semValor = v => {
+    const t = String(v ?? '').trim();
+    return t === '' || chaveNum(t) === null && chaveData(t) === null &&
+           /^(n\/?d|nd|-|--|s\/?d|sem)$/i.test(t);
+  };
   state.data.sort((a, b) => {
     const av = a[col] ?? '', bv = b[col] ?? '';
+    const va = semValor(av), vb = semValor(bv);
+    if (va !== vb) return va ? 1 : -1;      // o sem valor desce, sempre
+    if (va && vb) return 0;
     const ad = chaveData(av), bd = chaveData(bv);
     if (ad !== null && bd !== null) return dir === 'asc' ? ad - bd : bd - ad;
     const an = chaveNum(av), bn = chaveNum(bv);
     if (an !== null && bn !== null) return dir === 'asc' ? an - bn : bn - an;
+    // número sempre antes de texto: senão "n/d" e "NF-12" se misturam aos valores
+    if ((an !== null) !== (bn !== null)) return an !== null ? -1 : 1;
     const cmp = String(av).localeCompare(String(bv), 'pt-BR', { numeric: true });
     return dir === 'asc' ? cmp : -cmp;
   });
