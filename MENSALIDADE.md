@@ -129,6 +129,53 @@ incomoda ninguém.
 Por segurança, só `http` e `https` são aceitos, e endereços internos da rede
 são recusados.
 
+## 4.5. Quem recebe qual versão
+
+Duas maneiras, que servem a coisas diferentes.
+
+### Canal — o do dia a dia
+
+Cada instalação escolhe um canal na tela de Atualização:
+
+| Canal | Quem fica nele | O que recebe |
+|---|---|---|
+| Estável | o cliente | só o que já passou por quem testa |
+| Teste | quem testa | as versões novas primeiro |
+
+Publicar num canal não mexe no outro, porque cada um é um arquivo separado:
+
+```
+python tools/publicar_atualizacao.py --canal teste --novidades "Distribuicao refeita"
+python tools/publicar_atualizacao.py --canal estavel --novidades "Distribuicao refeita"
+```
+
+O primeiro comando gera `manifesto-teste.json`, o segundo `manifesto.json`.
+Quem está no estável nunca chega a ler o de teste.
+
+### Liberado para — o controle fino
+
+Serve para mandar uma correção para **uma pessoa** antes de soltar para o
+resto. Cada instalação tem um código de 10 letras, que aparece na própria
+tela de Atualização e é copiado com um clique. Peça o código e use:
+
+```
+python tools/publicar_atualizacao.py --somente 238b103c49 a1b2c3d4e5
+```
+
+Só essas duas instalações recebem. As outras veem "existe uma versão mais
+nova, mas ela foi liberada só para algumas instalações" — o programa não
+mente dizendo que estão na mais recente.
+
+O código não é o nome nem o e-mail de ninguém: são caracteres sorteados na
+primeira vez que o programa roda, guardados nas preferências daquela máquina.
+
+**A lista viaja dentro da assinatura.** Ela não é uma barreira de segurança
+(a assinatura é que garante que o pacote é seu), mas se ficasse de fora
+alguém poderia apagá-la de um manifesto legítimo e empurrar para o cliente
+uma versão que estava liberada só para quem testa. Isso está coberto por
+teste: `source/tests/test_atualizador.py` tenta apagar, acrescentar e trocar
+a lista, e as três tentativas quebram a assinatura.
+
 ## 5. Como isso resiste a fraude
 
 A licença é assinada com **Ed25519**. O programa carrega apenas a chave

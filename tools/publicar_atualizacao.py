@@ -63,6 +63,11 @@ def main():
     ap.add_argument("--novidades", nargs="*", default=[])
     ap.add_argument("--onde", default="https://trello.com/c/QL8BmY8O",
                     help="para onde mandar quem preferir baixar à mão")
+    ap.add_argument("--canal", default="estavel", choices=["estavel", "teste"],
+                    help="teste = só quem está nesse canal recebe (manifesto-teste.json)")
+    ap.add_argument("--somente", nargs="*", default=[], metavar="INSTALACAO",
+                    help="libera só para estas instalações (o código de 10 letras "
+                         "que aparece na tela de Atualização de cada uma)")
     a = ap.parse_args()
 
     if not os.path.isdir(DIST):
@@ -80,8 +85,8 @@ def main():
 
     with open(ARQUIVO_PRIVADA, encoding="utf-8") as fh:
         semente = base64.b64decode(fh.read().strip())
-    corpo = json.dumps({"versao": a.versao, "sha256": sha},
-                       sort_keys=True, separators=(",", ":")).encode("utf-8")
+    import atualizador
+    corpo = atualizador.corpo_assinado(a.versao, sha, a.somente)
     firma = base64.b64encode(assinatura.assinar(corpo, semente)).decode()
 
     base_raw = (f"https://raw.githubusercontent.com/{USUARIO_GITHUB}/"
@@ -93,12 +98,23 @@ def main():
         "assinatura": firma,
         "novidades": a.novidades,
         "onde": a.onde,
+        "canal": a.canal,
     }
-    with open(os.path.join(SAIDA, "manifesto.json"), "w", encoding="utf-8") as fh:
+    if a.somente:
+        manifesto["liberado_para"] = sorted(x.strip() for x in a.somente)
+
+    # Cada canal e' um arquivo. Quem esta' no canal estavel nunca chega a ler o
+    # manifesto de teste, entao publicar um nao mexe no outro.
+    nome_manifesto = "manifesto.json" if a.canal == "estavel" else f"manifesto-{a.canal}.json"
+    with open(os.path.join(SAIDA, nome_manifesto), "w", encoding="utf-8") as fh:
         json.dump(manifesto, fh, ensure_ascii=False, indent=2)
 
     print(f"Pacote: {nome_zip}  ({len(dados)/1024:.0f} KB, {quantos} arquivos)")
-    print(f"Versão: {a.versao}")
+    print(f"Versão: {a.versao}   Canal: {a.canal}")
+    if a.somente:
+        print("Liberada SÓ para: " + ", ".join(sorted(a.somente)))
+    else:
+        print("Liberada para todos que estão no canal " + a.canal)
     print("\nAgora suba a pasta atualizacao/ para o GitHub:")
     print("    git add atualizacao && git commit -m \"atualizacao\" && git push")
     print("\nE, no computador de quem testa, o endereço a configurar é:")

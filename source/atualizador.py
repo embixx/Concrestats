@@ -42,6 +42,22 @@ def _seguro(nome):
     return any(n.startswith(p) for p in PASTAS_PERMITIDAS)
 
 
+def corpo_assinado(versao, sha256, liberado_para=None):
+    """O texto exato que e' assinado. Quem publica e quem confere tem que montar
+    igual, byte a byte — por isso mora aqui, num lugar so'.
+
+    A lista de liberacao entra na assinatura. Ela nao e' barreira de seguranca
+    (a assinatura e' que garante a origem do pacote), mas se ficasse de fora
+    daria para apagar a lista de um manifesto legitimo e empurrar para o
+    cliente uma versao que estava liberada so' para quem testa.
+    """
+    corpo = {"versao": versao, "sha256": sha256}
+    if liberado_para:
+        # ordenada: a mesma lista em outra ordem tem que dar a mesma assinatura
+        corpo["liberado_para"] = sorted(str(x).strip() for x in liberado_para)
+    return json.dumps(corpo, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
 def conferir_pacote(bytes_do_zip, manifesto, chave_publica):
     """Confere hash e assinatura. Devolve None se está tudo certo, ou o motivo."""
     if len(bytes_do_zip) > TAMANHO_MAXIMO:
@@ -51,8 +67,8 @@ def conferir_pacote(bytes_do_zip, manifesto, chave_publica):
         return "o arquivo baixado não confere com o anunciado"
     if len(chave_publica) != 32:
         return "atualização automática não está configurada nesta cópia"
-    corpo = json.dumps({"versao": manifesto.get("versao", ""), "sha256": sha},
-                       sort_keys=True, separators=(",", ":")).encode("utf-8")
+    corpo = corpo_assinado(manifesto.get("versao", ""), sha,
+                           manifesto.get("liberado_para"))
     try:
         import base64
         firma = base64.b64decode(manifesto.get("assinatura", ""))

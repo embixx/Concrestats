@@ -1,12 +1,11 @@
 {
-  "versao": "28/08/2026 01:34",
+  "versao": "28/08/2026 11:44",
   "novidades": [
-    "PIZZA REFEITA: no maximo 6 fatias, o resto vira 'Outros' com o nome",
-    "Legenda da pizza mostra nome inteiro, valor e porcentagem",
-    "Paleta trocada por uma que passa nas checagens de daltonismo",
+    "QUEM RECEBE QUAL VERSAO: canal Estavel ou Teste, escolhido no app",
+    "Cada instalacao tem um codigo, para liberar uma versao so' para ela",
+    "PIZZA: no maximo 6 fatias, o resto vira 'Outros' com o nome",
     "DISTRIBUICAO: mostra o fck, a media e o desvio padrao",
-    "Rotulo de grafico nao perde mais a primeira letra",
     "PAGAMENTO POR PIX dentro do app",
-    "O app mostra a versao na tela inicial"
+    "Aviso honesto quando nao da' para verificar atualizacao"
   ]
 }

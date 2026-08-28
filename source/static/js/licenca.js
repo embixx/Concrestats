@@ -227,10 +227,19 @@
     try {
       const j = await (await fetch('/api/atualizacao')).json();
       if (!j.verificou) {
-        mostrar('Não há um endereço de atualização configurado neste computador. ' +
-                'A versão instalada é a ' + (j.versao_atual || '—') + '.', null);
+        // Duas coisas bem diferentes vinham com a mesma frase: não ter endereço
+        // configurado, e ter endereço e não conseguir chegar nele. Quem lia
+        // "não há endereço configurado" depois de uma queda de internet ia
+        // procurar configuração que já estava certa.
+        mostrar(j.motivo
+          ? `Não consegui verificar agora (${j.motivo}). Você está na ` +
+            `${j.versao_atual || '—'}.`
+          : 'Não há um endereço de atualização configurado neste computador. ' +
+            'A versão instalada é a ' + (j.versao_atual || '—') + '.', null);
+        rodapeDaInstalacao(j);
         return;
       }
+      rodapeDaInstalacao(j);
       if (j.tem_nova) {
         mostrar(`Saiu a versão ${j.versao_nova} — você está na ${j.versao_atual}.`, true);
         const el = $('lic-resultado');
@@ -249,10 +258,66 @@
           });
           el.appendChild(ul);
         }
+      } else if (j.restrita) {
+        // Dizer "você está na mais recente" aqui seria mentira: existe versão
+        // nova, ela só não foi liberada para esta instalação ainda.
+        mostrar(`Existe uma versão mais nova (${j.versao_nova}), mas ela foi ` +
+                `liberada só para algumas instalações. Você está na ` +
+                `${j.versao_atual}.`, null);
       } else {
         mostrar('Você já está na versão mais recente (' + j.versao_atual + ').', true);
       }
     } catch (e) { mostrar('Não consegui verificar agora', false); }
+  }
+
+  // Quem entrega o programa precisa saber PARA QUEM está mandando cada versão.
+  // Sem um identificador visível, "libera essa correção só para o Naor" não tem
+  // como ser dito. São 10 letras sorteadas na primeira vez que o programa roda
+  // — não é nome, e-mail nem nada da pessoa.
+  function rodapeDaInstalacao(j) {
+    const el = $('lic-resultado');
+    if (!el || !j.instalacao) return;
+
+    const box = document.createElement('div');
+    box.className = 'atz-instalacao';
+
+    if ((j.canais || []).length > 1) {
+      const lab = document.createElement('label');
+      lab.textContent = 'Canal';
+      const sel = document.createElement('select');
+      j.canais.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c;
+        o.textContent = c === 'teste' ? 'Teste (recebe antes)' : 'Estável';
+        if (c === j.canal) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', async () => {
+        // Endereço próprio, e não /api/prefs: o canal vale para o computador
+        // inteiro, e as prefs comuns são separadas por usuário.
+        await fetch('/api/atualizacao', { method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ canal: sel.value }) });
+        procurarAtualizacao();
+      });
+      lab.appendChild(sel);
+      box.appendChild(lab);
+    }
+
+    const cod = document.createElement('button');
+    cod.type = 'button';
+    cod.className = 'atz-codigo';
+    cod.title = 'Clique para copiar. Mande este código para liberarem uma versão para você.';
+    cod.textContent = 'Instalação ' + j.instalacao;
+    cod.addEventListener('click', () => {
+      try {
+        navigator.clipboard.writeText(j.instalacao);
+        cod.textContent = 'Copiado';
+        setTimeout(() => { cod.textContent = 'Instalação ' + j.instalacao; }, 1800);
+      } catch (e) { /* sem área de transferência: o código está na tela */ }
+    });
+    box.appendChild(cod);
+    el.appendChild(box);
   }
 
   async function aplicarAtualizacao(botao) {

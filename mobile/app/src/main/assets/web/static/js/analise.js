@@ -162,6 +162,23 @@
     return { ctx, w, h };
   }
 
+  // Dividir o topo do eixo em 4 partes iguais produz rótulos como "258,15" e
+  // "774,45": números que ninguém soma de cabeça nem compara entre dois
+  // gráficos. O passo sobe para o número redondo mais próximo — mesma regra já
+  // usada no gráfico de distribuição do Dashboard. Vêm junto as casas decimais
+  // que o passo exige: com passo 2,5 e zero casas os rótulos sairiam
+  // "0 / 2 / 5 / 8", que é errado, não só feio.
+  function passoDoEixo(faixa, divisoes) {
+    const bruto = faixa / (divisoes || 4);
+    if (!isFinite(bruto) || bruto <= 0) return { passo: 1, casas: 0 };
+    const escala = Math.pow(10, Math.floor(Math.log10(bruto)));
+    const mult = [1, 2, 2.5, 5, 10].find(m => m * escala >= bruto) || 10;
+    return {
+      passo: mult * escala,
+      casas: Math.max(0, Math.min(4, Math.ceil(-Math.log10(escala)) + (mult === 2.5 ? 1 : 0)))
+    };
+  }
+
   /* ── gráfico: barras simples (com clique) ──────── */
   function drawBars(canvas, labels, values, onClick, fmtVal) {
     const { ctx, w, h } = setupCanvas(canvas, 300);
@@ -172,13 +189,20 @@
     const bottom = Math.min(150, Math.max(40, Math.ceil(mx) + 14));
     const max = Math.max(...values.map(v => isNaN(v) ? 0 : v), 1);
     const min = Math.min(...values.map(v => isNaN(v) ? 0 : v), 0);
-    ctx.strokeStyle = '#ececea'; ctx.fillStyle = '#888'; ctx.font = '11px IBM Plex Mono, monospace';
-    for (let i = 0; i <= 4; i++) {
-      const y = top + (h - top - bottom) * i / 4;
-      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(w - right, y); ctx.stroke();
-      ctx.fillText(fmt0(max - (max - min) * i / 4), 4, y + 4);
-    }
     const plotW = w - left - right, plotH = h - top - bottom, baseY = top + plotH;
+    const paraY = v => top + plotH * (1 - (v - min) / (max - min || 1));
+    const { passo, casas } = passoDoEixo(max - min);
+    ctx.strokeStyle = '#ececea'; ctx.fillStyle = '#888'; ctx.font = '11px IBM Plex Mono, monospace';
+    // Pé do gráfico: com passo redondo a última linha da grade quase nunca cai
+    // no fim da área útil, e sem esta linha as barras ficam soltas no branco.
+    ctx.beginPath(); ctx.moveTo(left, baseY); ctx.lineTo(w - right, baseY); ctx.stroke();
+    const kFim = Math.floor(max / passo + 1e-9);
+    for (let k = Math.ceil(min / passo - 1e-9); k <= kFim; k++) {
+      const v = k * passo || 0;                   // sem o `|| 0` o zero sai como "-0"
+      const y = paraY(v);
+      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(w - right, y); ctx.stroke();
+      ctx.fillText(fmt(v, casas), 4, y + 4);
+    }
     const slot = plotW / Math.max(1, values.length), bw = Math.max(4, Math.min(52, slot * 0.7));
     const bars = [];
     values.forEach((v, i) => {
@@ -191,13 +215,33 @@
       ctx.fillRect(x, y0, bw, Math.max(2, y1 - y0));
       bars.push({ x, w: bw, label: String(labels[i]), v: vv });
     });
-    // valor no topo da barra quando há espaço (leitura sem hover)
-    if (slot >= 44) {
+    // Escrever o valor em cima de TODA barra é ruído: vinte números onde a
+    // leitura pedia dois, e nenhum deles é lido. O eixo já dá a ordem de
+    // grandeza e o tooltip dá o valor exato de qualquer barra — então ficam
+    // escritos só os extremos, que são o que se procura num ranking.
+    if (bars.length > 1) {
+      let iMax = 0, iMin = 0;
+      bars.forEach((b, i) => {
+        if (b.v > bars[iMax].v) iMax = i;
+        if (b.v < bars[iMin].v) iMin = i;
+      });
       ctx.fillStyle = '#5a5852'; ctx.font = '10px IBM Plex Mono, monospace'; ctx.textAlign = 'center';
-      values.forEach((v, i) => {
-        const vv = isNaN(v) ? 0 : v;
-        const y0 = top + plotH * (1 - (Math.max(vv, 0) - min) / (max - min || 1));
-        ctx.fillText(fmt0(vv), left + slot * i + slot / 2, y0 - 4);
+      const escritos = [];
+      [iMax, iMin].forEach(i => {
+        const b = bars[i], txt = (fmtVal || fmt0)(b.v);
+        const meia = ctx.measureText(txt).width / 2 + 4;
+        // O número é quase sempre mais largo que a barra: centrado na primeira
+        // ou na última ele saía metade fora do canvas, ou por cima dos rótulos
+        // do eixo. Encostar no limite desalinha uns poucos pixels e é o que
+        // mantém o valor legível.
+        const limA = left + meia, limB = w - right - meia;
+        const cru = b.x + b.w / 2;
+        const cx = limA <= limB ? Math.min(Math.max(cru, limA), limB) : cru;
+        // Maior e menor podem ser barras vizinhas (ou a mesma, se todas forem
+        // iguais); aí o segundo rótulo entra por cima do primeiro.
+        if (escritos.some(e => Math.abs(e.cx - cx) < e.meia + meia)) return;
+        ctx.fillText(txt, cx, paraY(Math.max(b.v, 0)) - 4);
+        escritos.push({ cx, meia });
       });
       ctx.textAlign = 'start';
     }
@@ -225,13 +269,18 @@
     const left = 56, right = 12, top = 14, bottom = 46;
     const totals = labels.map((_, i) => series.reduce((s, sr) => s + (sr.vals[i] > 0 ? sr.vals[i] : 0), 0));
     const max = Math.max(...totals, 1);
-    ctx.strokeStyle = '#ececea'; ctx.fillStyle = '#888'; ctx.font = '11px IBM Plex Mono, monospace';
-    for (let i = 0; i <= 4; i++) {
-      const y = top + (h - top - bottom) * i / 4;
-      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(w - right, y); ctx.stroke();
-      ctx.fillText(fmt0(max - max * i / 4), 4, y + 4);
-    }
     const plotW = w - left - right, plotH = h - top - bottom, baseY = top + plotH;
+    // Mesmo defeito da barra simples: aqui o topo é a soma da pilha mais alta,
+    // e dividi-lo por 4 dava "0 / 258,15 / 516,30". A escala das barras
+    // continua sendo o total — quem arredonda é só a grade.
+    const { passo, casas } = passoDoEixo(max);
+    ctx.strokeStyle = '#ececea'; ctx.fillStyle = '#888'; ctx.font = '11px IBM Plex Mono, monospace';
+    for (let k = 0, kFim = Math.floor(max / passo + 1e-9); k <= kFim; k++) {
+      const v = k * passo;
+      const y = top + plotH * (1 - v / max);
+      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(w - right, y); ctx.stroke();
+      ctx.fillText(fmt(v, casas), 4, y + 4);
+    }
     const slot = plotW / Math.max(1, labels.length), bw = Math.max(6, Math.min(52, slot * 0.7));
     const segs = [];
     labels.forEach((lab, i) => {

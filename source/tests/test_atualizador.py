@@ -29,12 +29,14 @@ def montar_zip(arquivos):
     return buf.getvalue()
 
 
-def manifesto_de(dados, versao="26/08/2026 10:00", semente=SEMENTE):
+def manifesto_de(dados, versao="26/08/2026 10:00", semente=SEMENTE, somente=None):
     sha = hashlib.sha256(dados).hexdigest()
-    corpo = json.dumps({"versao": versao, "sha256": sha},
-                       sort_keys=True, separators=(",", ":")).encode()
-    return {"versao": versao, "sha256": sha,
-            "assinatura": base64.b64encode(assinatura.assinar(corpo, semente)).decode()}
+    corpo = atualizador.corpo_assinado(versao, sha, somente)
+    m = {"versao": versao, "sha256": sha,
+         "assinatura": base64.b64encode(assinatura.assinar(corpo, semente)).decode()}
+    if somente:
+        m["liberado_para"] = sorted(somente)
+    return m
 
 
 def rodar():
@@ -107,6 +109,37 @@ def rodar():
     finally:
         shutil.rmtree(pasta, ignore_errors=True)
 
+    # ── quem recebe qual versao ────────────────────────────────────────────
+    # A lista de liberacao viaja assinada. Ela nao guarda o pacote (a
+    # assinatura faz isso), mas se ficasse de fora daria para apagar a lista
+    # de um manifesto legitimo e entregar ao cliente uma versao que estava
+    # liberada so' para quem testa.
+    restrito = manifesto_de(bom, somente=["aaa111bbb2", "ccc333ddd4"])
+    conf("Manifesto com lista de liberacao e' aceito",
+         atualizador.conferir_pacote(bom, restrito, PUBLICA) is None)
+
+    sem_lista = dict(restrito); sem_lista.pop("liberado_para")
+    conf("Apagar a lista quebra a assinatura",
+         atualizador.conferir_pacote(bom, sem_lista, PUBLICA) is not None,
+         atualizador.conferir_pacote(bom, sem_lista, PUBLICA))
+
+    com_intruso = dict(restrito)
+    com_intruso["liberado_para"] = restrito["liberado_para"] + ["eu9999zzz0"]
+    conf("Acrescentar alguem na lista quebra a assinatura",
+         atualizador.conferir_pacote(bom, com_intruso, PUBLICA) is not None)
+
+    trocado = dict(restrito); trocado["liberado_para"] = ["eu9999zzz0"]
+    conf("Trocar a lista inteira quebra a assinatura",
+         atualizador.conferir_pacote(bom, trocado, PUBLICA) is not None)
+
+    fora_de_ordem = dict(restrito)
+    fora_de_ordem["liberado_para"] = list(reversed(restrito["liberado_para"]))
+    conf("A mesma lista em outra ordem continua valendo",
+         atualizador.conferir_pacote(bom, fora_de_ordem, PUBLICA) is None)
+
+    conf("Lista vazia assina igual a nenhuma lista",
+         atualizador.corpo_assinado("v", "abc", []) ==
+         atualizador.corpo_assinado("v", "abc", None))
     # ── pacote absurdamente grande
     m5 = manifesto_de(b"x")
     conf("Pacote grande demais é recusado",

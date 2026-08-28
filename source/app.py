@@ -1282,10 +1282,87 @@ def _url_de_atualizacao_segura(url):
     return None
 
 
-@app.route("/api/atualizacao", methods=["GET"])
+# ── quem recebe qual versao ─────────────────────────────────────────────────
+# Duas maneiras, que servem a coisas diferentes:
+#
+#   CANAL   e' o do dia a dia. Quem testa fica no canal "teste" e recebe as
+#           versoes novas primeiro; o cliente fica no "estavel" e so' recebe o
+#           que ja' passou por eles. Cada canal e' um manifesto proprio.
+#
+#   LIBERADO PARA  e' o controle fino: o manifesto pode trazer uma lista de
+#           instalacoes, e so' elas recebem aquela versao. Serve para mandar uma
+#           correcao para UMA pessoa antes de soltar para o resto.
+#
+# Nenhum dos dois e' barreira de seguranca — a assinatura e' que garante que o
+# pacote e' nosso. Estes dois decidem so' a QUEM ele e' oferecido. Ainda assim a
+# lista viaja dentro do que e' assinado, para ninguem reescrever a mao e
+# empurrar uma versao antiga para quem nao devia.
+CANAIS = ("estavel", "teste")
+
+
+def _id_da_instalacao():
+    """Identificador curto e estavel desta copia instalada.
+
+    Nao e' o nome de ninguem: sao 10 caracteres sorteados na primeira vez que o
+    programa roda, guardados nas preferencias. Serve para o autor dizer 'essa
+    versao vai so' para esta instalacao aqui' sem precisar de cadastro, login
+    nem servidor.
+    """
+    prefs = _prefs_cru()
+    ident = str(prefs.get("__instalacao") or "").strip()
+    if not ident:
+        import secrets
+        ident = secrets.token_hex(5)
+        _prefs_grava({"__instalacao": ident})
+    return ident
+
+
+def _canal_atual():
+    c = str(_prefs_cru().get("__canal_atualizacao") or "estavel").strip().lower()
+    return c if c in CANAIS else "estavel"
+
+
+def _url_do_canal(base, canal):
+    """No canal de teste o manifesto e' outro arquivo, ao lado do primeiro:
+    .../manifesto.json  ->  .../manifesto-teste.json"""
+    if canal == "estavel" or not base:
+        return base
+    if base.endswith(".json"):
+        return base[:-5] + "-" + canal + ".json"
+    return base
+
+
+def _liberado_para_mim(info, ident):
+    """A versao anunciada vale para esta instalacao? Devolve None se sim, ou o
+    motivo de nao. Manifesto sem lista vale para todo mundo (o caso normal)."""
+    lista = info.get("liberado_para")
+    if not lista:
+        return None
+    if not isinstance(lista, list):
+        return "lista de liberacao invalida no manifesto"
+    if ident in [str(x).strip() for x in lista]:
+        return None
+    return "esta versao foi liberada so' para algumas instalacoes"
+
+
+@app.route("/api/atualizacao", methods=["GET", "POST"])
 def api_atualizacao():
     """Diz se saiu versão nova. A fonte é um endereço configurável em
     prefs.json (__url_atualizacao); sem ele, não incomoda ninguém."""
+    # O canal e' da MAQUINA, nao da aba do navegador. Gravar por /api/prefs
+    # colocava o valor num balde por usuario, e a leitura acontece na raiz —
+    # entao a escolha era salva e ignorada, calada.
+    if request.method == "POST":
+        if MODO_WEB:
+            return _bloqueado_na_web()
+        body = request.get_json(force=True, silent=True) or {}
+        canal = str(body.get("canal") or "").strip().lower()
+        if canal not in CANAIS:
+            return jsonify({"success": False,
+                            "error": "canal deve ser um de: " + ", ".join(CANAIS)}), 400
+        _prefs_grava({"__canal_atualizacao": canal})
+        return jsonify({"success": True, "canal": canal})
+
     atual = "2.0"
     try:
         with open(resource_path(os.path.join("static", "versao.json")),
@@ -1293,9 +1370,13 @@ def api_atualizacao():
             atual = (json.load(fh) or {}).get("versao", atual)
     except Exception:  # noqa: BLE001
         pass
-    url = _prefs_cru().get("__url_atualizacao") or URL_ATUALIZACAO_PADRAO
+    ident, canal = _id_da_instalacao(), _canal_atual()
+    base = _prefs_cru().get("__url_atualizacao") or URL_ATUALIZACAO_PADRAO
+    url = _url_do_canal(base, canal)
+    comum = {"success": True, "versao_atual": atual, "instalacao": ident,
+             "canal": canal, "canais": list(CANAIS)}
     if not url:
-        return jsonify({"success": True, "verificou": False, "versao_atual": atual})
+        return jsonify(dict(comum, verificou=False))
 
     # O endereco vem das preferencias, que sao gravaveis pela propria tela.
     # Sem estas travas, alguem podia apontar para file:// (ler arquivo do
@@ -1303,8 +1384,7 @@ def api_atualizacao():
     # espelho. So' http/https, e nada de endereco privado.
     erro = _url_de_atualizacao_segura(url)
     if erro:
-        return jsonify({"success": True, "verificou": False,
-                        "versao_atual": atual, "motivo": erro})
+        return jsonify(dict(comum, verificou=False, motivo=erro))
     try:
         import urllib.request
         pedido = urllib.request.Request(url, headers={"User-Agent": "Concrestats"})
@@ -1313,13 +1393,18 @@ def api_atualizacao():
                 raise ValueError("resposta grande demais")
             info = json.loads(r.read(64 * 1024).decode("utf-8", "replace"))
         nova = str(info.get("versao", "")).strip()
-        return jsonify({"success": True, "verificou": True, "versao_atual": atual,
-                        "versao_nova": nova, "tem_nova": bool(nova) and nova != atual,
-                        "novidades": info.get("novidades", []),
-                        "onde": info.get("onde", "")})
+        # A versao pode existir e mesmo assim nao ser para esta instalacao.
+        # Nesse caso a tela nao mente dizendo "voce esta' na mais recente":
+        # diz que ha' uma versao restrita, e continua sem oferecer o download.
+        restricao = _liberado_para_mim(info, ident)
+        return jsonify(dict(comum, verificou=True, versao_nova=nova,
+                            tem_nova=bool(nova) and nova != atual and not restricao,
+                            restrita=bool(restricao),
+                            motivo=restricao or "",
+                            novidades=[] if restricao else info.get("novidades", []),
+                            onde=info.get("onde", "")))
     except Exception as e:  # noqa: BLE001 -- sem rede não é erro do usuário
-        return jsonify({"success": True, "verificou": False, "versao_atual": atual,
-                        "motivo": str(e)[:80]})
+        return jsonify(dict(comum, verificou=False, motivo=str(e)[:80]))
 
 
 @app.route("/api/atualizar", methods=["POST"])
@@ -1330,7 +1415,8 @@ def api_atualizar():
     origem duvidosa não chega nem a ser aberto."""
     if MODO_WEB:
         return _bloqueado_na_web()
-    url = _prefs_cru().get("__url_atualizacao") or URL_ATUALIZACAO_PADRAO
+    base = _prefs_cru().get("__url_atualizacao") or URL_ATUALIZACAO_PADRAO
+    url = _url_do_canal(base, _canal_atual())
     if not url:
         return jsonify({"success": False, "error": "sem endereço de atualização"}), 400
     erro = _url_de_atualizacao_segura(url)
@@ -1343,6 +1429,12 @@ def api_atualizar():
             manifesto = json.loads(r.read(64 * 1024).decode("utf-8", "replace"))
     except Exception as e:  # noqa: BLE001
         return jsonify({"success": False, "error": f"não consegui ler o manifesto ({e})"}), 502
+
+    # A mesma trava da tela vale aqui. Sem isto, quem chamasse este endereco
+    # direto baixaria a versao restrita assim mesmo — a tela seria enfeite.
+    restricao = _liberado_para_mim(manifesto, _id_da_instalacao())
+    if restricao:
+        return jsonify({"success": False, "error": restricao}), 403
 
     arquivo = manifesto.get("arquivo") or ""
     erro = _url_de_atualizacao_segura(arquivo)
