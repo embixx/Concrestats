@@ -36,7 +36,8 @@ mensalidade. Não passa por Stripe nem Mercado Pago: sem taxa por transação,
 sem conta de empresa, sem servidor ouvindo webhook. O dinheiro cai direto na
 sua conta.
 
-Para ligar, crie `%APPDATA%\Concrestatsecebedor.json`:
+Para ligar, crie `%APPDATA%\Concrestats
+ecebedor.json`:
 
 ```json
 {
