@@ -59,3 +59,7 @@ source/webview_data/
 mobile/app/build/
 mobile/.gradle/
 mobile/local.properties
+
+# chave que emite licenca - NUNCA no git
+chave_privada.txt
+licenca*.key

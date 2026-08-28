@@ -2442,3 +2442,40 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   cursor: pointer; font-family: var(--sans); }
 .alr-ir:hover { border-color: var(--accent); color: var(--accent); }
 .alr-mais { font-size: 11px; color: var(--text-3); margin: 6px 0 0; }
+
+/* ── Mensalidade ─────────────────────────────── */
+.selo-licenca {
+  border: 1px solid #3a3a35; background: #2a2a26; color: #cfcdc6;
+  border-radius: 999px; padding: 3px 11px; margin-right: 10px;
+  font-family: var(--mono); font-size: 10px; cursor: pointer; transition: all .15s;
+}
+.selo-licenca:hover { border-color: #6b9fff; color: #fff; }
+.selo-licenca.ok       { color: #8fd6a6; border-color: #2f5d3f; }
+.selo-licenca.teste    { color: #9dc0ff; border-color: #2f4670; }
+.selo-licenca.atencao  { color: #f0c674; border-color: #6b5426; }
+.selo-licenca.parado   { color: #ff9d8f; border-color: #7a3226; }
+
+.modal-box.modal-licenca { max-width: 560px; width: min(560px, 94vw); }
+.lic-estado {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 11px 13px; border-radius: 6px; margin-bottom: 12px;
+  background: var(--bg-panel); border: 1px solid var(--border-light);
+}
+.lic-estado b { font-size: 13px; }
+.lic-estado span { font-size: 11.5px; color: var(--text-2); }
+.lic-estado.lic-valida   { background: #e7f2ea; border-color: #cfe4d5; }
+.lic-estado.lic-cortesia { background: #fdf3e3; border-color: #eddcc0; }
+.lic-estado.lic-vencida, .lic-estado.lic-teste_vencido {
+  background: var(--danger-bg); border-color: #f0d6d1; }
+.lic-nota { font-size: 11.5px; color: var(--text-2); line-height: 1.55; margin: 0 0 12px; }
+.lic-nota b { color: var(--text); }
+.lic-ajuda { font-size: 11.5px; color: var(--text-3); margin: 0 0 10px; line-height: 1.5; }
+.lic-acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+#lic-texto {
+  width: 100%; font-family: var(--mono); font-size: 11px; padding: 8px;
+  border: 1px solid var(--border); border-radius: 5px; background: var(--bg-white);
+  resize: vertical; margin-bottom: 10px;
+}
+.lic-resultado { font-size: 12px; line-height: 1.5; color: var(--text-2); min-height: 18px; }
+.lic-resultado.bom  { color: var(--success); }
+.lic-resultado.ruim { color: var(--danger); }

@@ -26,6 +26,7 @@ import threading
 import time
 import webbrowser
 
+import licenca
 import numpy as np
 import pandas as pd
 from flask import (
@@ -439,6 +440,9 @@ def api_restaurar_copia():
     antes, para o 'voltar atras' tambem ter volta)."""
     if MODO_WEB:
         return _bloqueado_na_web()
+    travado = _bloqueado_sem_licenca()
+    if travado:
+        return travado
     body = request.get_json(force=True, silent=True) or {}
     sid = body.get("session_id", "default")
     sess = _session(sid)
@@ -684,6 +688,9 @@ def _safe_sheet_name(name, used):
 def api_save_file():
     if MODO_WEB:
         return _bloqueado_na_web()
+    travado = _bloqueado_sem_licenca()
+    if travado:
+        return travado
     # Grava a sessão de volta no arquivo de origem (ou num caminho novo vindo
     # do "Salvar como" nativo). Excel: escreve TODAS as planilhas.
     body = request.get_json(force=True, silent=True) or {}
@@ -915,6 +922,9 @@ def _send_dataframe(df, fmt, base_name):
 
 @app.route("/api/export", methods=["POST"])
 def api_export():
+    travado = _bloqueado_sem_licenca()
+    if travado:
+        return travado
     body = request.get_json(force=True, silent=True) or {}
     sess = _session(body.get("session_id", "default"))
     name = body.get("sheet_name") or sess["active"]
@@ -927,6 +937,9 @@ def api_export():
 
 @app.route("/api/export_report_custom", methods=["POST"])
 def api_export_report_custom():
+    travado = _bloqueado_sem_licenca()
+    if travado:
+        return travado
     body = request.get_json(force=True, silent=True) or {}
     fmt = (body.get("format") or "xlsx").lower()
     columns = body.get("columns") or []
@@ -952,6 +965,9 @@ def api_export_aoa():
     aqui o arquivo é escrito com openpyxl, que já vem no executável. Se vier
     'path', grava direto no disco (diálogo nativo); senão devolve o arquivo.
     """
+    travado = _bloqueado_sem_licenca()
+    if travado:
+        return travado
     body = request.get_json(force=True, silent=True) or {}
     aoa = body.get("aoa") or []
     if not isinstance(aoa, list) or not aoa:
@@ -1000,6 +1016,9 @@ def api_salvar_binario():
     salvar — o arquivo 'sumia'."""
     if MODO_WEB:
         return _bloqueado_na_web()
+    travado = _bloqueado_sem_licenca()
+    if travado:
+        return travado
     import base64
     body = request.get_json(force=True, silent=True) or {}
     path = (body.get("path") or "").strip()
@@ -1117,6 +1136,168 @@ def api_autoteste_arquivo():
 
     return jsonify({"success": True, "checks": checks,
                     "ok": all(c["ok"] for c in checks)})
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Mensalidade
+# ──────────────────────────────────────────────────────────────────────────
+_LICENCA = {"dados": None, "erro": None, "arquivo": None}
+
+
+def _prefs_cru():
+    try:
+        with open(PREFS_FILE, "r", encoding="utf-8") as fh:
+            return json.load(fh) or {}
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _prefs_grava(campos):
+    atual = _prefs_cru()
+    atual.update(campos)
+    try:
+        with open(PREFS_FILE, "w", encoding="utf-8") as fh:
+            json.dump(atual, fh, ensure_ascii=False, indent=2)
+    except OSError:
+        pass
+
+
+def _carregar_licenca():
+    """Procura o licenca.key ao lado do executável e confere a assinatura."""
+    caminho = licenca.procurar(app_dir())
+    if not caminho:
+        _LICENCA.update({"dados": None, "erro": None, "arquivo": None})
+        return
+    dados, erro = licenca.ler_arquivo(caminho)
+    _LICENCA.update({"dados": dados, "erro": erro, "arquivo": caminho})
+
+
+def estado_licenca():
+    """Situação atual + marca o relógio, para atrasá-lo não render licença."""
+    p = _prefs_cru()
+    s = licenca.situacao(_LICENCA["dados"],
+                         marca_do_relogio=p.get("__relogio"),
+                         inicio_do_teste=p.get("__teste_desde"))
+    hoje = datetime.date.today().isoformat()
+    novos = {}
+    if not p.get("__relogio") or hoje > p["__relogio"]:
+        novos["__relogio"] = hoje
+    if not _LICENCA["dados"] and not p.get("__teste_desde"):
+        novos["__teste_desde"] = hoje
+    if novos:
+        _prefs_grava(novos)
+    if _LICENCA["erro"]:
+        s = dict(s)
+        s["aviso_arquivo"] = _LICENCA["erro"]
+    return s
+
+
+def _bloqueado_sem_licenca():
+    """Vencido não tranca os dados: só fecha gravar e exportar."""
+    s = estado_licenca()
+    if s.get("pode_gravar"):
+        return None
+    return jsonify({"success": False, "sem_licenca": True,
+                    "estado": s["estado"], "error": s["texto"]}), 402
+
+
+@app.route("/api/licenca", methods=["GET", "POST"])
+def api_licenca():
+    if request.method == "GET":
+        return jsonify(estado_licenca())
+    # POST: instalar um licenca.key que o cliente recebeu
+    if MODO_WEB:
+        return _bloqueado_na_web()
+    body = request.get_json(force=True, silent=True) or {}
+    origem = (body.get("path") or "").strip()
+    conteudo = body.get("conteudo")
+    if conteudo:
+        dados, erro = licenca.interpretar(conteudo)
+    elif origem:
+        dados, erro = licenca.ler_arquivo(origem)
+    else:
+        return jsonify({"success": False, "error": "informe o arquivo da licença"}), 400
+    if erro:
+        return jsonify({"success": False, "error": erro}), 400
+    try:
+        destino = os.path.join(app_dir(), "licenca.key")
+        if origem and os.path.abspath(origem) != os.path.abspath(destino):
+            shutil.copy2(origem, destino)
+        elif conteudo:
+            with open(destino, "w", encoding="utf-8") as fh:
+                fh.write(conteudo)
+        _carregar_licenca()
+        return jsonify({"success": True, "situacao": estado_licenca()})
+    except OSError as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+_carregar_licenca()      # lê a licença uma vez, quando o app sobe
+
+
+def _url_de_atualizacao_segura(url):
+    """Devolve None se o endereco pode ser consultado, ou o motivo da recusa."""
+    import ipaddress
+    import socket
+    import urllib.parse
+    try:
+        u = urllib.parse.urlparse(url)
+    except ValueError:
+        return "endereco de atualizacao invalido"
+    if u.scheme not in ("http", "https"):
+        return "so' http ou https"
+    if not u.hostname:
+        return "endereco sem servidor"
+    try:
+        infos = socket.getaddrinfo(u.hostname, None)
+    except OSError:
+        return "servidor nao encontrado"
+    for familia, _, _, _, endereco in infos:
+        ip = ipaddress.ip_address(endereco[0])
+        if (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_reserved or ip.is_multicast):
+            return "endereco interno nao e' consultado"
+    return None
+
+
+@app.route("/api/atualizacao", methods=["GET"])
+def api_atualizacao():
+    """Diz se saiu versão nova. A fonte é um endereço configurável em
+    prefs.json (__url_atualizacao); sem ele, não incomoda ninguém."""
+    atual = "2.0"
+    try:
+        with open(resource_path(os.path.join("static", "versao.json")),
+                  encoding="utf-8") as fh:
+            atual = (json.load(fh) or {}).get("versao", atual)
+    except Exception:  # noqa: BLE001
+        pass
+    url = _prefs_cru().get("__url_atualizacao")
+    if not url:
+        return jsonify({"success": True, "verificou": False, "versao_atual": atual})
+
+    # O endereco vem das preferencias, que sao gravaveis pela propria tela.
+    # Sem estas travas, alguem podia apontar para file:// (ler arquivo do
+    # disco) ou para um endereco interno da rede e usar a resposta como
+    # espelho. So' http/https, e nada de endereco privado.
+    erro = _url_de_atualizacao_segura(url)
+    if erro:
+        return jsonify({"success": True, "verificou": False,
+                        "versao_atual": atual, "motivo": erro})
+    try:
+        import urllib.request
+        pedido = urllib.request.Request(url, headers={"User-Agent": "Concrestats"})
+        with urllib.request.urlopen(pedido, timeout=6) as r:
+            if int(r.headers.get("Content-Length") or 0) > 64 * 1024:
+                raise ValueError("resposta grande demais")
+            info = json.loads(r.read(64 * 1024).decode("utf-8", "replace"))
+        nova = str(info.get("versao", "")).strip()
+        return jsonify({"success": True, "verificou": True, "versao_atual": atual,
+                        "versao_nova": nova, "tem_nova": bool(nova) and nova != atual,
+                        "novidades": info.get("novidades", []),
+                        "onde": info.get("onde", "")})
+    except Exception as e:  # noqa: BLE001 -- sem rede não é erro do usuário
+        return jsonify({"success": True, "verificou": False, "versao_atual": atual,
+                        "motivo": str(e)[:80]})
 
 
 @app.route("/api/prefs", methods=["GET", "POST"])
