@@ -147,12 +147,46 @@
         return;
       }
       if (j.tem_nova) {
-        mostrar(`Saiu a versão ${j.versao_nova} (você está na ${j.versao_atual}).` +
-                (j.onde ? ' Baixe em: ' + j.onde : ''), true);
+        mostrar(`Saiu a versão ${j.versao_nova} — você está na ${j.versao_atual}.`, true);
+        const el = $('lic-resultado');
+        const b = document.createElement('button');
+        b.className = 'primary-btn'; b.id = 'lic-instalar';
+        b.style.marginTop = '10px';
+        b.textContent = 'Atualizar agora';
+        b.addEventListener('click', () => aplicarAtualizacao(b));
+        el.appendChild(document.createElement('br'));
+        el.appendChild(b);
+        if ((j.novidades || []).length) {
+          const ul = document.createElement('ul');
+          ul.className = 'lic-novidades';
+          j.novidades.slice(0, 8).forEach(n => {
+            const li = document.createElement('li'); li.textContent = n; ul.appendChild(li);
+          });
+          el.appendChild(ul);
+        }
       } else {
         mostrar('Você já está na versão mais recente (' + j.versao_atual + ').', true);
       }
     } catch (e) { mostrar('Não consegui verificar agora', false); }
+  }
+
+  async function aplicarAtualizacao(botao) {
+    botao.disabled = true; botao.textContent = 'Baixando…';
+    try {
+      const j = await (await fetch('/api/atualizar', { method: 'POST' })).json();
+      if (j.success) {
+        botao.textContent = 'Pronto — reabra o programa';
+        mostrar(`Atualizado para a versão ${j.versao}. ${j.mensagem}. ` +
+                'Feche e abra o programa para usar a versão nova.', true);
+        if (window.toast) toast('Atualização aplicada — reabra o programa', 'success');
+      } else {
+        botao.disabled = false; botao.textContent = 'Tentar de novo';
+        mostrar('Não deu certo: ' + (j.error || 'erro desconhecido'), false);
+      }
+    } catch (e) {
+      botao.disabled = false; botao.textContent = 'Tentar de novo';
+      mostrar('Não deu certo: ' + e.message, false);
+    }
   }
 
   function mostrar(texto, bom) {

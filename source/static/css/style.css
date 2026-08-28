@@ -2479,3 +2479,5 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .lic-resultado { font-size: 12px; line-height: 1.5; color: var(--text-2); min-height: 18px; }
 .lic-resultado.bom  { color: var(--success); }
 .lic-resultado.ruim { color: var(--danger); }
+.lic-novidades { margin: 8px 0 0; padding-left: 18px; font-size: 11.5px; color: var(--text-2); }
+.lic-novidades li { margin: 2px 0; }

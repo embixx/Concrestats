@@ -26,6 +26,7 @@ import threading
 import time
 import webbrowser
 
+import atualizador
 import licenca
 import numpy as np
 import pandas as pd
@@ -1298,6 +1299,50 @@ def api_atualizacao():
     except Exception as e:  # noqa: BLE001 -- sem rede não é erro do usuário
         return jsonify({"success": True, "verificou": False, "versao_atual": atual,
                         "motivo": str(e)[:80]})
+
+
+@app.route("/api/atualizar", methods=["POST"])
+def api_atualizar():
+    """Baixa e aplica a atualização anunciada no manifesto.
+
+    A ordem importa: conferir a assinatura ANTES de descompactar. Um pacote de
+    origem duvidosa não chega nem a ser aberto."""
+    if MODO_WEB:
+        return _bloqueado_na_web()
+    url = _prefs_cru().get("__url_atualizacao")
+    if not url:
+        return jsonify({"success": False, "error": "sem endereço de atualização"}), 400
+    erro = _url_de_atualizacao_segura(url)
+    if erro:
+        return jsonify({"success": False, "error": erro}), 400
+    try:
+        import urllib.request
+        pedido = urllib.request.Request(url, headers={"User-Agent": "Concrestats"})
+        with urllib.request.urlopen(pedido, timeout=10) as r:
+            manifesto = json.loads(r.read(64 * 1024).decode("utf-8", "replace"))
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"success": False, "error": f"não consegui ler o manifesto ({e})"}), 502
+
+    arquivo = manifesto.get("arquivo") or ""
+    erro = _url_de_atualizacao_segura(arquivo)
+    if erro:
+        return jsonify({"success": False, "error": f"endereço do pacote recusado: {erro}"}), 400
+    try:
+        pacote = atualizador.baixar(arquivo)
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"success": False, "error": f"falhou ao baixar ({e})"}), 502
+
+    motivo = atualizador.conferir_pacote(pacote, manifesto, licenca.CHAVE_PUBLICA)
+    if motivo:
+        return jsonify({"success": False, "error": motivo}), 400
+
+    destino = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    ok, msg = atualizador.aplicar(pacote, destino)
+    if not ok:
+        return jsonify({"success": False, "error": msg}), 500
+    return jsonify({"success": True, "mensagem": msg,
+                    "versao": manifesto.get("versao", ""),
+                    "reiniciar": True})
 
 
 @app.route("/api/prefs", methods=["GET", "POST"])

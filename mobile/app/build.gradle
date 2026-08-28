@@ -18,5 +18,6 @@ android {
     }
 }
 dependencies {
+    // o appcompat ja' traz androidx.core, de onde vem o FileProvider
     implementation 'androidx.appcompat:appcompat:1.6.1'
 }

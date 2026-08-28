@@ -1,2 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<paths><external-path name="ext" path="." /><files-path name="int" path="." /></paths>
+<paths>
+    <external-files-path name="baixados" path="Download/" />
+    <external-path name="ext" path="." />
+    <files-path name="int" path="." />
+</paths>
