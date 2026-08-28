@@ -1,11 +1,12 @@
 {
-  "versao": "24/08/2026 11:18",
+  "versao": "27/08/2026 21:03",
   "novidades": [
-    "CORRIGIDO: a janela abria com o icone do Python — agora usa o icone do app",
-    "Icone afinado: nos tamanhos pequenos (16 e 24px) o desenho e simplificado, para ficar legivel",
-    "NOVO botao ALERTAS: escreva a regra uma vez e o app avisa sozinho",
-    "Ex.: 'avisar quando MPA 28 for menor que [FCK]' — o sino mostra quantos bateram",
-    "A lista dos alertas leva direto a linha na planilha",
-    "As regras ficam salvas por planilha e voltam ao reabrir o app"
+    "MENSALIDADE: licenca por cliente, com aviso de vencimento",
+    "ATUALIZACAO AUTOMATICA: o app avisa e se atualiza sozinho, sem baixar RAR",
+    "APP DE TABLET (APK): o Concrestats no Android, feito para o dedo",
+    "Botao Testar saiu: agora e' o app de verdade, nao o de desenvolvedor",
+    "Ordenar nao poe mais o 'n/d' acima do maior resultado",
+    "Alertas automaticos: escreva a regra e o app avisa sozinho",
+    "Icone novo e Versoes anteriores do arquivo"
   ]
 }

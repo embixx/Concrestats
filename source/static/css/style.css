@@ -2481,3 +2481,16 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .lic-resultado.ruim { color: var(--danger); }
 .lic-novidades { margin: 8px 0 0; padding-left: 18px; font-size: 11.5px; color: var(--text-2); }
 .lic-novidades li { margin: 2px 0; }
+
+/* carimbo da versão na tela inicial — discreto, mas dá para ler e copiar */
+.empty-versao {
+  margin-top: 26px;
+  font-size: 11px;
+  letter-spacing: .3px;
+  color: var(--text-3, #9a968e);
+  opacity: .62;
+  cursor: pointer;
+  user-select: all;
+  transition: opacity .15s ease;
+}
+.empty-versao:hover { opacity: 1; }

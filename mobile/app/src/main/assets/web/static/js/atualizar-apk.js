@@ -13,6 +13,9 @@
   if (!window.CONCRE_MOBILE) return;
 
   const CHAVE_URL = '__url_atualizacao';
+  // ja' vem preenchido: quem recebe o app nao precisa configurar nada
+  const URL_PADRAO = 'https://raw.githubusercontent.com/embixx/Concrestats/' +
+                     'main/atualizacao/manifesto-apk.json';
   const $ = id => document.getElementById(id);
 
   async function prefs() {
@@ -28,7 +31,7 @@
 
   async function verificar(silencioso) {
     const p = await prefs();
-    const url = p[CHAVE_URL];
+    const url = p[CHAVE_URL] || URL_PADRAO;
     if (!url) {
       if (!silencioso) mostrar('Não há endereço de atualização configurado.', null);
       return null;

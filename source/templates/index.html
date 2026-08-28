@@ -170,6 +170,8 @@
           <div class="recentes-tit">Abertos recentemente</div>
           <div id="recentes-lista"></div>
         </div>
+        <div class="empty-versao" id="empty-versao" hidden
+             title="Clique para copiar. Serve para conferir se voce esta na versao nova."></div>
       </div>
       <div id="grid-area" style="display:none">
         <div id="grid-scroll">
@@ -604,6 +606,16 @@
 <script src="/static/js/relatorio.js"></script>
 <script src="/static/js/alertas.js"></script>
 <script src="/static/js/licenca.js"></script>
-<script src="/static/js/testes.js"></script>
+    <script src="/static/js/carimbo-versao.js"></script>
+<script>
+// O Modo Teste e' ferramenta de desenvolvimento e NAO vai no app entregue.
+// Para usar aqui: definir CONCRE_DEV=1 antes de abrir o programa.
+fetch('/api/ambiente').then(r => r.json()).then(a => {
+  if (!a || !a.dev) return;
+  var s = document.createElement('script');
+  s.src = '/static/js/testes.js';
+  document.body.appendChild(s);
+}).catch(function () {});
+</script>
 </body>
 </html>

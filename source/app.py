@@ -99,7 +99,8 @@ def _bloqueado_na_web():
 @app.route("/api/ambiente")
 def api_ambiente():
     """O frontend usa isto para esconder botões que só existem no app de mesa."""
-    return jsonify({"web": MODO_WEB, "versao": "2.0"})
+    return jsonify({"web": MODO_WEB, "versao": "2.0",
+                    "dev": os.environ.get("CONCRE_DEV") == "1"})
 
 
 def _usuario():
@@ -1142,6 +1143,12 @@ def api_autoteste_arquivo():
 # ──────────────────────────────────────────────────────────────────────────
 # Mensalidade
 # ──────────────────────────────────────────────────────────────────────────
+# Onde o app procura versao nova. Ja' vem preenchido para quem recebe o
+# programa nao precisar configurar nada; da' para trocar pelas preferencias
+# (__url_atualizacao) se um dia o endereco mudar.
+URL_ATUALIZACAO_PADRAO = ("https://raw.githubusercontent.com/embixx/"
+                          "Concrestats/main/atualizacao/manifesto.json")
+
 _LICENCA = {"dados": None, "erro": None, "arquivo": None}
 
 
@@ -1272,7 +1279,7 @@ def api_atualizacao():
             atual = (json.load(fh) or {}).get("versao", atual)
     except Exception:  # noqa: BLE001
         pass
-    url = _prefs_cru().get("__url_atualizacao")
+    url = _prefs_cru().get("__url_atualizacao") or URL_ATUALIZACAO_PADRAO
     if not url:
         return jsonify({"success": True, "verificou": False, "versao_atual": atual})
 
@@ -1309,7 +1316,7 @@ def api_atualizar():
     origem duvidosa não chega nem a ser aberto."""
     if MODO_WEB:
         return _bloqueado_na_web()
-    url = _prefs_cru().get("__url_atualizacao")
+    url = _prefs_cru().get("__url_atualizacao") or URL_ATUALIZACAO_PADRAO
     if not url:
         return jsonify({"success": False, "error": "sem endereço de atualização"}), 400
     erro = _url_de_atualizacao_segura(url)

@@ -2,12 +2,11 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>CONCRESTATS · Sistema de Dados</title>
 <link rel="stylesheet" href="static/css/style.css">
-  <link rel="icon" href="static/icone.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <link rel="stylesheet" href="static/css/mobile.css">
+  <link rel="icon" href="static/icone.png">
 </head>
 <body>
 
@@ -172,6 +171,8 @@
           <div class="recentes-tit">Abertos recentemente</div>
           <div id="recentes-lista"></div>
         </div>
+        <div class="empty-versao" id="empty-versao" hidden
+             title="Clique para copiar. Serve para conferir se voce esta na versao nova."></div>
       </div>
       <div id="grid-area" style="display:none">
         <div id="grid-scroll">
@@ -606,6 +607,7 @@
 <script src="static/js/painel.js"></script>
 <script src="static/js/relatorio.js"></script>
 <script src="static/js/alertas.js"></script>
+    <script src="static/js/carimbo-versao.js"></script>
 <script src="static/js/atualizar-apk.js"></script>
 <script src="static/js/toque-tablet.js"></script>
 </body>
