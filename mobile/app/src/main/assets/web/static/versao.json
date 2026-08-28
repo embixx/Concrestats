@@ -1,12 +1,12 @@
 {
-  "versao": "27/08/2026 22:56",
+  "versao": "28/08/2026 01:34",
   "novidades": [
-    "DISTRIBUICAO REFEITA: mostra o fck, a media e o desvio padrao",
-    "As barras abaixo do fck saem em vermelho, com legenda",
-    "Faixas escolhidas a partir dos dados, nao mais fixas em 5 MPa",
-    "PAGAMENTO POR PIX: QR e Copia e Cola dentro do app",
-    "Numeros nao tremem mais ao mudar de digito",
-    "Botoes respondem ao clique e o foco de teclado ficou visivel",
+    "PIZZA REFEITA: no maximo 6 fatias, o resto vira 'Outros' com o nome",
+    "Legenda da pizza mostra nome inteiro, valor e porcentagem",
+    "Paleta trocada por uma que passa nas checagens de daltonismo",
+    "DISTRIBUICAO: mostra o fck, a media e o desvio padrao",
+    "Rotulo de grafico nao perde mais a primeira letra",
+    "PAGAMENTO POR PIX dentro do app",
     "O app mostra a versao na tela inicial"
   ]
 }

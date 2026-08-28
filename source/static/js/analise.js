@@ -18,7 +18,20 @@
   function fmt(n,d=2){return isNaN(n)?'—':n.toLocaleString('pt-BR',{maximumFractionDigits:d,minimumFractionDigits:d});}
   function fmt0(n){return fmt(n, Math.abs(n)>=1000?0:2);}
 
-  const COLORS = ['#2a5298','#e05c3a','#2a6640','#8a2be2','#e8a030','#1a9aa0','#c0392b','#27ae60','#5d6d7e','#b7950b','#7d3c98','#148f77'];
+  // Paleta categórica. Ordem fixa: a cor seguz a entidade, não a posição dela
+  // no ranking — se um filtro tira o segundo colocado, os outros não trocam de
+  // cor. Conferida com o validador: passa faixa de luminosidade, piso de croma,
+  // separação para daltonismo (ΔE 9,1 em protanopia) e visão normal (19,6).
+  // O cinza de "Outros" fica FORA dela de propósito: é neutro, não é categoria.
+  const COLORS = ['#2a5298', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#4a3aa7'];
+  const COR_OUTROS = '#8a8781';
+  const MAX_FATIAS = 6;
+
+  // Uma serie chamada 'Outros' nunca e' uma categoria da planilha: e' o balde
+  // do que sobrou. Recebe o cinza neutro, e nao gasta um dos seis hues — sem
+  // isso ela colidiria com a primeira serie assim que houvesse 7 fatias.
+  const corDaSerie = (nome, i) =>
+    String(nome).toLowerCase() === 'outros' ? COR_OUTROS : COLORS[i % COLORS.length];
   const OPS = ['Soma','Média','Contagem','Mínimo','Máximo'];
 
   const state = {
@@ -155,7 +168,7 @@
     ctx.clearRect(0, 0, w, h);
     const left = 56, right = 12, top = 14;
     ctx.font = '10px IBM Plex Mono, monospace';
-    let mx = 0; labels.forEach(l => { const t = String(l).slice(0, 24); const tw = ctx.measureText(t).width; if (tw > mx) mx = tw; });
+    let mx = 0; labels.forEach(l => { const tw = ctx.measureText(String(l) + '…').width; if (tw > mx) mx = tw; });
     const bottom = Math.min(150, Math.max(40, Math.ceil(mx) + 14));
     const max = Math.max(...values.map(v => isNaN(v) ? 0 : v), 1);
     const min = Math.min(...values.map(v => isNaN(v) ? 0 : v), 0);
@@ -193,7 +206,11 @@
     labels.forEach((l, i) => {
       if (i % step) return;
       const cx = left + slot * i + slot / 2;
-      const t = String(l).length > 24 ? String(l).slice(0, 24) + '…' : String(l);
+      // Cortar em 24 caracteres não bastava: a faixa de baixo é limitada a 150px
+      // e o texto continuava com 24 letras, então a PRIMEIRA sobrava fora do
+      // canvas. "CONCRETO FCK 25" aparecia como "ONCRETO FCK 25" — que não é um
+      // rótulo feio, é um rótulo errado. Agora o corte é pela altura que sobra.
+      const t = encurtar(ctx, String(l), bottom - 12);
       ctx.save(); ctx.translate(cx, baseY + 7); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'right'; ctx.fillText(t, 0, 3); ctx.restore();
     });
     const hit = e => { const { x } = canvasXY(canvas, e); return bars.find(b => x >= b.x - 2 && x <= b.x + b.w + 2); };
@@ -225,8 +242,15 @@
         const y1 = top + plotH * (1 - acc / max);
         acc += v;
         const y0 = top + plotH * (1 - acc / max);
-        ctx.fillStyle = COLORS[si % COLORS.length];
-        ctx.fillRect(x, y0, bw, Math.max(1, y1 - y0));
+        ctx.fillStyle = corDaSerie(sr.nome, si);
+        // Vão de 2px da cor do fundo entre os segmentos: encostados, duas cores
+        // vizinhas viram um bloco só e some a divisão entre elas.
+        const alturaSeg = Math.max(1, y1 - y0);
+        ctx.fillRect(x, y0, bw, alturaSeg);
+        if (alturaSeg > 3) {
+          ctx.fillStyle = '#fafaf7';
+          ctx.fillRect(x, y0, bw, 1.5);
+        }
         segs.push({ x, w: bw, y0, y1, per: String(lab), cat: sr.nome, v });
       });
     });
@@ -240,37 +264,126 @@
   }
 
   /* ── gráfico: pizza/donut ──────────────────────── */
+
+  // Pizza só responde "quanto cada parte é do todo", e só a um relance. Passando
+  // de meia dúzia de fatias ela deixa de responder: as menores viram fiapos, os
+  // nomes não cabem e as cores começam a se repetir. Então o resto vira uma
+  // fatia só, chamada pelo nome.
+  function agruparParaPizza(labels, values) {
+    const itens = labels.map((l, i) => ({ label: String(l), v: Math.max(0, values[i]) }));
+    const jaTemOutros = itens.some(x => x.label.toLowerCase() === 'outros');
+    if (itens.length <= MAX_FATIAS || jaTemOutros && itens.length <= MAX_FATIAS + 1) {
+      return { fatias: itens, agrupados: 0 };
+    }
+    const ordenado = [...itens].sort((a, b) => b.v - a.v);
+    const topo = ordenado.slice(0, MAX_FATIAS);
+    const resto = ordenado.slice(MAX_FATIAS);
+    const soma = resto.reduce((s, x) => s + x.v, 0);
+    return {
+      fatias: topo.concat(soma > 0 ? [{ label: 'Outros', v: soma, outros: true }] : []),
+      agrupados: resto.length
+    };
+  }
+
+  // Corta pela LARGURA em pixels, não por contagem de letras: "WWW" ocupa o
+  // triplo de "iii" e cortar em 30 caracteres estoura numa e sobra na outra.
+  function encurtar(ctx, texto, largura) {
+    if (ctx.measureText(texto).width <= largura) return texto;
+    let t = texto;
+    while (t.length > 1 && ctx.measureText(t + '…').width > largura) t = t.slice(0, -1);
+    return t + '…';
+  }
+
   function drawDonut(canvas, labels, values, onClick) {
     const { ctx, w, h } = setupCanvas(canvas, 300);
     ctx.clearRect(0, 0, w, h);
+
+    const { fatias, agrupados } = agruparParaPizza(labels, values);
+    // O total do meio é o total DE VERDADE, não a soma das fatias mostradas.
     const total = values.reduce((s, v) => s + Math.max(0, v), 0) || 1;
-    const cx = Math.min(h * 0.62, w * 0.32), cy = h / 2, R = Math.min(cx - 12, h / 2 - 14), r = R * 0.55;
+
+    const cx = Math.min(h * 0.62, w * 0.32), cy = h / 2;
+    const R = Math.min(cx - 12, h / 2 - 14), r = R * 0.55;
+
     let a0 = -Math.PI / 2;
     const slices = [];
-    values.forEach((v, i) => {
-      const frac = Math.max(0, v) / total;
+    fatias.forEach((f, i) => {
+      const frac = f.v / total;
       const a1 = a0 + frac * Math.PI * 2;
-      const sel = state.fil.cats.has(String(labels[i]));
-      ctx.beginPath(); ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, sel ? R + 5 : R, a0, a1); ctx.closePath();
-      ctx.fillStyle = COLORS[i % COLORS.length]; ctx.fill();
-      slices.push({ a0, a1, label: String(labels[i]), v, pct: frac * 100 });
+      const sel = state.fil.cats.has(f.label);
+      const raio = sel ? R + 5 : R;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, raio, a0, a1);
+      ctx.closePath();
+      ctx.fillStyle = corDaSerie(f.label, i);
+      ctx.fill();
+      // Vão de 2px da cor do fundo entre as fatias. Sem ele duas cores vizinhas
+      // se encostam e viram uma mancha só — e é justamente na borda que o olho
+      // compara tamanho.
+      if (fatias.length > 1) {
+        ctx.strokeStyle = '#fafaf7';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      slices.push({ a0, a1, label: f.label, v: f.v, pct: frac * 100,
+                    outros: !!f.outros, cor: corDaSerie(f.label, i) });
       a0 = a1;
     });
+
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#fafaf7'; ctx.fill();
     ctx.fillStyle = '#1c1b18'; ctx.font = '600 13px IBM Plex Mono, monospace'; ctx.textAlign = 'center';
-    ctx.fillText(fmt0(total), cx, cy + 1); ctx.font = '9px IBM Plex Mono, monospace'; ctx.fillStyle = '#9a968e';
+    ctx.fillText(fmt0(total), cx, cy + 1);
+    ctx.font = '9px IBM Plex Mono, monospace'; ctx.fillStyle = '#9a968e';
     ctx.fillText('total', cx, cy + 14); ctx.textAlign = 'start';
-    // legenda
-    ctx.font = '11px IBM Plex Sans, sans-serif';
-    const lx = cx + R + 26; let ly = Math.max(16, cy - slices.length * 9);
-    slices.forEach((s, i) => {
-      ctx.fillStyle = COLORS[i % COLORS.length]; ctx.fillRect(lx, ly - 8, 9, 9);
-      ctx.fillStyle = '#5a5852';
-      const t = s.label.length > 30 ? s.label.slice(0, 30) + '…' : s.label;
-      ctx.fillText(`${t} — ${fmt(s.pct, 1)}%`, lx + 14, ly);
-      ly += 18;
+
+    // Legenda com NOME, VALOR e PORCENTAGEM. O valor não é enfeite: três destas
+    // cores ficam abaixo de 3:1 de contraste com o fundo claro, e a regra é que
+    // nesse caso o rótulo escrito tem que carregar a informação sozinho.
+    const lx = cx + R + 26;
+    const largDisponivel = Math.max(60, w - lx - 8);
+    const nota = agrupados > 0 ? 16 : 0;
+    // Nome e número em UMA linha só cabem quando o nome é curto. Com nome de
+    // cliente, o nome vira "Construtora A…" e dois clientes diferentes ficam
+    // com o mesmo rótulo. Em duas linhas o nome usa a largura inteira.
+    const duasLinhas = (slices.length * 28 + nota) <= (h - 20);
+    const alturaItem = duasLinhas ? 28 : 18;
+    let ly = Math.max(14, cy - (slices.length * alturaItem + nota) / 2 + 8);
+
+    // Uma casa decimal para todo mundo. Misturar "3.832" com "631,50" na mesma
+    // coluna parece erro de conta, não precisão.
+    const casas = slices.some(s => s.v < 100) ? 1 : 0;
+
+    slices.forEach(s => {
+      ctx.fillStyle = s.cor;
+      ctx.fillRect(lx, ly - 8, 9, 9);
+      const numeros = `${fmt(s.v, casas)} · ${fmt(s.pct, 1)}%`;
+
+      if (duasLinhas) {
+        ctx.fillStyle = '#1c1b18';
+        ctx.font = '11px IBM Plex Sans, sans-serif';
+        ctx.fillText(encurtar(ctx, s.label, largDisponivel - 14), lx + 14, ly);
+        // Mono nos números: numa coluna, algarismo de largura fixa alinha as
+        // casas e dá para comparar de relance.
+        ctx.fillStyle = '#5a5852';
+        ctx.font = '10px IBM Plex Mono, monospace';
+        ctx.fillText(numeros, lx + 14, ly + 13);
+      } else {
+        ctx.fillStyle = '#5a5852';
+        ctx.font = '11px IBM Plex Sans, sans-serif';
+        const largNum = ctx.measureText('  ' + numeros).width;
+        ctx.fillText(encurtar(ctx, s.label, largDisponivel - 14 - largNum) + '  ' + numeros,
+                     lx + 14, ly);
+      }
+      ly += alturaItem;
     });
+
+    if (agrupados > 0) {
+      ctx.font = '10px IBM Plex Sans, sans-serif';
+      ctx.fillStyle = '#9a968e';
+      ctx.fillText(`"Outros" reúne ${agrupados} itens menores`, lx, ly + 2);
+    }
+
     const hit = e => {
       const { x, y } = canvasXY(canvas, e);
       const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy);
@@ -278,8 +391,16 @@
       let a = Math.atan2(dy, dx); if (a < -Math.PI / 2) a += Math.PI * 2;
       return slices.find(s => a >= s.a0 && a < s.a1);
     };
-    bindHits(canvas, e => { const s = hit(e); return s ? { html: `<b>${esc(s.label)}</b><br>${fmt0(s.v)} · ${fmt(s.pct, 1)}%` } : null; });
-    if (onClick) canvas.addEventListener('click', e => { const s = hit(e); if (s) onClick(s.label); });
+    bindHits(canvas, e => {
+      const s = hit(e);
+      if (!s) return null;
+      const extra = s.outros && agrupados ? `<br><i>${agrupados} itens somados</i>` : '';
+      return { html: `<b>${esc(s.label)}</b><br>${fmt0(s.v)} · ${fmt(s.pct, 1)}%${extra}` };
+    });
+    // "Outros" não filtra: é um balde, não uma categoria da planilha.
+    if (onClick) canvas.addEventListener('click', e => {
+      const s = hit(e); if (s && !s.outros) onClick(s.label);
+    });
   }
 
   /* ── filtros (cross-filter) ────────────────────── */
