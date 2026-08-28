@@ -61,7 +61,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   background: none; border: none; cursor: pointer;
   color: #aaa; font-family: var(--sans); font-size: 12px;
   padding: 5px 12px; border-radius: 4px;
-  transition: all 0.15s;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: 0.15s;
   letter-spacing: 0.01em;
 }
 .nav-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
@@ -96,7 +96,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   border-radius: 4px; cursor: pointer;
   color: var(--text-2); font-family: var(--sans); font-size: 12px;
   padding: 4px 10px; white-space: nowrap;
-  transition: all 0.12s;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: 0.12s;
 }
 .tool-btn svg { width: 13px; height: 13px; fill: currentColor; flex-shrink: 0; }
 .tool-btn:hover { background: var(--bg-white); border-color: var(--border); color: var(--text); }
@@ -123,7 +123,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   border-bottom: none; border-radius: 5px 5px 0 0;
   cursor: pointer; font-size: 12px; color: var(--text-2);
   white-space: nowrap; max-width: 160px;
-  transition: all 0.12s;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: 0.12s;
   position: relative;
 }
 .sheet-tab:hover { background: var(--bg-white); color: var(--text); }
@@ -180,7 +180,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   font-size: 11px; padding: 3px 10px;
   border-radius: 3px; cursor: pointer; border: 1px solid var(--border);
   background: var(--bg-white); color: var(--text-2);
-  transition: all 0.12s;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: 0.12s;
 }
 .filter-header-actions button:hover { background: var(--bg); }
 #filter-rules { display: flex; flex-direction: column; gap: 6px; }
@@ -364,7 +364,7 @@ td.is-formula::after {
   border: 1px solid var(--border); border-radius: 4px;
   padding: 7px 16px; cursor: pointer;
   font-size: 12px; font-family: var(--sans);
-  transition: all 0.12s;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: 0.12s;
 }
 .secondary-btn:hover { background: var(--bg-panel); }
 
@@ -550,7 +550,7 @@ td.is-formula::after {
   padding: 9px 14px;
   cursor: pointer;
   border-left: 3px solid transparent;
-  transition: all 0.12s;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: 0.12s;
 }
 .rec-list-item:hover { background: var(--bg-white); }
 .rec-list-item.active {
@@ -825,7 +825,7 @@ td.is-formula::after {
   font-family: var(--sans);
   color: var(--text-3);
   cursor: pointer;
-  transition: all 0.12s;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: 0.12s;
   width: 100%;
 }
 .rec-add-ingrediente:hover {
@@ -900,7 +900,7 @@ td.is-formula::after {
   background: var(--bg-white);
   color: var(--text-2);
   cursor: pointer;
-  transition: all 0.12s;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: 0.12s;
   white-space: nowrap;
   max-width: 200px;
   overflow: hidden;
@@ -922,7 +922,7 @@ td.is-formula::after {
   background: none;
   color: var(--text-3);
   cursor: pointer;
-  transition: all 0.12s;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: 0.12s;
   white-space: nowrap;
 }
 .rec-versao-add:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
@@ -1025,7 +1025,7 @@ td.is-formula::after {
   background: none;
   color: #999;
   cursor: pointer;
-  transition: all 0.12s;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: 0.12s;
 }
 .graf-versao-chip:hover { background: rgba(255,255,255,0.08); color: #ccc; }
 .graf-versao-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -1038,7 +1038,7 @@ td.is-formula::after {
   font-family: var(--mono);
   border-radius: 3px;
   cursor: pointer;
-  transition: all 0.12s;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: 0.12s;
   white-space: nowrap;
 }
 .graf-btn-add-widget {
@@ -1221,7 +1221,7 @@ td.is-formula::after {
   font-family: var(--mono);
   border-radius: 3px;
   cursor: pointer;
-  transition: all 0.12s;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: 0.12s;
   white-space: nowrap;
   border: 1px solid #555;
   background: none;
@@ -1263,7 +1263,7 @@ td.is-formula::after {
   font-size: 12px;
   color: var(--text-3);
   padding: 2px 8px;
-  transition: all 0.12s;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: 0.12s;
 }
 .graf-tpl-del:hover { color: var(--danger); border-color: var(--danger); background: var(--danger-bg); }
 
@@ -1820,7 +1820,7 @@ td.is-formula::after {
 
 /* Dashboards de produção (Naor): toggle Mensal/Anual, cards-mini, heatmap */
 .dash-toggle { margin-left: 10px; font-family: var(--sans); }
-.dash-tgl { font-size: 10px; padding: 3px 11px; border: 1px solid var(--border); background: var(--bg-white); color: var(--text-2); cursor: pointer; border-radius: 4px; margin-left: 4px; transition: all .12s; }
+.dash-tgl { font-size: 10px; padding: 3px 11px; border: 1px solid var(--border); background: var(--bg-white); color: var(--text-2); cursor: pointer; border-radius: 4px; margin-left: 4px; transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: .12s; }
 .dash-tgl:hover { border-color: var(--border-dark); }
 .dash-tgl.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 .dash-cards-mini { margin-bottom: 12px; gap: 10px; }
@@ -1942,7 +1942,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   font-size: 11px; font-family: var(--sans); color: var(--text-2);
   background: var(--bg-white); border: 1px solid var(--border);
   border-radius: 20px; padding: 4px 12px; cursor: pointer; user-select: none;
-  transition: all .14s ease;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: .14s; transition-timing-function: ease;
 }
 .slicer-chip:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
 .slicer-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -2007,7 +2007,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .gfilter-chip {
   background: var(--bg-white); border: 1px solid #e2c88a; color: var(--text);
   border-radius: 20px; padding: 3px 11px; cursor: pointer; font-family: var(--sans);
-  transition: all .14s ease; white-space: nowrap;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: .14s; transition-timing-function: ease; white-space: nowrap;
 }
 .gfilter-chip:hover { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
 .gfilter-count { color: var(--text-2); font-family: var(--mono); font-size: 10.5px; margin-left: 4px; }
@@ -2174,7 +2174,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   display: flex; flex-direction: column; gap: 1px;
   padding: 7px 12px; border: 1px solid var(--border); border-radius: 5px;
   background: var(--bg-white); margin-bottom: 5px; cursor: pointer;
-  transition: all .14s ease;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: .14s; transition-timing-function: ease;
 }
 .recente-item:hover { border-color: var(--accent); transform: translateX(2px); }
 .recente-nome { font-size: 12.5px; color: var(--text); }
@@ -2276,7 +2276,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .tst-chip {
   border: 1px solid var(--border); background: var(--bg-white); color: var(--text-2);
   border-radius: 999px; padding: 3px 11px; font-size: 11px; cursor: pointer;
-  font-family: var(--sans); transition: all .15s;
+  font-family: var(--sans); transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: .15s;
 }
 .tst-chip:hover { border-color: var(--border-dark); }
 .tst-chip.ativo { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -2335,7 +2335,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .tst-ir {
   flex: none; border: 1px solid var(--border); background: var(--bg-white);
   color: var(--text-2); border-radius: 5px; padding: 4px 10px;
-  font-size: 11px; cursor: pointer; font-family: var(--sans); transition: all .15s;
+  font-size: 11px; cursor: pointer; font-family: var(--sans); transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: .15s;
 }
 .tst-ir:hover { border-color: var(--accent); color: var(--accent); }
 
@@ -2385,7 +2385,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .cp-txt span { font-size: 10.5px; color: var(--text-3); }
 .cp-voltar { border: 1px solid var(--border); background: var(--bg-white); color: var(--text-2);
   border-radius: 5px; padding: 4px 10px; font-size: 11px; cursor: pointer;
-  font-family: var(--sans); transition: all .15s; }
+  font-family: var(--sans); transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: .15s; }
 .cp-voltar:hover { border-color: var(--accent); color: var(--accent); }
 
 /* Graficos do Painel: rolam de lado quando ha' muitas categorias */
@@ -2447,7 +2447,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .selo-licenca {
   border: 1px solid #3a3a35; background: #2a2a26; color: #cfcdc6;
   border-radius: 999px; padding: 3px 11px; margin-right: 10px;
-  font-family: var(--mono); font-size: 10px; cursor: pointer; transition: all .15s;
+  font-family: var(--mono); font-size: 10px; cursor: pointer; transition-property: background-color, border-color, color, box-shadow, transform, opacity; transition-duration: .15s;
 }
 .selo-licenca:hover { border-color: #6b9fff; color: #fff; }
 .selo-licenca.ok       { color: #8fd6a6; border-color: #2f5d3f; }
@@ -2494,3 +2494,180 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   transition: opacity .15s ease;
 }
 .empty-versao:hover { opacity: 1; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   POLIMENTO
+   Detalhes pequenos que somados mudam a sensação de acabamento. Nenhum deles
+   muda o que o programa faz; todos mudam o quanto ele parece terminado.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Número que muda de dígito não pode dançar. Sem largura fixa de algarismo,
+   trocar 1.199 por 999 empurra a coluna inteira para o lado a cada
+   recálculo — que é o tempo todo, num app de planilha. */
+#data-table td,
+#data-table .row-num,
+.grid-footer,
+.cell-ref,
+.status-text,
+.plano-valor,
+.plano-obs,
+.lic-estado span,
+.chart-lite-tooltip {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Título curto quebrado em "uma palavra sozinha na segunda linha" fica torto.
+   balance reparte as linhas; pretty só evita a órfã em texto corrido. */
+.modal-header h3,
+.empty-state p,
+.recentes-tit,
+.lic-pagar-tit { text-wrap: balance; }
+
+.lic-nota,
+.lic-ajuda,
+.pix-como,
+.pix-depois,
+.empty-sub { text-wrap: pretty; }
+
+/* Botão sem resposta ao clique parece que não registrou. Um recuo de 1px é o
+   suficiente para o dedo/mouse sentir que apertou. */
+.primary-btn:active,
+.secondary-btn:active,
+.plano:active,
+.empty-actions button:active {
+  transform: translateY(1px);
+}
+
+.primary-btn,
+.secondary-btn {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: .12s;
+  transition-timing-function: ease-out;
+}
+
+/* Alvo de toque: o ícone pode ser pequeno, a área de clique não.
+   O ::after cresce sem mexer no desenho do botão.
+
+   Os limites vêm da própria barra: ela tem 40px de altura e os botões 25px,
+   então sobram ~7px acima e abaixo — daí o -6px vertical. Na horizontal o
+   espaço entre botões é de 2px, então -1px é o máximo antes de uma área de
+   clique invadir a do vizinho e o usuário acertar o botão errado. */
+.tool-btn { position: relative; }
+.tool-btn::after {
+  content: "";
+  position: absolute;
+  inset: -6px -1px;
+}
+
+/* Foco visível para quem navega de teclado. Sombra em vez de outline para
+   acompanhar o raio do canto. */
+.tool-btn:focus-visible,
+.primary-btn:focus-visible,
+.secondary-btn:focus-visible,
+.plano:focus-visible,
+.empty-versao:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-white), 0 0 0 4px #2f7df0;
+}
+
+/* Fonte no macOS renderiza pesada demais sem isto. Não faz nada no Windows,
+   mas o app roda nos dois. */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Quem pediu menos movimento no sistema recebe menos movimento. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ── pagamento por PIX ───────────────────────────────────────────────────── */
+.lic-pagar {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.lic-pagar-tit {
+  font-size: 11px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-3);
+  margin-bottom: 12px;
+}
+
+.planos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.planos.lista { grid-template-columns: 1fr; }
+
+/* Raio concêntrico: o cartão tem 8px e 12px de recheio, então o pai que o
+   envolve pediria 20px. Como aqui os cartões são irmãos e não aninhados,
+   basta manterem o mesmo raio entre si. */
+.plano {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  min-height: 44px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-white);
+  cursor: pointer;
+  font-family: var(--sans);
+  transition-property: background-color, border-color, box-shadow, transform;
+  transition-duration: .12s;
+  transition-timing-function: ease-out;
+}
+.plano:hover { border-color: var(--text-3); }
+.plano.escolhido {
+  border-color: #2f7df0;
+  box-shadow: inset 0 0 0 1px #2f7df0;
+}
+
+.plano-tit  { font-size: 12px; color: var(--text-2); }
+.plano-valor{ font-size: 17px; font-weight: 600; color: var(--text); }
+.plano-obs  { font-size: 10px; color: var(--text-3); }
+
+.pix {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+/* O QR precisa de fundo branco e margem clara para o leitor do celular
+   enxergar, mesmo se o tema do app mudar. */
+.pix-qr {
+  background: #fff;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  line-height: 0;
+}
+.pix-qr svg { display: block; }
+
+.pix-lado { display: flex; flex-direction: column; gap: 10px; }
+.pix-como   { font-size: 12px; color: var(--text-2); margin: 0; line-height: 1.5; }
+.pix-quem   { font-size: 11px; color: var(--text-3); margin: 0; }
+.pix-depois { font-size: 11px; color: var(--text-3); margin: 0; line-height: 1.5; }
+
+#pix-copiar.feito {
+  background: #1f8a4c;
+  border-color: #1f8a4c;
+}
+
+@media (max-width: 620px) {
+  .pix { grid-template-columns: 1fr; justify-items: center; }
+  .pix-lado { text-align: center; }
+}

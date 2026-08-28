@@ -29,6 +29,50 @@ Enquanto você não fizer esse passo, **a mensalidade fica desligada** e o
 programa funciona inteiro. É de propósito: cobrar com a chave errada travaria
 o cliente por engano de configuração.
 
+## 1.5. Receber o dinheiro (PIX)
+
+O programa mostra QR e "Copia e Cola" do PIX dentro da própria tela de
+mensalidade. Não passa por Stripe nem Mercado Pago: sem taxa por transação,
+sem conta de empresa, sem servidor ouvindo webhook. O dinheiro cai direto na
+sua conta.
+
+Para ligar, crie `%APPDATA%\Concrestatsecebedor.json`:
+
+```json
+{
+  "chave": "sua-chave-pix",
+  "nome": "Seu Nome ou Empresa",
+  "cidade": "Sinop",
+  "planos": [
+    {"id": "mensal", "titulo": "Mensal", "valor": 89.90,  "meses": 1},
+    {"id": "anual",  "titulo": "Anual",  "valor": 899.00, "meses": 12}
+  ]
+}
+```
+
+A chave pode ser CPF, CNPJ, e-mail, telefone (com +55) ou aleatória. Nome
+até 25 caracteres e cidade até 15, sem acento — é limite do padrão do Banco
+Central, e o programa corta sozinho se passar.
+
+**Enquanto esse arquivo não existir, a tela de pagamento simplesmente não
+aparece.** Botão de pagar que não recebe é pior do que não ter botão.
+
+### O que este sistema NÃO faz
+
+Ele não confere se o pagamento caiu. O fluxo é manual e tem três passos:
+
+1. O cliente paga pelo QR ou pelo Copia e Cola
+2. Manda o comprovante para você
+3. Você emite a licença (seção 2) e envia o `licenca.key`
+
+Conferência automática exigiria API de cobrança PIX do banco, com certificado
+mTLS e um endereço público para receber o aviso. Vale a pena quando houver
+volume. Para uma ou duas vendas por ano, o WhatsApp resolve.
+
+O código de cobrança é montado no formato oficial (EMV/BR Code com CRC16) e
+está coberto por `source/tests/test_pagamento.py`, que desmonta o código campo
+a campo e confere o CRC contra o vetor oficial da CCITT.
+
 ## 2. A cada venda: emitir a licença
 
 ```

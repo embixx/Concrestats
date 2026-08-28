@@ -99,10 +99,11 @@
         <label>Cole aqui o conteúdo do arquivo</label>
         <textarea id="lic-texto" rows="5" placeholder="Comece colando o texto do licenca.key"></textarea>
       </div>
+      <div id="lic-pagar" class="lic-pagar" hidden></div>
       <div id="lic-resultado" class="lic-resultado"></div>`;
 
     openModal('Mensalidade', corpo, () => closeModal(), 'modal-licenca');
-    setTimeout(ligar, 40);
+    setTimeout(() => { ligar(); montarPagamento(); }, 40);
   }
 
   function ligar() {
@@ -118,6 +119,90 @@
       else instalar({ conteudo: $('lic-texto').value.trim() });
     });
     $('lic-atualizar')?.addEventListener('click', procurarAtualizacao);
+  }
+
+  // ── pagamento ────────────────────────────────────────────────────────────
+  // Fica ESCONDIDO quando ninguém configurou a chave PIX. Botão de pagar que
+  // não recebe é pior do que não ter botão nenhum.
+  let planoEscolhido = null;
+
+  async function montarPagamento(plano) {
+    const caixa = $('lic-pagar');
+    if (!caixa) return;
+    let d;
+    try {
+      d = await (await fetch('/api/pagamento' + (plano ? '?plano=' + encodeURIComponent(plano) : ''))).json();
+    } catch (e) { return; }
+    if (!d || !d.configurado) return;
+
+    planoEscolhido = d.plano && d.plano.id;
+    const planos = d.planos || [];
+    // Dois planos ficam lado a lado; mais que isso vira lista, para não
+    // espremer os cartões e obrigar a ler no talo.
+    const opcoes = planos.map(function (p) {
+      const marcado = p.id === planoEscolhido;
+      return `<button type="button" class="plano${marcado ? ' escolhido' : ''}"
+                data-plano="${escHtml(p.id)}" aria-pressed="${marcado}">
+                <span class="plano-tit">${escHtml(p.titulo)}</span>
+                <span class="plano-valor">${dinheiro(p.valor)}</span>
+                ${p.meses > 1 ? `<span class="plano-obs">${dinheiro(p.valor / p.meses)} por mês</span>` : ''}
+              </button>`;
+    }).join('');
+
+    caixa.hidden = false;
+    caixa.innerHTML = `
+      <div class="lic-pagar-tit">Pagar por PIX</div>
+      ${planos.length > 1 ? `<div class="planos${planos.length > 2 ? ' lista' : ''}">${opcoes}</div>` : ''}
+      <div class="pix">
+        <div class="pix-qr">${d.qr}</div>
+        <div class="pix-lado">
+          <p class="pix-como">Abra o aplicativo do banco, escolha <b>PIX</b> e
+            aponte para o código. No computador, use <b>Copia e Cola</b>.</p>
+          <button class="primary-btn" id="pix-copiar">Copiar código PIX</button>
+          <p class="pix-quem">Recebe: ${escHtml(d.recebedor)}</p>
+          <p class="pix-depois">Depois de pagar, mande o comprovante. A licença
+            chega como um arquivo <b>licenca.key</b> para instalar aqui em cima.</p>
+        </div>
+      </div>`;
+
+    caixa.querySelectorAll('.plano').forEach(function (b) {
+      b.addEventListener('click', function () { montarPagamento(b.dataset.plano); });
+    });
+    $('pix-copiar')?.addEventListener('click', function () {
+      copiar(d.codigo, this);
+    });
+  }
+
+  function copiar(texto, botao) {
+    const feito = function () {
+      const antes = botao.textContent;
+      botao.textContent = 'Copiado';
+      botao.classList.add('feito');
+      setTimeout(function () {
+        botao.textContent = antes;
+        botao.classList.remove('feito');
+      }, 2000);
+    };
+    try {
+      navigator.clipboard.writeText(texto).then(feito, function () { manual(texto, feito); });
+    } catch (e) { manual(texto, feito); }
+  }
+
+  function manual(texto, feito) {
+    // Sem área de transferência (acontece em WebView antigo): seleciona o texto
+    // num campo, que é o que dá para fazer sem depender do navegador.
+    const t = document.createElement('textarea');
+    t.value = texto;
+    t.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(t);
+    t.select();
+    try { document.execCommand('copy'); feito(); } catch (e) { /* nada a fazer */ }
+    t.remove();
+  }
+
+  function dinheiro(v) {
+    const n = Number(v) || 0;
+    return 'R$ ' + n.toFixed(2).replace('.', ',');
   }
 
   async function instalar(carga) {

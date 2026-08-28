@@ -1,12 +1,12 @@
 {
-  "versao": "27/08/2026 21:16",
+  "versao": "27/08/2026 22:39",
   "novidades": [
-    "O app agora mostra a VERSAO na tela inicial (canto de baixo) — se o que voce ve nao bate com o que eu escrevi, e' build antiga",
-    "ATUALIZACAO AUTOMATICA: o app procura versao nova sozinho e se atualiza, sem baixar RAR",
-    "APP DE TABLET (APK): o Concrestats no Android, feito para o dedo",
-    "MENSALIDADE: licenca por cliente, com aviso de vencimento",
-    "Botao Testar saiu: agora e' o app de verdade, nao o de desenvolvedor",
-    "Ordenar nao poe mais o 'n/d' acima do maior resultado",
-    "Alertas automaticos: escreva a regra e o app avisa sozinho"
+    "PAGAMENTO POR PIX: QR e Copia e Cola dentro do proprio app",
+    "Numeros nao tremem mais ao mudar de digito (planilha e painel)",
+    "Botoes respondem ao clique e mostram foco de teclado",
+    "Area de clique maior na barra de ferramentas",
+    "Menos movimento para quem pediu isso no Windows",
+    "O app mostra a versao na tela inicial",
+    "Atualizacao automatica: sem baixar RAR a cada versao"
   ]
 }

@@ -63,3 +63,6 @@ mobile/local.properties
 # chave que emite licenca - NUNCA no git
 chave_privada.txt
 licenca*.key
+
+# chave PIX de quem recebe: nunca vai para o repositorio
+recebedor.json

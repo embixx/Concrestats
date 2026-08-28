@@ -28,6 +28,7 @@ import webbrowser
 
 import atualizador
 import licenca
+import pagamento
 import numpy as np
 import pandas as pd
 from flask import (
@@ -1238,6 +1239,19 @@ def api_licenca():
         return jsonify({"success": True, "situacao": estado_licenca()})
     except OSError as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/pagamento")
+def api_pagamento():
+    """Dados para a tela de pagamento: planos, codigo PIX e QR.
+
+    Se ninguem configurou a chave PIX, devolve configurado=False e a tela nem
+    aparece — melhor nao ter botao de pagar do que ter um que nao recebe.
+    """
+    try:
+        return jsonify(pagamento.cobranca(request.args.get("plano")))
+    except Exception as e:  # noqa: BLE001 -- a tela some, o app continua
+        return jsonify({"configurado": False, "error": str(e)})
 
 
 _carregar_licenca()      # lê a licença uma vez, quando o app sobe
