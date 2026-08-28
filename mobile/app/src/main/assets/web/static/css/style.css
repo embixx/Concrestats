@@ -2509,8 +2509,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .grid-footer,
 .cell-ref,
 .status-text,
-.plano-valor,
-.plano-obs,
 .lic-estado span,
 .chart-lite-tooltip {
   font-variant-numeric: tabular-nums;
@@ -2671,3 +2669,67 @@ html {
   .pix { grid-template-columns: 1fr; justify-items: center; }
   .pix-lado { text-align: center; }
 }
+
+/* ── distribuição da resistência ─────────────────────────────────────────────
+   Números em cima, gráfico no meio, legenda embaixo. Os números ficam fora do
+   gráfico de propósito: valor escrito em cima de cada barra vira ruído e
+   ninguém lê, enquanto essas cinco medidas são o resumo que se olha primeiro. */
+.dist-numeros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  padding: 0 2px 14px;
+}
+
+.dist-num { display: flex; flex-direction: column; gap: 1px; }
+
+/* Sem tabular-nums aqui: em número grande e solto a largura fixa de algarismo
+   deixa o texto frouxo. Ela vale onde os números se alinham em coluna. */
+.dist-num b {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.15;
+}
+.dist-num span { font-size: 10px; color: var(--text-2); }
+.dist-num i    { font-size: 9px;  color: var(--text-3); font-style: normal; }
+
+.dist-legenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  padding: 10px 2px 0;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.dist-item { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Marca pequena e saturada ao lado do texto: a cor identifica, o texto informa.
+   O rótulo é que carrega o significado. */
+.dist-cor {
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.dist-tracejado {
+  width: 16px; height: 0;
+  border-top: 1.5px dashed var(--danger);
+  flex-shrink: 0;
+}
+
+.dist-alerta {
+  flex-basis: 100%;
+  font-size: 10px;
+  color: var(--text-3);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.dist-vazio { font-size: 11px; color: var(--text-3); }
+
+/* O histograma não ganha nada em esticar por 1200px: as faixas viram blocos
+   largos e a forma some. Largura contida, alinhada à esquerda como o resto. */
+.dash-section .dash-scroll:has(#dash-chart-dist) { max-width: 820px; }

@@ -1,12 +1,12 @@
 {
-  "versao": "27/08/2026 22:39",
+  "versao": "27/08/2026 22:56",
   "novidades": [
-    "PAGAMENTO POR PIX: QR e Copia e Cola dentro do proprio app",
-    "Numeros nao tremem mais ao mudar de digito (planilha e painel)",
-    "Botoes respondem ao clique e mostram foco de teclado",
-    "Area de clique maior na barra de ferramentas",
-    "Menos movimento para quem pediu isso no Windows",
-    "O app mostra a versao na tela inicial",
-    "Atualizacao automatica: sem baixar RAR a cada versao"
+    "DISTRIBUICAO REFEITA: mostra o fck, a media e o desvio padrao",
+    "As barras abaixo do fck saem em vermelho, com legenda",
+    "Faixas escolhidas a partir dos dados, nao mais fixas em 5 MPa",
+    "PAGAMENTO POR PIX: QR e Copia e Cola dentro do app",
+    "Numeros nao tremem mais ao mudar de digito",
+    "Botoes respondem ao clique e o foco de teclado ficou visivel",
+    "O app mostra a versao na tela inicial"
   ]
 }

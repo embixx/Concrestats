@@ -82,6 +82,265 @@ function drawCanvas(canvas,labels,values,type='bar',tips){
   }
   canvas._bars=bars;bindCanvasTooltip(canvas);
 }
+// ── Distribuição de resistência ─────────────────────────────────────────────
+// O gráfico antigo era um gráfico de barras genérico com faixas fixas de 5 MPa.
+// Isso escondia justamente o que interessa: concreto de um mesmo fck se agrupa
+// numa faixa estreita, então tudo caía em duas ou três barras e a forma da
+// distribuição sumia.
+//
+// O que este desenho mostra, e o outro não mostrava:
+//   1. onde está o fck — sem essa linha, olhar a distribuição não responde a
+//      pergunta que o laboratório faz, que é "quanto ficou abaixo do projeto"
+//   2. quais corpos de prova ficaram abaixo dele, pela cor E pela legenda
+//   3. o desvio padrão, que é a medida de constância da usina
+//   4. a forma real, com a largura de faixa escolhida a partir dos dados
+
+function desvioPadrao(vals, media) {
+  if (vals.length < 2) return NaN;
+  const soma = vals.reduce((s, v) => s + (v - media) * (v - media), 0);
+  return Math.sqrt(soma / (vals.length - 1));   // amostral: é uma amostra da produção
+}
+
+// Largura de faixa a partir da amplitude, não fixa. Mira uma dúzia de barras e
+// arredonda para um passo redondo, senão os rótulos saem quebrados (23,7 MPa).
+function larguraDeFaixa(vals) {
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const amplitude = max - min;
+  if (!(amplitude > 0)) return 1;
+  // Quantas faixas: a raiz do numero de ensaios e' a regra de bolso usual.
+  // Poucas faixas achatam a forma; muitas viram serrote sobre ruido.
+  const quantas = Math.min(24, Math.max(6, Math.round(Math.sqrt(vals.length))));
+  const alvo = amplitude / quantas;
+  return [0.25, 0.5, 1, 1.5, 2, 2.5, 5, 10, 20].find(p => p >= alvo) || 25;
+}
+
+// O fck pode variar dentro da mesma planilha (produtos diferentes). Pega o mais
+// frequente e avisa quando há mais de um, porque aí a distribuição é a soma de
+// duas populações e a linha única engana.
+function fckPredominante(rows, headers) {
+  const contagem = new Map();
+  rows.forEach(r => {
+    const f = fckFrom(r, headers);
+    if (!isNaN(f) && f > 0) contagem.set(f, (contagem.get(f) || 0) + 1);
+  });
+  if (!contagem.size) return { fck: NaN, quantos: 0 };
+  const ordenado = [...contagem.entries()].sort((a, b) => b[1] - a[1]);
+  return { fck: ordenado[0][0], quantos: contagem.size };
+}
+
+function faixas(vals, largura, fck) {
+  // As faixas se ancoram NO FCK quando ele existe. Sem isso uma barra fica em
+  // cima do limite (24 a 26 com fck 25), metade dela reprovada e metade não —
+  // e aí a contagem "abaixo do fck" não bate com o que está pintado de
+  // vermelho. Quem lê nota a diferença e passa a desconfiar do resto.
+  const min = Math.min(...vals);
+  const inicio = !isNaN(fck)
+    ? fck - Math.ceil((fck - min) / largura) * largura
+    : Math.floor(min / largura) * largura;
+  const fim = Math.ceil(Math.max(...vals) / largura) * largura;
+  const n = Math.max(1, Math.round((fim - inicio) / largura));
+  const contas = new Array(n).fill(0);
+  vals.forEach(v => {
+    let i = Math.floor((v - inicio) / largura);
+    if (i >= n) i = n - 1;                        // o valor máximo entra na última
+    if (i < 0) i = 0;
+    contas[i]++;
+  });
+  return { inicio, largura, contas };
+}
+
+function drawDistribuicao(canvas, vals, fck) {
+  const { ctx, w, h } = setupCanvas(canvas, 700, 300);
+  ctx.clearRect(0, 0, w, h);
+  if (!vals.length) return;
+
+  const largura = larguraDeFaixa(vals);
+  const { inicio, contas } = faixas(vals, largura, fck);
+  const maxConta = Math.max(...contas, 1);
+
+  const left = 46, right = 16, top = 26, bottom = 34;
+  const plotW = w - left - right, plotH = h - top - bottom, baseY = top + plotH;
+  const paraX = mpa => left + plotW * ((mpa - inicio) / (contas.length * largura));
+
+  // Grade: linha sólida de um tom só acima do fundo. Fica atrás de tudo e não
+  // disputa atenção com a linha do fck, que é a única tracejada de propósito.
+  ctx.font = '10px IBM Plex Mono, monospace';
+  ctx.textAlign = 'start';
+  // 0, 17, 34, 51 é o que sai de dividir o topo por 4. Ninguém lê contagem
+  // assim: o passo sobe para o número redondo mais próximo.
+  const bruto = maxConta / 4;
+  const escala = Math.pow(10, Math.floor(Math.log10(Math.max(1, bruto))));
+  const passoY = Math.max(1,
+    [1, 2, 2.5, 5, 10].map(m => m * escala).find(x => x >= bruto) || 10 * escala);
+  ctx.strokeStyle = '#ececea';
+  ctx.lineWidth = 1;
+  for (let v = 0; v <= maxConta; v += passoY) {
+    const y = baseY - plotH * (v / maxConta);
+    ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(w - right, y); ctx.stroke();
+    ctx.fillStyle = '#9a968e';
+    ctx.fillText(String(v), 6, y + 3);
+  }
+
+  // Barras. Reprovado e aprovado se separam pela cor E pela legenda embaixo —
+  // cor sozinha exclui quem não distingue vermelho de azul.
+  const slot = plotW / contas.length;
+  // Num histograma as faixas se encostam de propósito: o eixo é contínuo, e a
+  // forma da distribuição só aparece quando as barras formam um contorno. O
+  // limite de 24px vale para barra de categoria, onde a folga entre elas é que
+  // separa um cliente do outro. Aqui separar quebra a leitura — fica só o vão
+  // de 2px do fundo, para as barras não se fundirem numa mancha.
+  const larguraBarra = Math.max(2, slot - 2);
+  const barras = [];
+  contas.forEach((n, i) => {
+    if (!n) return;
+    const de = inicio + i * largura, ate = de + largura;
+    const abaixo = !isNaN(fck) && ate <= fck;
+    const x = left + slot * i + (slot - larguraBarra) / 2;
+    const alturaBarra = plotH * (n / maxConta);
+    const y = baseY - alturaBarra;
+    const r = Math.min(4, larguraBarra / 2, alturaBarra);      // topo arredondado, base reta
+
+    ctx.fillStyle = abaixo ? '#b33a2a' : '#2a5298';
+    ctx.beginPath();
+    ctx.moveTo(x, baseY);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.lineTo(x + larguraBarra - r, y);
+    ctx.quadraticCurveTo(x + larguraBarra, y, x + larguraBarra, y + r);
+    ctx.lineTo(x + larguraBarra, baseY);
+    ctx.closePath();
+    ctx.fill();
+
+    barras.push({
+      x, y, w: larguraBarra, h: alturaBarra,
+      label: `${fmt(de, largura < 1 ? 2 : 1)} a ${fmt(ate, largura < 1 ? 2 : 1)} MPa`,
+      value: n,
+      tip: `${n} corpo(s) de prova` + (abaixo ? ' · abaixo do fck' : '')
+    });
+  });
+
+  // Linha do fck: tracejada, porque aqui o tracejado significa limite mesmo.
+  if (!isNaN(fck) && fck >= inicio && fck <= inicio + contas.length * largura) {
+    const x = paraX(fck);
+    ctx.save();
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = '#b33a2a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x, top - 6); ctx.lineTo(x, baseY); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = '#b33a2a';
+    ctx.font = '10px IBM Plex Mono, monospace';
+    ctx.textAlign = x > left + plotW * 0.72 ? 'end' : 'start';
+    ctx.fillText(`fck ${fmt(fck, 0)}`, x + (ctx.textAlign === 'end' ? -4 : 4), top - 10);
+  }
+
+  // Média: linha fina e contínua, para não competir com o limite.
+  const media = mean(vals);
+  if (!isNaN(media)) {
+    const x = paraX(media);
+    // Linha escura de 1px some em cima da barra azul, que e' exatamente onde a
+    // media costuma cair. Um halo da cor do fundo por baixo resolve: sobre a
+    // barra quem separa e' o halo, sobre o fundo quem aparece e' o traco.
+    ctx.strokeStyle = 'rgba(250,250,247,.85)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, baseY); ctx.stroke();
+    ctx.strokeStyle = '#1c1b18';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, baseY); ctx.stroke();
+    // A média cai quase sempre em cima da barra mais alta. Sem uma tarja do
+    // tom do fundo atrás, o texto fica ilegível justamente onde importa.
+    const texto = `média ${fmt(media, 1)}`;
+    ctx.textAlign = x > left + plotW * 0.72 ? 'end' : 'start';
+    const larg = ctx.measureText(texto).width + 8;
+    const tx = ctx.textAlign === 'end' ? x - larg - 2 : x + 2;
+    ctx.fillStyle = 'rgba(250,250,247,.92)';
+    ctx.fillRect(tx, top + 1, larg, 14);
+    ctx.fillStyle = '#1c1b18';
+    ctx.fillText(texto, tx + 4, top + 11);
+  }
+
+  // Eixo x: só alguns rótulos, o suficiente para situar. Número em cada barra
+  // vira ruído e ninguém lê.
+  ctx.fillStyle = '#5a5852';
+  ctx.textAlign = 'center';
+  ctx.font = '10px IBM Plex Mono, monospace';
+  const passoX = Math.ceil(contas.length / Math.max(2, Math.floor(plotW / 62)));
+  for (let i = 0; i <= contas.length; i += passoX) {
+    const v = inicio + i * largura;
+    ctx.fillText(fmt(v, largura < 1 ? 1 : 0), left + slot * i, baseY + 14);
+  }
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#9a968e';
+  ctx.fillText('MPa', left + plotW / 2, baseY + 28);
+  ctx.textAlign = 'start';
+
+  canvas._bars = barras;
+  bindCanvasTooltip(canvas);
+}
+
+// Junta tudo: números em cima, gráfico no meio, legenda embaixo. A legenda não
+// é enfeite — sem ela a diferença entre aprovado e reprovado seria só cor, e
+// cor sozinha não serve para quem não distingue vermelho de azul.
+function montarDistribuicao(vals, rows, headers) {
+  const canvas = $('dash-chart-dist');
+  const caixaNums = $('dist-numeros');
+  const caixaLeg = $('dist-legenda');
+  if (!canvas) return;
+
+  if (!vals.length) {
+    if (caixaNums) caixaNums.innerHTML = '';
+    if (caixaLeg) caixaLeg.innerHTML = '<span class="dist-vazio">Sem resultado de 28 dias nesta seleção</span>';
+    const { ctx, w, h } = setupCanvas(canvas, 700, 300);
+    ctx.clearRect(0, 0, w, h);
+    return;
+  }
+
+  const { fck, quantos } = fckPredominante(rows, headers);
+  const media = mean(vals);
+  const dp = desvioPadrao(vals, media);
+  const cv = (!isNaN(dp) && media > 0) ? (dp / media * 100) : NaN;
+  const abaixo = !isNaN(fck) ? vals.filter(v => v < fck).length : 0;
+
+  drawDistribuicao(canvas, vals, fck);
+
+  if (caixaNums) {
+    const numero = (rotulo, valor, obs) =>
+      `<div class="dist-num"><b>${valor}</b><span>${rotulo}</span>` +
+      (obs ? `<i>${obs}</i>` : '') + '</div>';
+    caixaNums.innerHTML =
+      numero('Corpos de prova', vals.length) +
+      numero('Média', fmt(media, 1) + ' MPa') +
+      numero('Desvio padrão', isNaN(dp) ? '—' : fmt(dp, 2) + ' MPa',
+             'constância da usina') +
+      numero('Coef. de variação', isNaN(cv) ? '—' : fmt(cv, 1) + '%') +
+      (!isNaN(fck)
+        ? numero('Abaixo do fck', abaixo,
+                 fmt(abaixo / vals.length * 100, 1) + '% do total')
+        : '');
+  }
+
+  if (caixaLeg) {
+    const item = (cor, texto) =>
+      `<span class="dist-item"><i class="dist-cor" style="background:${cor}"></i>${texto}</span>`;
+    let leg = '';
+    if (!isNaN(fck)) {
+      leg += item('#2a5298', `Atingiu o fck (${fmt(fck, 0)} MPa)`) +
+             item('#b33a2a', 'Abaixo do fck') +
+             '<span class="dist-item"><i class="dist-tracejado"></i>Limite do projeto</span>';
+      if (quantos > 1) {
+        leg += `<span class="dist-alerta">Esta seleção tem ${quantos} fck diferentes. ` +
+               `A linha marca o mais frequente; para ler a distribuição de um só, ` +
+               `filtre por produto.</span>`;
+      }
+    } else {
+      leg += item('#2a5298', 'Corpos de prova') +
+             '<span class="dist-alerta">Sem fck na coluna de produto ou receita, ' +
+             'não dá para marcar o limite do projeto.</span>';
+    }
+    caixaLeg.innerHTML = leg;
+  }
+}
+
 // ── Dashboards de Produção/Crescimento (pedido do Naor) ──────────────
 let prodModo = 'mes'; // 'mes' | 'ano'
 function parseISO(s){const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return m?{y:+m[1],mo:+m[2],d:+m[3],key:`${m[1]}-${m[2]}-${m[3]}`}:null;}
@@ -155,7 +414,7 @@ function drawHeatmap(container,dayMap){
   });
   svg+='</svg>';container.innerHTML=svg;
 }
-function render(){const d=window.getConcrestatsData?window.getConcrestatsData({filtered:true}):null;const body=$('dash-body');if(!d||!d.headers||!d.headers.length){body.innerHTML='<div class="graf-empty-state"><div class="empty-icon">◈</div><p>Sem planilha ativa</p></div>';return;}const {headers,data:rows}=d;const cM28=colsFor(headers,'MPA 28'), cM7=colsFor(headers,'MPA 7'), iVol=idx(headers,['M³','M3','VOLUME']);const m28=poolNums(rows,cM28),m7=poolNums(rows,cM7),vol=iVol>=0?nums(rows,iVol,false):[];const aprov=cM28.length?rows.reduce((acc,r)=>{const f=fckFrom(r,headers);if(isNaN(f))return acc;cM28.forEach(ci=>{const v=num(r[ci]);if(!isNaN(v)&&v>0&&v>=f)acc++;});return acc;},0):0;const pend=cM28.length?rows.filter(r=>cM28.every(ci=>{const v=num(r[ci]);return isNaN(v)||v===0;})).length:0;body.innerHTML=`<div class="dash-grid-cards"><div class="dash-card"><b>${rows.length}</b><span>Registros</span></div><div class="dash-card"><b>${fmt(vol.reduce((s,v)=>s+v,0))}</b><span>Volume M³</span></div><div class="dash-card"><b>${aprov}</b><span>CPs aprovados</span></div><div class="dash-card"><b>${pend}</b><span>Pendentes 28d</span></div></div>`;body.innerHTML+=`<div class="dash-section"><h3>Produção e Crescimento <span class="dash-toggle"><button class="dash-tgl ${prodModo==='mes'?'on':''}" data-modo="mes">Mensal</button><button class="dash-tgl ${prodModo==='ano'?'on':''}" data-modo="ano">Anual</button></span></h3><div id="dash-prod-cards" class="dash-grid-cards dash-cards-mini"></div><div class="dash-scroll"><canvas id="dash-chart-prod" style="width:100%;height:300px"></canvas></div></div><div class="dash-section"><h3>Mapa de calor — volume por dia (m³)</h3><div class="dash-scroll" id="dash-heatmap"></div></div><div class="dash-section"><h3>Volume por cliente (m³)</h3><div class="dash-scroll"><canvas id="dash-vol-cli" style="width:100%;height:320px"></canvas></div></div><div class="dash-section"><h3>Volume por produto (m³)</h3><div class="dash-scroll"><canvas id="dash-vol-prod" style="width:100%;height:320px"></canvas></div></div><div class="dash-section"><h3>Distribuição MPA 28</h3><div class="dash-scroll"><canvas id="dash-chart-dist" style="width:100%;height:260px"></canvas></div></div>`;/* gráfico "Análise por receita/produto" e seus dropdowns removidos a pedido do Naor */const buckets=new Map();m28.forEach(v=>{const b=Math.floor(v/5)*5;const k=`${b}-${b+5}`;buckets.set(k,(buckets.get(k)||0)+1);});const barr=[...buckets.entries()].sort((a,b)=>parseFloat(a[0])-parseFloat(b[0]));drawCanvas($('dash-chart-dist'),barr.map(x=>x[0]),barr.map(x=>x[1]),'bar',barr.map(x=>`${x[1]} corpo(s) de prova`));const iData=idx(headers,['DATA','Data']);if(iData>=0&&iVol>=0){const pp=producaoPorPeriodo(rows,iData,iVol,prodModo);const prodC=$('dash-chart-prod');if(prodC){prodC.style.width=Math.max(720,pp.labels.length*90)+'px';drawCombo(prodC,pp.labels,pp.prod,pp.growth);}document.querySelectorAll('.dash-tgl').forEach(b=>b.onclick=()=>{prodModo=b.dataset.modo;render();});const ppA=producaoPorPeriodo(rows,iData,iVol,'ano');const prodTot=ppA.prod.reduce((s,v)=>s+v,0),nAnos=ppA.labels.length||1,gA=ppA.growth.filter(v=>v!=null&&isFinite(v)),crescMed=gA.length?mean(gA):NaN,crescTot=(ppA.prod.length>1&&ppA.prod[0]>0)?((ppA.prod[ppA.prod.length-1]-ppA.prod[0])/ppA.prod[0]*100):NaN;const pc=$('dash-prod-cards');if(pc)pc.innerHTML=`<div class="dash-card"><b>${fmt(prodTot,0)}</b><span>Produção total (m³)</span></div><div class="dash-card"><b>${fmt(prodTot/nAnos,0)}</b><span>Produção média/ano</span></div><div class="dash-card"><b>${isNaN(crescTot)?'—':fmt(crescTot,1)+'%'}</b><span>Crescimento total</span></div><div class="dash-card"><b>${isNaN(crescMed)?'—':fmt(crescMed,1)+'%'}</b><span>Crescimento médio/ano</span></div>`;drawHeatmap($('dash-heatmap'),volumePorDia(rows,iData,iVol));const iCli=idx(headers,['CLIENTE']),iProd=idx(headers,['PRODUTO']);if(iCli>=0){const vc=volumePorGrupo(rows,iCli,iVol);const c=$('dash-vol-cli');if(c){c.style.width=Math.max(720,vc.length*54)+'px';drawCanvas(c,vc.map(x=>x[0]),vc.map(x=>x[1]),'bar',vc.map(x=>`${fmt(x[1],0)} m³`));}}if(iProd>=0){const vp=volumePorGrupo(rows,iProd,iVol);const c=$('dash-vol-prod');if(c){c.style.width=Math.max(720,vp.length*54)+'px';drawCanvas(c,vp.map(x=>x[0]),vp.map(x=>x[1]),'bar',vp.map(x=>`${fmt(x[1],0)} m³`));}}}$('dash-info').textContent=`${d.activeSheet||''} · ${rows.length} registros`;}
+function render(){const d=window.getConcrestatsData?window.getConcrestatsData({filtered:true}):null;const body=$('dash-body');if(!d||!d.headers||!d.headers.length){body.innerHTML='<div class="graf-empty-state"><div class="empty-icon">◈</div><p>Sem planilha ativa</p></div>';return;}const {headers,data:rows}=d;const cM28=colsFor(headers,'MPA 28'), cM7=colsFor(headers,'MPA 7'), iVol=idx(headers,['M³','M3','VOLUME']);const m28=poolNums(rows,cM28),m7=poolNums(rows,cM7),vol=iVol>=0?nums(rows,iVol,false):[];const aprov=cM28.length?rows.reduce((acc,r)=>{const f=fckFrom(r,headers);if(isNaN(f))return acc;cM28.forEach(ci=>{const v=num(r[ci]);if(!isNaN(v)&&v>0&&v>=f)acc++;});return acc;},0):0;const pend=cM28.length?rows.filter(r=>cM28.every(ci=>{const v=num(r[ci]);return isNaN(v)||v===0;})).length:0;body.innerHTML=`<div class="dash-grid-cards"><div class="dash-card"><b>${rows.length}</b><span>Registros</span></div><div class="dash-card"><b>${fmt(vol.reduce((s,v)=>s+v,0))}</b><span>Volume M³</span></div><div class="dash-card"><b>${aprov}</b><span>CPs aprovados</span></div><div class="dash-card"><b>${pend}</b><span>Pendentes 28d</span></div></div>`;body.innerHTML+=`<div class="dash-section"><h3>Produção e Crescimento <span class="dash-toggle"><button class="dash-tgl ${prodModo==='mes'?'on':''}" data-modo="mes">Mensal</button><button class="dash-tgl ${prodModo==='ano'?'on':''}" data-modo="ano">Anual</button></span></h3><div id="dash-prod-cards" class="dash-grid-cards dash-cards-mini"></div><div class="dash-scroll"><canvas id="dash-chart-prod" style="width:100%;height:300px"></canvas></div></div><div class="dash-section"><h3>Mapa de calor — volume por dia (m³)</h3><div class="dash-scroll" id="dash-heatmap"></div></div><div class="dash-section"><h3>Volume por cliente (m³)</h3><div class="dash-scroll"><canvas id="dash-vol-cli" style="width:100%;height:320px"></canvas></div></div><div class="dash-section"><h3>Volume por produto (m³)</h3><div class="dash-scroll"><canvas id="dash-vol-prod" style="width:100%;height:320px"></canvas></div></div><div class="dash-section"><h3>Distribuição da resistência aos 28 dias</h3><div id="dist-numeros" class="dist-numeros"></div><div class="dash-scroll"><canvas id="dash-chart-dist" style="width:100%;height:300px"></canvas></div><div id="dist-legenda" class="dist-legenda"></div></div>`;/* gráfico "Análise por receita/produto" e seus dropdowns removidos a pedido do Naor */montarDistribuicao(m28,rows,headers);const iData=idx(headers,['DATA','Data']);if(iData>=0&&iVol>=0){const pp=producaoPorPeriodo(rows,iData,iVol,prodModo);const prodC=$('dash-chart-prod');if(prodC){prodC.style.width=Math.max(720,pp.labels.length*90)+'px';drawCombo(prodC,pp.labels,pp.prod,pp.growth);}document.querySelectorAll('.dash-tgl').forEach(b=>b.onclick=()=>{prodModo=b.dataset.modo;render();});const ppA=producaoPorPeriodo(rows,iData,iVol,'ano');const prodTot=ppA.prod.reduce((s,v)=>s+v,0),nAnos=ppA.labels.length||1,gA=ppA.growth.filter(v=>v!=null&&isFinite(v)),crescMed=gA.length?mean(gA):NaN,crescTot=(ppA.prod.length>1&&ppA.prod[0]>0)?((ppA.prod[ppA.prod.length-1]-ppA.prod[0])/ppA.prod[0]*100):NaN;const pc=$('dash-prod-cards');if(pc)pc.innerHTML=`<div class="dash-card"><b>${fmt(prodTot,0)}</b><span>Produção total (m³)</span></div><div class="dash-card"><b>${fmt(prodTot/nAnos,0)}</b><span>Produção média/ano</span></div><div class="dash-card"><b>${isNaN(crescTot)?'—':fmt(crescTot,1)+'%'}</b><span>Crescimento total</span></div><div class="dash-card"><b>${isNaN(crescMed)?'—':fmt(crescMed,1)+'%'}</b><span>Crescimento médio/ano</span></div>`;drawHeatmap($('dash-heatmap'),volumePorDia(rows,iData,iVol));const iCli=idx(headers,['CLIENTE']),iProd=idx(headers,['PRODUTO']);if(iCli>=0){const vc=volumePorGrupo(rows,iCli,iVol);const c=$('dash-vol-cli');if(c){c.style.width=Math.max(720,vc.length*54)+'px';drawCanvas(c,vc.map(x=>x[0]),vc.map(x=>x[1]),'bar',vc.map(x=>`${fmt(x[1],0)} m³`));}}if(iProd>=0){const vp=volumePorGrupo(rows,iProd,iVol);const c=$('dash-vol-prod');if(c){c.style.width=Math.max(720,vp.length*54)+'px';drawCanvas(c,vp.map(x=>x[0]),vp.map(x=>x[1]),'bar',vp.map(x=>`${fmt(x[1],0)} m³`));}}}$('dash-info').textContent=`${d.activeSheet||''} · ${rows.length} registros`;}
 function init(){['dash-refresh','dash-reset'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',render)});['dash-group','dash-metric'].forEach(id=>{const el=$(id);if(el)el.addEventListener('change',render)});window.addEventListener('concrestats:datachanged',()=>setTimeout(render,50));}
 window.DashboardModule={onModuleEnter:render};document.addEventListener('DOMContentLoaded',init);
 })();
