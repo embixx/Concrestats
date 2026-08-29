@@ -1,11 +1,11 @@
 {
-  "versao": "28/08/2026 11:44",
+  "versao": "29/08/2026 16:56",
   "novidades": [
-    "QUEM RECEBE QUAL VERSAO: canal Estavel ou Teste, escolhido no app",
-    "Cada instalacao tem um codigo, para liberar uma versao so' para ela",
-    "PIZZA: no maximo 6 fatias, o resto vira 'Outros' com o nome",
-    "DISTRIBUICAO: mostra o fck, a media e o desvio padrao",
-    "PAGAMENTO POR PIX dentro do app",
-    "Aviso honesto quando nao da' para verificar atualizacao"
+    "PAINEL: serie extra agora SOMA ao grafico, nao substitui mais",
+    "PAINEL: cada tipo de grafico mostra so' os campos que servem para ele",
+    "PAINEL: insights nao ficam mais escondidos embaixo do grafico",
+    "Trocar o tipo do grafico atualiza os campos na hora",
+    "QUEM RECEBE QUAL VERSAO: canal Estavel/Teste e codigo da instalacao",
+    "PIZZA: no maximo 6 fatias, o resto vira 'Outros'"
   ]
 }

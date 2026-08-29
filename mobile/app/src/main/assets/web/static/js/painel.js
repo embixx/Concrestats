@@ -328,17 +328,81 @@
     faixa.innerHTML = montarInsightsTabela(dados, viz);
     if (!faixa.innerHTML.trim()) return;
     body.appendChild(faixa);
-    // devolve ao desenho a altura que a faixa ocupou
+
+    // A faixa entra DEPOIS do gráfico, e o corpo do widget tem overflow
+    // escondido. Sem devolver ao gráfico a altura que ela ocupa, ela nasce
+    // fora da área visível e o usuário vê o gráfico inteiro e nenhum insight —
+    // "os insights se escondem embaixo do gráfico".
     const cv = body.querySelector('canvas');
-    if (cv) {
-      const altura = Math.max(90,
-        (it.h || 240) - HEADER_H - 16 - faixa.offsetHeight - 8);
-      if (Math.abs(parseFloat(cv.style.height) - altura) > 4) {
+    if (!cv) return;
+
+    // A faixa so' pode ser medida depois que o navegador a colocou na tela, e
+    // isso nao acontece nem no mesmo instante nem no quadro seguinte: o widget
+    // e' montado solto e so' depois entra no documento. Enquanto esta' solto,
+    // offsetHeight devolve 0 — e uma conta feita com esse zero devolvia ao
+    // grafico a altura inteira, jogando os insights para fora da area visivel.
+    //
+    // O observador resolve sem chutar quando medir: ele avisa no momento em
+    // que a faixa ganha altura de verdade, seja quando for.
+    const ajustar = () => {
+      const alturaFaixa = faixa.offsetHeight;
+      if (!alturaFaixa || !body.clientHeight) return false;
+
+      // Mede a CAIXA, nao reconstroi a altura a partir de it.h mais uma soma
+      // de constantes: bastava um padding mudar no CSS para a conta errar.
+      const disponivel = body.clientHeight - alturaFaixa - 8;
+      const MIN_GRAFICO = 90;
+
+      // Quando nem o grafico minimo mais a faixa cabem, encolher mais nao
+      // resolve — alguma coisa fica de fora de qualquer jeito. Ai' o quadro
+      // passa a rolar, para o conteudo ficar alcancavel em vez de sumir calado.
+      const cabeTudo = disponivel >= MIN_GRAFICO;
+      body.style.overflowY = cabeTudo ? '' : 'auto';
+      body.title = cabeTudo ? '' :
+        'Role dentro do quadro para ver os insights, ou aumente a altura em Editar propriedades';
+
+      const altura = Math.max(MIN_GRAFICO, disponivel);
+      const atual = parseFloat(cv.style.height);
+      // Comparacao ao contrario de proposito: na primeira vez o canvas nao tem
+      // altura inline, parseFloat('') da' NaN, e "NaN > 4" seria FALSO.
+      if (!(Math.abs(atual - altura) <= 4)) {
         cv.style.height = altura + 'px';
-        const antes = body.querySelector('.pan-ins-faixa');
+        // A altura vai TAMBEM no invólucro. Canvas tem tamanho próprio (os
+        // atributos width/height), e em alguns contextos é ele que decide a
+        // caixa, ignorando o style — aí a div em volta continuava com a altura
+        // antiga e empurrava a faixa para fora. A div obedece sempre.
+        if (cv.parentElement) cv.parentElement.style.height = altura + 'px';
         desenharGrafico(f, it, body, cv);
-        if (antes) body.appendChild(antes);
+        if (faixa.parentElement === body) body.appendChild(faixa);
+
+        // Segunda passada. A conta acima nao tem como saber de tudo que ocupa
+        // espaco — margem da faixa, padding do corpo, a barra de rolagem de
+        // 8px que aparece dentro do invólucro quando o grafico e' largo. Em
+        // vez de tentar prever cada um, mede a sobra REAL e desconta. Uma
+        // passada basta: a segunda medida ja' inclui tudo.
+        const sobra = body.scrollHeight - body.clientHeight;
+        if (sobra > 2 && cv.parentElement) {
+          const corrigida = Math.max(MIN_GRAFICO, altura - sobra);
+          cv.style.height = corrigida + 'px';
+          cv.parentElement.style.height = corrigida + 'px';
+          desenharGrafico(f, it, body, cv);
+          if (faixa.parentElement === body) body.appendChild(faixa);
+          // se nem assim couber, o quadro rola em vez de cortar calado
+          if (body.scrollHeight - body.clientHeight > 2) {
+            body.style.overflowY = 'auto';
+            body.title = 'Role dentro do quadro para ver os insights, ' +
+              'ou aumente a altura em Editar propriedades';
+          }
+        }
       }
+      return true;
+    };
+
+    if (!ajustar() && typeof ResizeObserver === 'function') {
+      const obs = new ResizeObserver(() => { if (ajustar()) obs.disconnect(); });
+      obs.observe(faixa);
+      // rede de seguranca: em navegador sem ResizeObserver util, tenta de novo
+      setTimeout(() => { if (ajustar()) obs.disconnect(); }, 120);
     }
   }
 
@@ -1020,19 +1084,39 @@
         '<label>Máximo de grupos</label><input id="pw-topn" type="number" min="0" max="500" value="' + (c.topN || 12) + '">';
     }
     if (it.type === 'grafico') {
+      // Cada tipo de gráfico usa um conjunto diferente de campos. Mostrar todos
+      // para todos fazia o usuário preencher "Dividir barras por" numa pizza e
+      // achar que o app tinha ignorado — quando na verdade aquele campo nunca
+      // teve efeito ali. Os que não servem ficam escondidos, e a lista muda
+      // sozinha ao trocar o tipo.
+      const tipoAtual = c.tipo || 'barra';
+      const usaEmpilhado = tipoAtual === 'barra';
+      const usaSeries = tipoAtual === 'barra' || tipoAtual === 'linha';
+      const usaTopN = tipoAtual !== 'calor';
+
       corpo += '<label>Operação</label>' + opSel('pw-op', c.op || 'Soma');
       corpo += '<label class="pw-check"><input type="checkbox" id="pw-ins"' +
         (c.insights ? ' checked' : '') + '> Mostrar insights abaixo do gráfico</label>';
-      corpo += selHtml('pw-seriecat', H, c.serieCat, 'Dividir barras por (empilhado)');
-      corpo += '<label>Séries extras — combo barra + linha</label>';
-      if ((c.series || []).length) {
-        corpo += '<p class="rc-dica">Este gráfico usa as séries abaixo. Enquanto houver série, ' +
-          'os campos <b>Coluna de valor</b> e <b>Operação</b> acima não são usados — quem manda são as séries. ' +
-          'Remova todas para voltar ao gráfico simples.</p>';
+      if (usaEmpilhado) {
+        corpo += selHtml('pw-seriecat', H, c.serieCat, 'Dividir barras por (empilhado)');
       }
+      if (!usaSeries) {
+        corpo += '<p class="rc-dica">Gráfico de ' +
+          (tipoAtual === 'pizza' ? 'pizza' : 'mapa de calor') +
+          ' mostra uma medida só. Para comparar duas, use barra ou linha.</p>';
+      }
+      if (usaSeries) {
+      corpo += '<label>Séries extras — combo barra + linha</label>';
+      corpo += '<p class="rc-dica" id="pw-aviso-series"' +
+        ((c.series || []).length ? '' : ' hidden') + '>A primeira série é o gráfico que já estava aqui, ' +
+        'trazido para a lista. Enquanto houver séries, são elas que mandam — os campos ' +
+        '<b>Coluna de valor</b> e <b>Operação</b> acima ficam de reserva. Apague todas para voltar ao gráfico simples.</p>';
       corpo += '<div id="pw-series" class="pw-cols"></div>' +
         '<button type="button" id="pw-addserie" class="pw-add">+ gráfico (série)</button>';
-      corpo += '<label>Máximo de grupos</label><input id="pw-topn" type="number" min="0" max="500" value="' + (c.topN || 12) + '">';
+      }
+      if (usaTopN) {
+        corpo += '<label>Máximo de grupos</label><input id="pw-topn" type="number" min="0" max="500" value="' + (c.topN || 12) + '">';
+      }
     }
 
     const nomeTipo = it.type === 'dado' ? 'Dado' : it.type === 'tabela' ? 'Tabela'
@@ -1056,7 +1140,12 @@
       if (gc('pw-tot') !== undefined) c.total = gc('pw-tot');
       if (g('pw-topn') !== undefined) c.topN = parseInt(g('pw-topn')) || 0;
       if (it.type === 'tabela') c.colunas = lerColunas();
-      if (it.type === 'grafico') c.series = lerSeries();
+      // So' regrava as séries se a lista estava na tela. Sem isto, trocar o
+      // tipo para pizza (que não mostra séries) apagaria as que estavam
+      // salvas, e voltar para barra devolveria um gráfico vazio.
+      if (it.type === 'grafico' && document.getElementById('pw-series')) {
+        c.series = lerSeries();
+      }
       salvar();
       if (window.closeModal) window.closeModal();
       render();
@@ -1114,6 +1203,12 @@
       });
       return out.filter(x => x.op);
     }
+    function atualizarAvisoSeries() {
+      const aviso = document.getElementById('pw-aviso-series');
+      const sbox = document.getElementById('pw-series');
+      if (aviso && sbox) aviso.hidden = !sbox.querySelector('.pw-col-row');
+    }
+
     setTimeout(() => {
       const box = document.getElementById('pw-cols');
       if (box) {
@@ -1121,11 +1216,49 @@
         const b1 = document.getElementById('pw-addcol');
         if (b1) b1.addEventListener('click', () => box.appendChild(linhaColuna({ valor: c.valor, op: 'Soma' })));
       }
+      // Trocar o tipo tem que trocar os campos na hora. Se so' mudasse ao
+      // reabrir, o usuário escolheria "Pizza" e continuaria vendo "Dividir
+      // barras por" logo abaixo.
+      const selTipo = document.getElementById('pw-tipo');
+      if (selTipo) {
+        selTipo.addEventListener('change', () => {
+          if (document.getElementById('pw-series')) c.series = lerSeries();
+          c.tipo = selTipo.value;
+          const g2 = id => { const el = document.getElementById(id); return el ? el.value : undefined; };
+          c.titulo = g2('pw-tit') || c.titulo;
+          c.grupo = g2('pw-grupo') !== undefined ? g2('pw-grupo') : c.grupo;
+          c.valor = g2('pw-valor') !== undefined ? g2('pw-valor') : c.valor;
+          c.op = g2('pw-op') !== undefined ? g2('pw-op') : c.op;
+          window.closeModal && window.closeModal();
+          setTimeout(() => editar(it), 60);
+        });
+      }
+
       const sbox = document.getElementById('pw-series');
       if (sbox) {
         (c.series || []).forEach(s => sbox.appendChild(linhaSerie(s)));
         const b2 = document.getElementById('pw-addserie');
-        if (b2) b2.addEventListener('click', () => sbox.appendChild(linhaSerie({ valor: c.valor, op: 'Soma', tipo: 'barra', eixo: 'esq' })));
+        if (b2) b2.addEventListener('click', () => {
+          // A PRIMEIRA série extra tem que trazer o gráfico que já estava na
+          // tela junto. Antes ela entrava sozinha e os campos de cima paravam
+          // de valer — de fora, o desenho original simplesmente sumia e dava
+          // lugar ao novo. "Série extra" que apaga o gráfico não é extra.
+          // Lê do FORMULÁRIO, não do que estava salvo: o usuário pode ter
+          // acabado de trocar a coluna e ainda não ter confirmado. Copiar o
+          // valor antigo faria a primeira série nascer diferente do gráfico
+          // que ele está vendo na tela.
+          const el = id => document.getElementById(id);
+          const valorAtual = (el('pw-valor') || {}).value || c.valor || '';
+          const opAtual = (el('pw-op') || {}).value || c.op || 'Soma';
+          if (!sbox.querySelector('.pw-col-row')) {
+            sbox.appendChild(linhaSerie({
+              valor: valorAtual, op: opAtual,
+              tipo: (c.tipo === 'linha' ? 'linha' : 'barra'), eixo: 'esq'
+            }));
+          }
+          sbox.appendChild(linhaSerie({ valor: valorAtual, op: 'Soma', tipo: 'linha', eixo: 'dir' }));
+          atualizarAvisoSeries();
+        });
       }
     }, 30);
   }

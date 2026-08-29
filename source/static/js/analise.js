@@ -183,7 +183,9 @@
   function drawBars(canvas, labels, values, onClick, fmtVal) {
     const { ctx, w, h } = setupCanvas(canvas, 300);
     ctx.clearRect(0, 0, w, h);
-    const left = 56, right = 12, top = 14;
+    // 22px de topo, e nao 14: o valor da maior barra e' escrito ACIMA dela e
+    // com a margem antiga saia com a cabeca cortada pela borda do canvas.
+    const left = 56, right = 12, top = 22;
     ctx.font = '10px IBM Plex Mono, monospace';
     let mx = 0; labels.forEach(l => { const tw = ctx.measureText(String(l) + '…').width; if (tw > mx) mx = tw; });
     const bottom = Math.min(150, Math.max(40, Math.ceil(mx) + 14));
@@ -240,7 +242,15 @@
         // Maior e menor podem ser barras vizinhas (ou a mesma, se todas forem
         // iguais); aí o segundo rótulo entra por cima do primeiro.
         if (escritos.some(e => Math.abs(e.cx - cx) < e.meia + meia)) return;
-        ctx.fillText(txt, cx, paraY(Math.max(b.v, 0)) - 4);
+        // O número é bem mais largo que a barra quando há muitas categorias, e
+        // invade a coluna do lado. Se a vizinha for mais alta, o texto acaba
+        // escrito POR CIMA dela e não se lê nada — melhor não escrever: o
+        // tooltip continua respondendo qual é o valor.
+        const yTxt = paraY(Math.max(b.v, 0)) - 4;
+        const porCima = bars.some(o => o !== b && o.x < cx + meia && o.x + o.w > cx - meia
+                                       && paraY(Math.max(o.v, 0)) < yTxt);
+        if (porCima) return;
+        ctx.fillText(txt, cx, yTxt);
         escritos.push({ cx, meia });
       });
       ctx.textAlign = 'start';
