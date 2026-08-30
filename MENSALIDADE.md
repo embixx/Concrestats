@@ -2,6 +2,39 @@
 
 Guia curto, para quando você for vender o programa.
 
+## 0. Ligar tudo de uma vez
+
+```
+python tools/ligar_atualizacoes.py
+```
+
+Faz os cinco passos em sequência: cria o par de chaves, **escreve a chave
+pública dentro de `source/licenca.py`**, confere que o programa passou a se
+considerar configurado, recompila e assina a primeira atualização. Depois
+mostra os comandos de git que faltam.
+
+O passo que ele elimina é o mais perigoso: copiar a chave pública na mão.
+Uma letra a menos e o programa compila, roda e recusa toda atualização com
+"assinatura não confere" — sem dizer que o problema está na própria chave.
+
+Depois disso falta só publicar:
+
+```
+git add atualizacao && git commit -m "primeira atualizacao" && git push
+```
+
+O repositório precisa existir e ser **público** — o app lê o arquivo sem
+login. Criar repositório é decisão sua; nada aqui faz isso por você.
+
+**Um aviso para quem testa:** a versão que ele tem hoje foi compilada antes
+da chave existir, então não consegue validar nada. Ele precisa baixar por
+RAR **uma última vez**. Dessa em diante é pelo próprio aplicativo. Sem esse
+aviso ele clica em Procurar atualização, não recebe nada, e reporta como
+defeito.
+
+As seções abaixo explicam cada passo em separado, para quando algo der
+errado no meio.
+
 ## 1. Uma vez só, na vida: criar a sua chave
 
 ```
