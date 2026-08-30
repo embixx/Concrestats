@@ -109,6 +109,26 @@ def main():
     with open(os.path.join(SAIDA, nome_manifesto), "w", encoding="utf-8") as fh:
         json.dump(manifesto, fh, ensure_ascii=False, indent=2)
 
+    # O pacote pode estar sendo ignorado pelo git — foi o que aconteceu na
+    # primeira publicacao, por causa de um "*.zip" generico no .gitignore. Os
+    # manifestos subiam, a carga nao, e o aplicativo anunciava versao nova para
+    # depois falhar ao baixar. Erro caro de achar depois; barato de conferir
+    # aqui.
+    import subprocess
+    try:
+        r = subprocess.run(["git", "check-ignore", caminho],
+                           cwd=RAIZ, capture_output=True, text=True)
+        if r.returncode == 0:
+            print()
+            print("PARE: o git esta' ignorando o pacote que acabei de gerar.")
+            print("  " + nome_zip)
+            print("Ele nao vai subir no push, e o programa vai anunciar versao")
+            print("nova para depois falhar ao baixar. Acrescente ao .gitignore:")
+            print("    !atualizacao/*.zip")
+            return 1
+    except OSError:
+        pass          # sem git por perto, segue: o aviso e' que se perde
+
     print(f"Pacote: {nome_zip}  ({len(dados)/1024:.0f} KB, {quantos} arquivos)")
     print(f"Versão: {a.versao}   Canal: {a.canal}")
     if a.somente:

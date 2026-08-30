@@ -1,12 +1,14 @@
 {
-  "versao": "29/08/2026 22:54",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-29-08-2026_22-54.zip",
+  "versao": "29/08/2026 22:57",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-29-08-2026_22-57.zip",
   "sha256": "50cd5a76481671707fcbe112108a4a6c0eedf4e06633cd86d96dedcd002f6d59",
-  "assinatura": "J80+VsoyVrDmY35T6RpaPEsnuKsFCHF7Mls3d1/6nEICldAd0Lr2yaEp2sWfvXIsCLpnR3TX/9ihGfPdITmQDg==",
+  "assinatura": "vd6ZS3ppJD0M9YgJng9VNBT1hxu71Y9CTlh9Dx5ExvKb87i2pQ8WCAuYGKcH8fd61VUBEhfPlltyDe/qta0HDg==",
   "novidades": [
-    "Painel corrigido",
-    "Pizza refeita",
-    "Pagamento por PIX"
+    "Painel: serie extra soma ao grafico, nao substitui",
+    "Painel: cada tipo de grafico mostra so os campos que usa",
+    "Painel: insights nao ficam mais escondidos",
+    "Pizza: no maximo 6 fatias",
+    "Pagamento por PIX dentro do app"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "teste"

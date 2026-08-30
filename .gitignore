@@ -34,6 +34,11 @@ dist/
 # --- pacotes prontos -------------------------------------------------------
 *.rar
 *.zip
+
+# ...menos o pacote de atualizacao. A regra *.zip acima o engolia CALADO: os
+# manifestos .json subiam, a carga nao, e o aplicativo anunciava versao nova
+# para depois falhar ao baixar.
+!atualizacao/*.zip
 *.7z
 *.exe
 *.dll
