@@ -27,7 +27,7 @@ import assinatura  # noqa: E402
 DIST = os.path.join(RAIZ, "source", "dist", "Concrestats", "_internal")
 SAIDA = os.path.join(RAIZ, "atualizacao")
 USUARIO_GITHUB = "embixx"
-REPO_GITHUB = "Concrestats"
+REPO_GITHUB = "concrestats-atualizacoes"
 
 
 def _pasta_da_chave():

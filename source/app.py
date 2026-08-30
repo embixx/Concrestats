@@ -1147,8 +1147,11 @@ def api_autoteste_arquivo():
 # Onde o app procura versao nova. Ja' vem preenchido para quem recebe o
 # programa nao precisar configurar nada; da' para trocar pelas preferencias
 # (__url_atualizacao) se um dia o endereco mudar.
-URL_ATUALIZACAO_PADRAO = ("https://raw.githubusercontent.com/embixx/"
-                          "Concrestats/main/atualizacao/manifesto.json")
+# Numa linha so' de proposito: quebrado no meio do caminho, nenhuma busca
+# por "usuario/repositorio" encontra este endereco — e trocar de lugar sem
+# perceber que um dos arquivos ficou para tras nao da' erro, da' "nao
+# consegui verificar", que parece falta de internet.
+URL_ATUALIZACAO_PADRAO = "https://raw.githubusercontent.com/embixx/concrestats-atualizacoes/main/atualizacao/manifesto.json"
 
 _LICENCA = {"dados": None, "erro": None, "arquivo": None}
 

@@ -30,7 +30,7 @@ import assinatura
 
 # Chave PÚBLICA. Confere assinatura, não cria nenhuma — pode ficar à vista.
 # A privada vive só em tools/emitir_licenca.py, na máquina de quem vende.
-CHAVE_PUBLICA = base64.b64decode("PUBLICA_AQUI_PLACEHOLDER_32_BYTES_BASE64==")
+CHAVE_PUBLICA = base64.b64decode("jyk6nRNk84CU1x03KispKHkdjbrKX+cUXlbDPBy2K3A=")
 
 # Enquanto a chave não for gerada (tools/emitir_licenca.py --criar-chaves), a
 # mensalidade fica DESLIGADA e o app funciona inteiro. Cobrar com a chave

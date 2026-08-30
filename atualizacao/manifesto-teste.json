@@ -1,0 +1,11 @@
+{
+  "versao": "29/08/2026 22:50",
+  "arquivo": "https://raw.githubusercontent.com/embixx/concrestats-atualizacoes/main/atualizacao/patch-29-08-2026_22-50.zip",
+  "sha256": "14ffe88f0916115e43b6224cce0826b8ef8561e00f730b9eb0750f4fc27a3346",
+  "assinatura": "EgvhnIOMH8Lwu3y9QuNBS5YNBTjKJte9gm51iFNw2SOK2qit5mZPD4eN47v0xsTLZfN2f+UikPrybfZ3XYv6CQ==",
+  "novidades": [
+    "Painel corrigido; pizza refeita; pagamento por PIX"
+  ],
+  "onde": "https://trello.com/c/QL8BmY8O",
+  "canal": "teste"
+}
