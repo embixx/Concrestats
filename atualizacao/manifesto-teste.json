@@ -1,8 +1,8 @@
 {
-  "versao": "29/08/2026 22:57",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-29-08-2026_22-57.zip",
-  "sha256": "50cd5a76481671707fcbe112108a4a6c0eedf4e06633cd86d96dedcd002f6d59",
-  "assinatura": "vd6ZS3ppJD0M9YgJng9VNBT1hxu71Y9CTlh9Dx5ExvKb87i2pQ8WCAuYGKcH8fd61VUBEhfPlltyDe/qta0HDg==",
+  "versao": "29/08/2026 23:15",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-29-08-2026_23-15.zip",
+  "sha256": "179485ac30490e147b07a6f2663c51a7b0e1acf6fd3b27a84f0d59d613506348",
+  "assinatura": "kHVqc4kEoGu8mdYLAp/s1JaW1S4IwejJJbKqMIoMe75eQ5S6yQTBR8yNQzaj7nEhu8mWoYRrd0s0JL0jP16RCA==",
   "novidades": [
     "Painel: serie extra soma ao grafico, nao substitui",
     "Painel: cada tipo de grafico mostra so os campos que usa",

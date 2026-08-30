@@ -38,7 +38,7 @@ def _pasta_da_chave():
 ARQUIVO_PRIVADA = os.path.join(_pasta_da_chave(), "chave_privada.txt")
 
 
-def empacotar(versao):
+def empacotar(versao, novidades=None):
     os.makedirs(SAIDA, exist_ok=True)
     nome_zip = "patch-%s.zip" % versao.replace("/", "-").replace(" ", "_").replace(":", "-")
     caminho = os.path.join(SAIDA, nome_zip)
@@ -52,7 +52,20 @@ def empacotar(versao):
                 for a in arquivos:
                     inteiro = os.path.join(raiz, a)
                     dentro = os.path.relpath(inteiro, DIST).replace(os.sep, "/")
-                    z.write(inteiro, dentro)
+                    if dentro == "static/versao.json":
+                        # A VERSAO E' ESCRITA AQUI, nao copiada do disco.
+                        #
+                        # Antes havia duas fontes de verdade: o manifesto dizia
+                        # uma versao e o versao.json dentro do pacote dizia
+                        # outra, a de quando o programa foi compilado. O
+                        # aplicativo baixava, aplicava, e ao conferir de novo
+                        # continuava se vendo desatualizado — oferecendo a
+                        # mesma atualizacao para sempre, sem nunca dar erro.
+                        z.writestr(dentro, json.dumps(
+                            {"versao": versao, "novidades": list(novidades or [])},
+                            ensure_ascii=False, indent=2))
+                    else:
+                        z.write(inteiro, dentro)
                     contados += 1
     return caminho, nome_zip, contados
 
@@ -78,7 +91,7 @@ def main():
         print("  python tools/emitir_licenca.py --criar-chaves")
         return 1
 
-    caminho, nome_zip, quantos = empacotar(a.versao)
+    caminho, nome_zip, quantos = empacotar(a.versao, a.novidades)
     with open(caminho, "rb") as fh:
         dados = fh.read()
     sha = hashlib.sha256(dados).hexdigest()
@@ -128,6 +141,18 @@ def main():
             return 1
     except OSError:
         pass          # sem git por perto, segue: o aviso e' que se perde
+
+    # Confere que o pacote anuncia a mesma versao do manifesto. Se um dia
+    # alguem mexer no empacotamento, este teste avisa antes de publicar.
+    import zipfile as _zip
+    with _zip.ZipFile(caminho) as _z:
+        _dentro = json.loads(_z.read("static/versao.json").decode("utf-8"))
+    if _dentro.get("versao") != a.versao:
+        print()
+        print("PARE: o pacote diz estar na versao %s, mas o manifesto anuncia %s."
+              % (_dentro.get("versao"), a.versao))
+        print("Assim o programa se atualiza e continua se vendo desatualizado.")
+        return 1
 
     print(f"Pacote: {nome_zip}  ({len(dados)/1024:.0f} KB, {quantos} arquivos)")
     print(f"Versão: {a.versao}   Canal: {a.canal}")
