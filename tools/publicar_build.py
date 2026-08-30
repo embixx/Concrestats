@@ -166,6 +166,32 @@ def novidades_do_quadro(key, token, board):
 
 
 def main():
+
+    # Duas builds diferentes NAO podem sair com o mesmo carimbo de versao. O
+    # carimbo na tela inicial existe para responder "em qual build voce esta"
+    # — se ele repete, nao responde mais nada, e foi exatamente o que
+    # aconteceu: a build com a chave placeholder e a build com a chave real
+    # mostravam '29/08/2026 16:58' as duas.
+    import json as _json, io as _io, os as _os, hashlib as _h
+    _v = _json.load(_io.open(_os.path.join(RAIZ, "source", "static", "versao.json"),
+                             encoding="utf-8"))["versao"]
+    _exe = _os.path.join(RAIZ, "Concrestats", "Concrestats.exe")
+    _marca = _os.path.join(RAIZ, ".ultima_publicacao.json")
+    if _os.path.exists(_exe):
+        _sha = _h.sha256(open(_exe, "rb").read()).hexdigest()[:16]
+        _ant = {}
+        if _os.path.exists(_marca):
+            try: _ant = _json.load(_io.open(_marca, encoding="utf-8"))
+            except Exception: _ant = {}
+        if _ant.get("versao") == _v and _ant.get("exe") != _sha:
+            print("PARE: esta build e' diferente da anterior mas carrega o mesmo")
+            print("carimbo de versao (%s)." % _v)
+            print()
+            print("Quem receber nao tera' como saber qual das duas tem em maos.")
+            print("Atualize source/static/versao.json antes de publicar.")
+            return 1
+        _json.dump({"versao": _v, "exe": _sha},
+                   _io.open(_marca, "w", encoding="utf-8"))
     ap = argparse.ArgumentParser()
     ap.add_argument("--novidades", nargs="*", default=[],
                     help="linhas de novidades desta versao")

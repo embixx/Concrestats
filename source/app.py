@@ -1335,6 +1335,28 @@ def _url_do_canal(base, canal):
     return base
 
 
+def _mais_nova(anunciada, instalada):
+    """A versao anunciada e' realmente mais recente que a instalada?
+
+    Comparar com != aceitava qualquer diferenca, inclusive para tras: bastava
+    publicar por engano um manifesto antigo e o programa ofereceria voltar a
+    uma versao anterior chamando isso de atualizacao. E comparar como TEXTO
+    tambem nao serve — "01/12/2026" vem antes de "29/08/2026" no alfabeto.
+
+    Se as duas datas nao forem legiveis, cai no comportamento antigo (qualquer
+    diferenca conta), que e' o mais seguro para versao escrita a mao.
+    """
+    def data(v):
+        try:
+            return datetime.datetime.strptime(str(v).strip(), "%d/%m/%Y %H:%M")
+        except (ValueError, TypeError):
+            return None
+    a, i = data(anunciada), data(instalada)
+    if a and i:
+        return a > i
+    return bool(anunciada) and anunciada != instalada
+
+
 def _liberado_para_mim(info, ident):
     """A versao anunciada vale para esta instalacao? Devolve None se sim, ou o
     motivo de nao. Manifesto sem lista vale para todo mundo (o caso normal)."""
@@ -1401,7 +1423,8 @@ def api_atualizacao():
         # diz que ha' uma versao restrita, e continua sem oferecer o download.
         restricao = _liberado_para_mim(info, ident)
         return jsonify(dict(comum, verificou=True, versao_nova=nova,
-                            tem_nova=bool(nova) and nova != atual and not restricao,
+                            tem_nova=bool(nova) and _mais_nova(nova, atual)
+                                     and not restricao,
                             restrita=bool(restricao),
                             motivo=restricao or "",
                             novidades=[] if restricao else info.get("novidades", []),

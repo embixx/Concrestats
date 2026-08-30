@@ -71,3 +71,4 @@ licenca*.key
 
 # chave PIX de quem recebe: nunca vai para o repositorio
 recebedor.json
+.ultima_publicacao.json

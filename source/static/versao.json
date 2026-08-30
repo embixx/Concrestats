@@ -1,11 +1,12 @@
 {
-  "versao": "29/08/2026 16:58",
+  "versao": "30/08/2026 19:06",
   "novidades": [
-    "PAINEL: serie extra agora SOMA ao grafico, nao substitui mais",
-    "PAINEL: cada tipo de grafico mostra so' os campos que servem para ele",
-    "PAINEL: insights nao ficam mais escondidos embaixo do grafico",
-    "Trocar o tipo do grafico atualiza os campos na hora",
-    "QUEM RECEBE QUAL VERSAO: canal Estavel/Teste e codigo da instalacao",
-    "PIZZA: no maximo 6 fatias, o resto vira 'Outros'"
+    "ATUALIZACAO AUTOMATICA LIGADA — esta build ja' sabe se atualizar",
+    "Canal Estavel/Teste e codigo da instalacao",
+    "PAINEL: serie extra soma ao grafico, nao substitui",
+    "PAINEL: cada tipo de grafico mostra so os campos que usa",
+    "PAINEL: insights nao ficam mais escondidos",
+    "PIZZA: no maximo 6 fatias",
+    "Pagamento por PIX dentro do app"
   ]
 }
