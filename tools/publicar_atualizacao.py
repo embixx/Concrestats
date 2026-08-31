@@ -38,6 +38,132 @@ def _pasta_da_chave():
 ARQUIVO_PRIVADA = os.path.join(_pasta_da_chave(), "chave_privada.txt")
 
 
+# ── envio automatico ────────────────────────────────────────────────────────
+# Publicar deixou de ser "gere o pacote e depois lembre de dar push". Lembrar
+# era o passo que falhava: o manifesto subia e o pacote nao, ou nada subia e o
+# programa continuava anunciando a versao velha.
+#
+# Push automatico para repositorio PUBLICO significa que ninguem le' o que sai
+# antes de sair. Por isso a auditoria abaixo roda sempre, e ela RECUSA o envio
+# em vez de avisar — aviso em terminal automatizado ninguem le'.
+
+# A primeira versao desta trava comparava NOME DE ARQUIVO, e falhou: eu copiei
+# o .trello.json para dentro de atualizacao/ com o nome "config_trello_copia
+# .json" para testar, a lista procurava a string ".trello.json", nao casou, e a
+# ferramenta publicou a credencial num repositorio publico.
+#
+# Nome de arquivo e' escolha de quem cria o arquivo. Conteudo nao. Agora a
+# conferencia le' o que vai dentro.
+
+import re as _re
+
+# Coisas que so' existem em credencial, nao em codigo nem em dado de planilha.
+PADROES = [
+    (_re.compile(r"BEGIN [A-Z ]*PRIVATE KEY"),          "chave privada"),
+    (_re.compile(r'"token"\s*:\s*"[A-Za-z0-9]{60,}"'),  "token de API"),
+    (_re.compile(r'"key"\s*:\s*"[a-f0-9]{32}"'),        "chave de API"),
+    (_re.compile(r"ATATT[A-Za-z0-9_\-]{20,}"),         "token Atlassian"),
+    (_re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),       "token GitHub"),
+    (_re.compile(r"xox[baprs]-[A-Za-z0-9\-]{10,}"),    "token Slack"),
+    (_re.compile(r"AKIA[0-9A-Z]{16}"),              "chave AWS"),
+    (_re.compile(r"-----BEGIN OPENSSH PRIVATE"),        "chave SSH"),
+]
+
+EXTENSOES_DE_DADOS = (".xlsx", ".xls", ".csv", ".concre", ".key", ".pem")
+
+# O pacote de atualizacao so' pode conter isto. Qualquer outra coisa e' engano.
+PERMITIDO_EM_ATUALIZACAO = (".json", ".zip", ".md")
+
+
+def _auditar_envio(raiz):
+    """Le' o CONTEUDO do que esta' prestes a subir. Devolve a lista de achados."""
+    import subprocess
+    achados = []
+
+    r = subprocess.run(["git", "diff", "--cached", "--name-only"],
+                       cwd=raiz, capture_output=True, text=True)
+    arquivos = [x.strip() for x in (r.stdout or "").splitlines() if x.strip()]
+
+    for f in arquivos:
+        baixo = f.lower()
+
+        # 1. o que NAO pertence a uma pasta de atualizacao
+        if baixo.startswith("atualizacao/") and not baixo.endswith(PERMITIDO_EM_ATUALIZACAO):
+            achados.append("nao deveria estar em atualizacao/: " + f)
+        if baixo.endswith(EXTENSOES_DE_DADOS):
+            achados.append("planilha ou chave: " + f)
+
+        # 2. o que esta' escrito dentro
+        caminho = os.path.join(raiz, f)
+        if not os.path.isfile(caminho) or os.path.getsize(caminho) > 4 * 1024 * 1024:
+            continue
+        try:
+            with open(caminho, "rb") as fh:
+                bruto = fh.read().decode("utf-8", "ignore")
+        except OSError:
+            continue
+        for padrao, oque in PADROES:
+            if padrao.search(bruto):
+                achados.append("%s dentro de %s" % (oque, f))
+                break
+    return achados
+
+
+def enviar(raiz, versao, canal):
+    """Registra e publica o pacote. Devolve (ok, mensagem)."""
+    import subprocess
+
+    def git(*args):
+        return subprocess.run(["git"] + list(args), cwd=raiz,
+                              capture_output=True, text=True)
+
+    if git("rev-parse", "--git-dir").returncode != 0:
+        return False, "isto nao e' um repositorio git — publique a mao"
+
+    git("add", "atualizacao")
+    if not (git("diff", "--cached", "--name-only").stdout or "").strip():
+        return True, "nada mudou em atualizacao/ — nao havia o que enviar"
+
+    achados = _auditar_envio(raiz)
+    if achados:
+        git("reset")
+        return False, ("RECUSEI ENVIAR. Ia junto algo que nao devia:\n    "
+                       + "\n    ".join(achados))
+
+    r = git("commit", "-m", "Atualizacao %s (canal %s)" % (versao, canal))
+    if r.returncode != 0 and "nothing to commit" not in (r.stdout or ""):
+        return False, "nao consegui registrar: " + (r.stderr or r.stdout)[:200]
+
+    r = git("push", "origin", "HEAD")
+    if r.returncode != 0:
+        return False, ("registrei aqui mas NAO consegui enviar:\n    "
+                       + (r.stderr or r.stdout)[:300]
+                       + "\n  Rode 'git push origin main' a mao.")
+    return True, "enviado"
+
+
+def conferir_no_ar(usuario, repo, canal, versao):
+    """Le' do endereco publico e confere que e' mesmo o que acabou de sair."""
+    import urllib.request
+    nome = "manifesto.json" if canal == "estavel" else "manifesto-%s.json" % canal
+    url = ("https://raw.githubusercontent.com/%s/%s/main/atualizacao/%s"
+           % (usuario, repo, nome))
+    try:
+        m = json.loads(urllib.request.urlopen(url, timeout=30).read().decode())
+    except Exception as e:  # noqa: BLE001
+        return False, "nao consegui ler de volta (%s)" % str(e)[:60]
+    if m.get("versao") != versao:
+        return False, "no ar ainda esta' a versao %s" % m.get("versao")
+    try:
+        dados = urllib.request.urlopen(m["arquivo"], timeout=40).read(60 * 1024 * 1024)
+    except Exception as e:  # noqa: BLE001
+        return False, "o manifesto subiu mas o PACOTE nao (%s)" % str(e)[:50]
+    import hashlib
+    if hashlib.sha256(dados).hexdigest() != m.get("sha256"):
+        return False, "o pacote no ar nao confere com o anunciado"
+    return True, "conferido no ar: %s, pacote de %.0f KB" % (m["versao"], len(dados) / 1024)
+
+
 def empacotar(versao, novidades=None):
     os.makedirs(SAIDA, exist_ok=True)
     nome_zip = "patch-%s.zip" % versao.replace("/", "-").replace(" ", "_").replace(":", "-")
@@ -76,6 +202,13 @@ def main():
     ap.add_argument("--novidades", nargs="*", default=[])
     ap.add_argument("--onde", default="https://trello.com/c/QL8BmY8O",
                     help="para onde mandar quem preferir baixar à mão")
+    # Desligado por padrao. O envio automatico publicou uma credencial num
+    # repositorio publico da primeira vez que foi testado, porque a trava de
+    # seguranca comparava nome de arquivo. A trava foi reescrita para comparar
+    # conteudo, mas quem religa isso e' o dono do projeto, nao a ferramenta.
+    ap.add_argument("--enviar", action="store_true",
+                    help="registra e publica automaticamente (confira tools/"
+                         "publicar_atualizacao.py antes de usar)")
     ap.add_argument("--canal", default="estavel", choices=["estavel", "teste"],
                     help="teste = só quem está nesse canal recebe (manifesto-teste.json)")
     ap.add_argument("--somente", nargs="*", default=[], metavar="INSTALACAO",
@@ -160,10 +293,34 @@ def main():
         print("Liberada SÓ para: " + ", ".join(sorted(a.somente)))
     else:
         print("Liberada para todos que estão no canal " + a.canal)
-    print("\nAgora suba a pasta atualizacao/ para o GitHub:")
-    print("    git add atualizacao && git commit -m \"atualizacao\" && git push")
-    print("\nE, no computador de quem testa, o endereço a configurar é:")
-    print(f"    {base_raw}/manifesto.json")
+    if not a.enviar:
+        print()
+        print("Gerado, NAO publicado. Para publicar:")
+        print("    git add atualizacao && git commit -m atualizacao && git push")
+        return 0
+
+    print()
+    print("Publicando...")
+    ok, msg = enviar(RAIZ, a.versao, a.canal)
+    print("  " + msg.replace(chr(10), chr(10) + "  "))
+    if not ok:
+        return 1
+    if msg != "enviado":
+        return 0
+
+    # Le de volta do endereco publico e confere. Ja aconteceu de o manifesto
+    # subir e o pacote ficar para tras — o programa anunciava versao nova e
+    # falhava ao baixar, na maquina de quem usa. Conferir custa dois segundos.
+    ok2, msg2 = conferir_no_ar(USUARIO_GITHUB, REPO_GITHUB, a.canal, a.versao)
+    print("  " + msg2)
+    if not ok2:
+        print()
+        print("  Saiu daqui, mas o endereco publico ainda nao mostra o")
+        print("  esperado. Pode ser demora do GitHub. NAO avise ninguem para")
+        print("  atualizar ainda; rode de novo em um minuto para conferir.")
+        return 1
+    print()
+    print("Pronto. Quem estiver no canal %s ja recebe esta versao." % a.canal)
     return 0
 
 
