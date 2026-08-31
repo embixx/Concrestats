@@ -85,7 +85,36 @@
     const arg = a => a.indexOf(Math.max(...a));
     const map = { data: null, valor: null, cat: null };
     if (Math.max(...dateS) > N * 0.3) map.data = headers[arg(dateS)];
-    const numScore = numS.map((v, i) => headers[i] === map.data ? -1 : v);
+    // NAO basta ser numerico para servir de medida. Numero de nota fiscal e
+    // numero de corpo de prova sao 100% numericos, e somar nota fiscal deu
+    // "79.122.672" na planilha do laboratorio — um numero sem significado
+    // nenhum, na primeira tela que a pessoa abre.
+    //
+    // O sinal que separa os dois nao e' o nome, e' o comportamento: MEDIDA SE
+    // REPETE (varios caminhoes levam 8 m3), IDENTIFICADOR NAO (cada nota tem
+    // o seu numero). Somado a isso, identificador e' inteiro; medida costuma
+    // ter casa decimal.
+    const ehIdentificador = i => {
+      if (!numS[i]) return false;
+      const distintos = sets[i].size;
+      if (distintos < N * 0.9) return false;          // se repete, e' medida
+      let inteiros = 0, vistos = 0;
+      for (let r = 0; r < N; r++) {
+        const v = String((rows[r] || [])[i] ?? '').trim();
+        if (!v || !isStrictNum(v)) continue;
+        vistos++;
+        if (!/[.,]\d/.test(v)) inteiros++;
+      }
+      return vistos > 0 && inteiros / vistos > 0.95;  // quase tudo inteiro
+    };
+
+    // Coluna constante tambem nao serve: AREA nesta planilha e' 0,7854 em
+    // todas as linhas. Somar da' um numero, mas comparar nao da' nada — todo
+    // grupo tem o mesmo valor por linha.
+    const ehConstante = i => numS[i] > 0 && sets[i].size < 2;
+
+    const numScore = numS.map((v, i) =>
+      (headers[i] === map.data || ehIdentificador(i) || ehConstante(i)) ? -1 : v);
     if (Math.max(...numScore) > N * 0.3) map.valor = headers[arg(numScore)];
     let best = -1, bi = -1;
     headers.forEach((h, i) => {

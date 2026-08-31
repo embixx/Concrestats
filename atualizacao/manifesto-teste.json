@@ -1,11 +1,12 @@
 {
-  "versao": "30/08/2026 19:07",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-30-08-2026_19-07.zip",
-  "sha256": "7d87f10324cf6b53595172e2ada0fbf07d3d3b0f5c5671c03fd2f5344f1872cf",
-  "assinatura": "7vKJO2UgIMkj8H0zkTF4aPPgzXD+ryWpoBumjEbH3hxV9P0zxLm9aYPf2os1rOilT18CE6oOzzKYKYIQKx3HAw==",
+  "versao": "31/08/2026 14:15",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-31-08-2026_14-15.zip",
+  "sha256": "3cc3985b103dda3539f009399443059873668ced4177e585edf87fe3ce0521d9",
+  "assinatura": "5pMRUNLU6yPRkVHpj+7Jspo3uRFOhAHB7cUe2/mXnAqJXo1EbOHeFJdcP0EGXKpNvjROuAfgMjCUNu62G8ryAg==",
   "novidades": [
-    "Primeira atualizacao recebida pelo proprio app",
-    "Nao muda nada visivel — serve para provar que o caminho funciona"
+    "Nao soma mais numero de nota fiscal como se fosse medida",
+    "Grafico por cliente: 20 maiores + Outros, em vez de 425 barras",
+    "Coluna constante nao e mais escolhida como valor"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "teste"
