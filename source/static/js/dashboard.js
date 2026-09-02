@@ -374,7 +374,7 @@ function limitarGrupos(pares, maximo){
 }
 function volumePorGrupo(rows,iGrp,iVol){
   const map=new Map();
-  rows.forEach(r=>{const k=String(r[iGrp]||'—').trim();const v=num(r[iVol]);if(!k||isNaN(v))return;map.set(k,(map.get(k)||0)+v);});
+  rows.forEach(r=>{const k=(String(r[iGrp]||'').trim()||'(em branco)');const v=num(r[iVol]);if(!k||isNaN(v))return;map.set(k,(map.get(k)||0)+v);});
   return [...map.entries()].sort((a,b)=>b[1]-a[1]);
 }
 // Combo: barras (produção, eixo esquerdo) + linha (crescimento %, eixo direito).

@@ -22,6 +22,13 @@
   const snap = v => Math.round(v / GRID) * GRID;
   const HEADER_H = 30;
 
+  // Linha sem valor na coluna de agrupamento vira uma categoria propria — nao
+  // da' para somar no que nao existe. Na planilha do laboratorio sao 826
+  // linhas sem PRODUTO, 17,5% do volume: aparecia como a maior fatia nomeada,
+  // chamada "—". Um traco nao diz que aquilo e' dado faltando; diz que alguem
+  // batizou uma categoria de traco.
+  const SEM_VALOR = '(em branco)';
+
   // Operações. As três derivadas usam período anterior / total — é a base do
   // "criar suas próprias fórmulas" pedido pelo Naor.
   const OPS = ['Soma', 'Média', 'Contagem', 'Mínimo', 'Máximo', 'Mediana',
@@ -106,7 +113,7 @@
     const g = new Map();
     rows.forEach(r => {
       const k = porPeriodo ? chavePeriodo(r[iG], cfg.grao || 'mes')
-        : (String(r[iG] == null ? '—' : r[iG]).trim() || '—');
+        : (String(r[iG] == null ? '' : r[iG]).trim() || SEM_VALOR);
       if (k === null) return;
       if (!g.has(k)) g.set(k, []);
       g.get(k).push(iV >= 0 ? num(r[iV]) : NaN);
@@ -614,9 +621,9 @@
     const xs = [], catTot = new Map(), mapa = new Map();
     f.rows.forEach(r => {
       const k = porPeriodo ? chavePeriodo(r[iX], c.grao || 'mes')
-        : (String(r[iX] == null ? '—' : r[iX]).trim() || '—');
+        : (String(r[iX] == null ? '' : r[iX]).trim() || SEM_VALOR);
       if (k === null) return;
-      const cat = String(r[iC] == null ? '—' : r[iC]).trim() || '—';
+      const cat = String(r[iC] == null ? '' : r[iC]).trim() || SEM_VALOR;
       const v = iV >= 0 ? num(r[iV]) : 1;
       if (isNaN(v)) return;
       if (!mapa.has(k)) { mapa.set(k, new Map()); xs.push(k); }

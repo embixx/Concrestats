@@ -1,8 +1,7 @@
 {
-  "versao": "31/08/2026 14:14",
+  "versao": "02/09/2026 03:15",
   "novidades": [
-    "Nao soma mais numero de nota fiscal como se fosse medida",
-    "Grafico por cliente: 20 maiores + 'Outros', em vez de 425 barras",
-    "Coluna constante (AREA) nao e' mais escolhida como valor"
+    "Linha sem valor na coluna aparece como '(em branco)', nao como um traco",
+    "Trava de publicacao reconhece o formato de token do Trello"
   ]
 }

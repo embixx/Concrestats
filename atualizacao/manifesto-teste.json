@@ -1,12 +1,10 @@
 {
-  "versao": "31/08/2026 14:15",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-31-08-2026_14-15.zip",
-  "sha256": "3cc3985b103dda3539f009399443059873668ced4177e585edf87fe3ce0521d9",
-  "assinatura": "5pMRUNLU6yPRkVHpj+7Jspo3uRFOhAHB7cUe2/mXnAqJXo1EbOHeFJdcP0EGXKpNvjROuAfgMjCUNu62G8ryAg==",
+  "versao": "02/09/2026 03:16",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-02-09-2026_03-16.zip",
+  "sha256": "e8b3479b4ff969ecdd4b788e57d64019a364047619eab101a3e33e79598441cc",
+  "assinatura": "3niLSrNyQOMCcvd3TNTX98EKuSUErcVUH0P33v0ZJD1V4Hzy6cCt7M7RmlKbAn1j49FkDfBZZDaGXYOj73zqCw==",
   "novidades": [
-    "Nao soma mais numero de nota fiscal como se fosse medida",
-    "Grafico por cliente: 20 maiores + Outros, em vez de 425 barras",
-    "Coluna constante nao e mais escolhida como valor"
+    "Linha sem valor aparece como (em branco), nao como um traco"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "teste"

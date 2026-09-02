@@ -63,6 +63,10 @@ PADROES = [
     (_re.compile(r'"token"\s*:\s*"[A-Za-z0-9]{60,}"'),  "token de API"),
     (_re.compile(r'"key"\s*:\s*"[a-f0-9]{32}"'),        "chave de API"),
     (_re.compile(r"ATATT[A-Za-z0-9_\-]{20,}"),         "token Atlassian"),
+    # O token que o Trello gera hoje comeca com ATTA, nao ATATT. Eu tinha
+    # assumido o formato errado — a trava deixaria passar o token de verdade
+    # deste projeto. Achado ao ver um token real, nao lendo o codigo.
+    (_re.compile(r"ATTA[A-Fa-f0-9]{60,}"),           "token Trello"),
     (_re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),       "token GitHub"),
     (_re.compile(r"xox[baprs]-[A-Za-z0-9\-]{10,}"),    "token Slack"),
     (_re.compile(r"AKIA[0-9A-Z]{16}"),              "chave AWS"),
