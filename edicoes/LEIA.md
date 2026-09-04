@@ -10,6 +10,14 @@ edição; para aplicar, copie-o para a pasta do executável com o nome
 | `painel-unico.json` | quando o Naor mandar | sem ANÁLISE e sem DASHBOARD — o Painel faz as duas |
 | (nenhum) | você e o Naor | tudo |
 
+Para o Naor não ter que criar o arquivo à mão, há o `Ativar_Usinop.bat`: ele
+grava o `edicao.json` na pasta onde está, **e se recusa a rodar se o
+`Concrestats.exe` não estiver ali**. Sem essa recusa o erro seria mudo — o
+arquivo iria para a pasta errada, o app abriria normal com o Painel no lugar,
+e ninguém entenderia por quê. (O Windows esconde a extensão dos arquivos
+conhecidos, então salvar um `.json` à mão vira `edicao.json.txt` com
+facilidade.)
+
 ## Por que não é feito apagando a aba do código
 
 O pacote de atualização substitui `templates/` e `static/` inteiros. Uma aba
