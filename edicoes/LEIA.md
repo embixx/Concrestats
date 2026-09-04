@@ -1,8 +1,32 @@
 # Edições
 
-O mesmo programa, entregue com abas diferentes. Cada arquivo aqui é uma
-edição; para aplicar, copie-o para a pasta do executável com o nome
-`edicao.json`.
+O mesmo programa, entregue com abas diferentes. Cada arquivo aqui é uma edição.
+
+## Como entregar (o jeito normal)
+
+Compile com a edição **dentro** do programa:
+
+```
+python tools/build_edicao.py usinop
+```
+
+Sai a pasta `_entrega_usinop`, pronta: quem recebe baixa e abre, e a aba já
+não está lá. Nada para colocar em pasta nenhuma — que era o passo manual que
+falhava calado (arquivo na pasta errada, o app abre normal com a aba no
+lugar, e ninguém entende por quê).
+
+A ferramenta confere sozinha, abrindo a edição pela **mesma função** que o
+programa usa, fingindo ser o executável recém-compilado. Se o que ele leria
+não for o esperado, ela falha e não entrega a pasta.
+
+O build normal (`source/dist`) não é tocado: sai numa pasta própria.
+
+## Como converter uma instalação que já existe
+
+Quando o programa já está na máquina e não vale a pena baixar 97 MB de novo:
+`Ativar_Usinop.bat` grava o `edicao.json` na pasta onde está, e **se recusa a
+rodar se o `Concrestats.exe` não estiver ali**. O arquivo solto vence a
+edição embutida, então também serve para desligar uma.
 
 | Arquivo | Quem recebe | O que muda |
 |---|---|---|
@@ -10,13 +34,9 @@ edição; para aplicar, copie-o para a pasta do executável com o nome
 | `painel-unico.json` | quando o Naor mandar | sem ANÁLISE e sem DASHBOARD — o Painel faz as duas |
 | (nenhum) | você e o Naor | tudo |
 
-Para o Naor não ter que criar o arquivo à mão, há o `Ativar_Usinop.bat`: ele
-grava o `edicao.json` na pasta onde está, **e se recusa a rodar se o
-`Concrestats.exe` não estiver ali**. Sem essa recusa o erro seria mudo — o
-arquivo iria para a pasta errada, o app abriria normal com o Painel no lugar,
-e ninguém entenderia por quê. (O Windows esconde a extensão dos arquivos
-conhecidos, então salvar um `.json` à mão vira `edicao.json.txt` com
-facilidade.)
+(O Windows esconde a extensão dos arquivos conhecidos, então salvar um
+`.json` à mão vira `edicao.json.txt` com facilidade. Por isso o `.bat`, e por
+isso o caminho normal é a edição compilada junto.)
 
 ## Por que não é feito apagando a aba do código
 
@@ -24,9 +44,13 @@ O pacote de atualização substitui `templates/` e `static/` inteiros. Uma aba
 removida do arquivo voltaria na primeira atualização automática, sozinha, sem
 ninguém entender por quê.
 
-O `edicao.json` fica **fora** dessas duas pastas, então a atualização não o
-toca. Conferido: apliquei uma atualização sobre uma instalação com a edição
-Usinop e o Painel continuou fora.
+Tanto o `edicao.json` solto quanto o embutido ficam **fora** dessas duas
+pastas — o embutido vai para a raiz do bundle, ao lado do `icon.ico`. A
+atualização não os toca.
+
+Conferido de verdade: apliquei o pacote sobre a entrega da Usinop, os 20
+arquivos foram trocados, e o programa continuou lendo
+`{"nome": "Usinop", "ocultar": ["painel"]}`.
 
 ## Como conferir qual edição está instalada
 

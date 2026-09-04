@@ -30,6 +30,10 @@ Concrestats_Nativo/
 build/
 dist/
 *.spec
+# ...menos este. O Concrestats.spec nao e' gerado pelo PyInstaller: e' escrito
+# a mao, e agora decide se a edicao do cliente entra no bundle. Fora do git,
+# a receita de compilacao existiria em uma maquina so'.
+!source/Concrestats.spec
 
 # --- pacotes prontos -------------------------------------------------------
 *.rar
@@ -75,3 +79,6 @@ recebedor.json
 
 # pasta montada na hora de entregar; nao entra no repositorio
 _entrega_usinop/
+
+# Intermediarios da compilacao por edicao (tools/build_edicao.py)
+source/build_edicao/

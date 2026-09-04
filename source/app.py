@@ -106,13 +106,33 @@ def edicao():
     o pacote substitui templates/ e static/ inteiros. Lido aqui, sobrevive a
     qualquer atualizacao.
 
-    Sem o arquivo, nada e' escondido — que e' o comportamento de sempre.
+    Duas origens, nesta ordem:
+
+    1. edicao.json ao lado do executavel. Serve para ligar uma edicao numa
+       instalacao que ja' existe, ou para desligar a embutida.
+    2. edicao_embutida.json, gravado DENTRO do programa na hora de compilar
+       (tools/build_edicao.py). E' o que faz a copia da Usinop chegar pronta:
+       baixa, abre, e a aba ja' nao esta' la' - sem ninguem ter que colocar
+       arquivo em pasta nenhuma.
+
+    A embutida fica na raiz do bundle, nao em static/ nem templates/ - que sao
+    as duas pastas que o pacote de atualizacao substitui inteiras. Por isso a
+    atualizacao nao a apaga.
+
+    Sem nenhum dos dois, nada e' escondido — que e' o comportamento de sempre.
     """
+    d = None
     try:
         with open(os.path.join(app_dir(), "edicao.json"), encoding="utf-8") as fh:
             d = json.load(fh) or {}
     except Exception:  # noqa: BLE001
-        return {"nome": "", "ocultar": []}
+        d = None
+    if d is None:
+        try:
+            with open(resource_path("edicao_embutida.json"), encoding="utf-8") as fh:
+                d = json.load(fh) or {}
+        except Exception:  # noqa: BLE001
+            return {"nome": "", "ocultar": []}
     ocultar = d.get("ocultar") or []
     if not isinstance(ocultar, list):
         ocultar = []
