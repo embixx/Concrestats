@@ -272,6 +272,12 @@ def main():
     ap.add_argument("--somente", nargs="*", default=[], metavar="INSTALACAO",
                     help="libera só para estas instalações (o código de 10 letras "
                          "que aparece na tela de Atualização de cada uma)")
+    ap.add_argument("--edicao", default=None, metavar="NOME",
+                    help="nome do arquivo em edicoes/ (sem .json) a mandar para "
+                         "as instalacoes de --edicao-para")
+    ap.add_argument("--edicao-para", nargs="*", default=[], metavar="INSTALACAO",
+                    help="quais instalacoes recebem a edicao; use * para todas "
+                         "as deste canal")
     a = ap.parse_args()
 
     if not os.path.isdir(DIST):
@@ -282,6 +288,28 @@ def main():
         print("  python tools/emitir_licenca.py --criar-chaves")
         return 1
 
+    # Edicoes que este manifesto carrega. Vao ASSINADAS: e' comportamento
+    # mudando por ordem remota, entao tem de ser comprovadamente nosso.
+    edicoes = None
+    if a.edicao:
+        if not a.edicao_para:
+            print("--edicao precisa de --edicao-para (o codigo da instalacao, "
+                  "ou * para todas as do canal)")
+            return 1
+        origem = os.path.join(RAIZ, "edicoes", a.edicao + ".json")
+        if not os.path.isfile(origem):
+            print("Nao achei " + origem)
+            return 1
+        with open(origem, encoding="utf-8") as fh:
+            cfg = json.load(fh)
+        corpo_ed = {"nome": str(cfg.get("nome") or ""),
+                    "ocultar": sorted(str(x).strip().lower()
+                                      for x in (cfg.get("ocultar") or []))}
+        edicoes = {str(x).strip(): corpo_ed for x in a.edicao_para}
+    elif a.edicao_para:
+        print("--edicao-para sem --edicao nao faz nada")
+        return 1
+
     caminho, nome_zip, quantos = empacotar(a.versao, a.novidades)
     with open(caminho, "rb") as fh:
         dados = fh.read()
@@ -290,7 +318,7 @@ def main():
     with open(ARQUIVO_PRIVADA, encoding="utf-8") as fh:
         semente = base64.b64decode(fh.read().strip())
     import atualizador
-    corpo = atualizador.corpo_assinado(a.versao, sha, a.somente)
+    corpo = atualizador.corpo_assinado(a.versao, sha, a.somente, edicoes)
     firma = base64.b64encode(assinatura.assinar(corpo, semente)).decode()
 
     base_raw = (f"https://raw.githubusercontent.com/{USUARIO_GITHUB}/"
@@ -306,6 +334,8 @@ def main():
     }
     if a.somente:
         manifesto["liberado_para"] = sorted(x.strip() for x in a.somente)
+    if edicoes:
+        manifesto["edicoes"] = edicoes
 
     # Cada canal e' um arquivo. Quem esta' no canal estavel nunca chega a ler o
     # manifesto de teste, entao publicar um nao mexe no outro.

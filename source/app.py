@@ -114,6 +114,10 @@ def edicao():
        (tools/build_edicao.py). E' o que faz a copia da Usinop chegar pronta:
        baixa, abre, e a aba ja' nao esta' la' - sem ninguem ter que colocar
        arquivo em pasta nenhuma.
+    3. o que veio no manifesto de atualizacao, guardado em prefs. E' a via sem
+       download nenhum: a instalacao pergunta se ha' versao nova, e a resposta
+       ASSINADA diz tambem quais abas esta copia mostra. So' e' gravado depois
+       de conferida a assinatura (ver api_atualizacao).
 
     A embutida fica na raiz do bundle, nao em static/ nem templates/ - que sao
     as duas pastas que o pacote de atualizacao substitui inteiras. Por isso a
@@ -132,7 +136,12 @@ def edicao():
             with open(resource_path("edicao_embutida.json"), encoding="utf-8") as fh:
                 d = json.load(fh) or {}
         except Exception:  # noqa: BLE001
-            return {"nome": "", "ocultar": []}
+            d = None
+    if d is None:
+        remota = _prefs_cru().get("__edicao_remota")
+        d = remota if isinstance(remota, dict) else None
+    if d is None:
+        return {"nome": "", "ocultar": []}
     ocultar = d.get("ocultar") or []
     if not isinstance(ocultar, list):
         ocultar = []
@@ -1467,7 +1476,18 @@ def api_atualizacao():
         # Nesse caso a tela nao mente dizendo "voce esta' na mais recente":
         # diz que ha' uma versao restrita, e continua sem oferecer o download.
         restricao = _liberado_para_mim(info, ident)
+        # A edicao chega junto com a resposta da verificacao - e' a via que nao
+        # pede download nenhum. Guardada so' depois de conferida a assinatura:
+        # sem isso, quem trocasse o manifesto no caminho mandaria esconder abas
+        # na maquina dos outros.
+        edicao_nova = None
+        if info.get("edicoes"):
+            if atualizador.conferir_manifesto(info, licenca.CHAVE_PUBLICA) is None:
+                edicao_nova = atualizador.edicao_do_manifesto(info, ident)
+                if edicao_nova != _prefs_cru().get("__edicao_remota"):
+                    _prefs_grava({"__edicao_remota": edicao_nova})
         return jsonify(dict(comum, verificou=True, versao_nova=nova,
+                            edicao_aplicada=bool(edicao_nova),
                             tem_nova=bool(nova) and _mais_nova(nova, atual)
                                      and not restricao,
                             restrita=bool(restricao),

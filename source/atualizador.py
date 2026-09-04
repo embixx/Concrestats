@@ -42,7 +42,7 @@ def _seguro(nome):
     return any(n.startswith(p) for p in PASTAS_PERMITIDAS)
 
 
-def corpo_assinado(versao, sha256, liberado_para=None):
+def corpo_assinado(versao, sha256, liberado_para=None, edicoes=None):
     """O texto exato que e' assinado. Quem publica e quem confere tem que montar
     igual, byte a byte — por isso mora aqui, num lugar so'.
 
@@ -55,7 +55,62 @@ def corpo_assinado(versao, sha256, liberado_para=None):
     if liberado_para:
         # ordenada: a mesma lista em outra ordem tem que dar a mesma assinatura
         corpo["liberado_para"] = sorted(str(x).strip() for x in liberado_para)
+    if edicoes:
+        # As edicoes dizem quais abas cada instalacao ve'. Se ficassem fora da
+        # assinatura, quem conseguisse trocar o manifesto no caminho poderia
+        # esconder abas do programa de outra pessoa. Nao e' o fim do mundo, mas
+        # e' mudanca de comportamento vinda de fora - entra assinada.
+        corpo["edicoes"] = edicoes
+    # Manifesto sem edicoes gera o MESMO corpo de antes: os ja' publicados
+    # continuam conferindo.
     return json.dumps(corpo, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def conferir_manifesto(manifesto, chave_publica):
+    """Confere so' a assinatura do manifesto, sem baixar o pacote.
+
+    O conferir_pacote() so' roda na hora de aplicar - tarde demais para
+    decidir se da' para acreditar no que o manifesto diz sobre a edicao. Esta
+    aqui roda na verificacao, que e' quando a edicao chega.
+    """
+    if len(chave_publica) != 32:
+        return "atualização automática não está configurada nesta cópia"
+    sha = str(manifesto.get("sha256") or "").lower()
+    corpo = corpo_assinado(manifesto.get("versao", ""), sha,
+                           manifesto.get("liberado_para"),
+                           manifesto.get("edicoes"))
+    try:
+        import base64
+        firma = base64.b64decode(manifesto.get("assinatura", ""))
+    except Exception:  # noqa: BLE001
+        return "assinatura ilegível"
+    if not assinatura.conferir(corpo, firma, chave_publica):
+        return "este manifesto não foi publicado por nós (assinatura não confere)"
+    return None
+
+
+def edicao_do_manifesto(manifesto, ident):
+    """Qual edicao este manifesto manda para ESTA instalacao?
+
+    O mapa e' {"<codigo da instalacao>": {...}}, e a chave "*" vale para quem
+    nao esta' listado. Devolve None quando o manifesto nao fala de edicao -
+    que e' o caso normal e nao mexe em nada.
+    """
+    mapa = manifesto.get("edicoes")
+    if not isinstance(mapa, dict) or not mapa:
+        return None
+    escolhida = mapa.get(str(ident).strip())
+    if escolhida is None:
+        escolhida = mapa.get("*")
+    if escolhida is None:
+        return None
+    if not isinstance(escolhida, dict):
+        return None
+    ocultar = escolhida.get("ocultar") or []
+    if not isinstance(ocultar, list):
+        ocultar = []
+    return {"nome": str(escolhida.get("nome") or ""),
+            "ocultar": [str(x).strip().lower() for x in ocultar if str(x).strip()]}
 
 
 def conferir_pacote(bytes_do_zip, manifesto, chave_publica):

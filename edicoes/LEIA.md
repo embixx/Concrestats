@@ -21,6 +21,32 @@ não for o esperado, ela falha e não entrega a pasta.
 
 O build normal (`source/dist`) não é tocado: sai numa pasta própria.
 
+## Como ligar sem baixar nada (o jeito automático)
+
+A edição pode viajar dentro da própria atualização. A instalação pergunta se
+há versão nova, e a resposta — **assinada** — diz também quais abas aquela
+cópia mostra. Nada para baixar, nada para colocar em pasta.
+
+Precisa do código de 10 letras da máquina, que aparece na tela de
+**Atualização** dela. É o único passo manual, e é inevitável: o programa não
+tem como adivinhar qual computador é o da Usinop.
+
+```
+python tools/publicar_atualizacao.py --versao "..." --canal estavel     --edicao usinop --edicao-para a1b2c3d4e5
+git push origin main
+```
+
+Na abertura seguinte daquela máquina a aba some, e continua sumida em todas
+as atualizações futuras. Para desfazer, publique de novo apontando uma edição
+vazia para o mesmo código.
+
+`--edicao-para "*"` vale para todas as instalações daquele canal.
+
+**Por que assinada:** é comportamento mudando por ordem remota. Sem
+assinatura, quem trocasse o manifesto no caminho mandaria esconder abas na
+máquina de outra pessoa. O teste `test_edicoes.py` tenta exatamente isso — a
+edição é trocada depois de assinada — e o programa recusa.
+
 ## Como converter uma instalação que já existe
 
 Quando o programa já está na máquina e não vale a pena baixar 97 MB de novo:
