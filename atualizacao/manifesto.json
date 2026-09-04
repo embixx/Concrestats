@@ -1,8 +1,8 @@
 {
   "versao": "04/09/2026 15:11",
   "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-04-09-2026_15-11.zip",
-  "sha256": "717594a6501e700f8bf28be40b53a3931b5398e5400db9158c195838fac6705a",
-  "assinatura": "tsDJH8X9//MaaQgVAmgvmIMBUF/qiwPrtoqwgAUcrzL008Jn9gK0dJrFacQ4ZHCESIoKkNn/AAjL/ffJKHLGAw==",
+  "sha256": "1a4b691e5f486c4364bda8498329a41ebc16bc270ac5e3d5f4d0e9132db02194",
+  "assinatura": "nKrNLLBna+YfLLrJPBXjvvtsEmlup8E626EAqPEpMHeQJ75a+F5JVKDa82Z17IuiMEWB9D0Q4l/sB5gjLqh8Cw==",
   "novidades": [
     "PAINEL agora faz o que ANALISE e DASHBOARD fazem: monta sozinho o painel do laboratorio (com a distribuicao da resistencia) e clicar num grafico filtra o painel inteiro",
     "Ruptura impossivel (3.554 MPa) nao entra mais na conta: o desvio padrao caiu de 55,29 para 13,01 MPa e o coeficiente de variacao de 142% para 34,3%",

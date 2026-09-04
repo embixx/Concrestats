@@ -169,35 +169,89 @@ def conferir_no_ar(usuario, repo, canal, versao):
 
 
 def empacotar(versao, novidades=None):
+    """Monta o pacote de atualizacao. O MESMO conteudo tem de dar o MESMO
+    arquivo, byte a byte.
+
+    Sem isso, publicar dois canais em sequencia quebrava o primeiro: cada
+    execucao remontava o zip com carimbo de hora novo, o arquivo mudava, e o
+    manifesto ja' escrito passava a apontar um sha256 que nao existia mais. O
+    app baixava, conferia, nao batia e recusava a atualizacao - sem erro
+    visivel, so' parando de atualizar. Aconteceu em 04/09/2026 com o canal de
+    teste.
+
+    Por isso: ordem fixa dos arquivos e data fixa nas entradas. O zip passa a
+    ser funcao do conteudo, e nao de quando foi gerado.
+    """
     os.makedirs(SAIDA, exist_ok=True)
     nome_zip = "patch-%s.zip" % versao.replace("/", "-").replace(" ", "_").replace(":", "-")
     caminho = os.path.join(SAIDA, nome_zip)
-    contados = 0
+
+    # 1980-01-01: o menor carimbo que o formato zip aceita. O valor nao importa,
+    # importa ser sempre o mesmo.
+    DATA_FIXA = (1980, 1, 1, 0, 0, 0)
+
+    itens = []
+    for pasta in ("static", "templates"):
+        base = os.path.join(DIST, pasta)
+        if not os.path.isdir(base):
+            continue
+        for raiz, dirs, arquivos in os.walk(base):
+            dirs.sort()                       # ordem estavel entre maquinas
+            for a in sorted(arquivos):
+                inteiro = os.path.join(raiz, a)
+                dentro = os.path.relpath(inteiro, DIST).replace(os.sep, "/")
+                itens.append((dentro, inteiro))
+    itens.sort()
+
     with zipfile.ZipFile(caminho, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-        for pasta in ("static", "templates"):
-            base = os.path.join(DIST, pasta)
-            if not os.path.isdir(base):
-                continue
-            for raiz, _, arquivos in os.walk(base):
-                for a in arquivos:
-                    inteiro = os.path.join(raiz, a)
-                    dentro = os.path.relpath(inteiro, DIST).replace(os.sep, "/")
-                    if dentro == "static/versao.json":
-                        # A VERSAO E' ESCRITA AQUI, nao copiada do disco.
-                        #
-                        # Antes havia duas fontes de verdade: o manifesto dizia
-                        # uma versao e o versao.json dentro do pacote dizia
-                        # outra, a de quando o programa foi compilado. O
-                        # aplicativo baixava, aplicava, e ao conferir de novo
-                        # continuava se vendo desatualizado — oferecendo a
-                        # mesma atualizacao para sempre, sem nunca dar erro.
-                        z.writestr(dentro, json.dumps(
-                            {"versao": versao, "novidades": list(novidades or [])},
-                            ensure_ascii=False, indent=2))
-                    else:
-                        z.write(inteiro, dentro)
-                    contados += 1
-    return caminho, nome_zip, contados
+        for dentro, inteiro in itens:
+            info = zipfile.ZipInfo(dentro, date_time=DATA_FIXA)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            if dentro == "static/versao.json":
+                # A VERSAO E' ESCRITA AQUI, nao copiada do disco.
+                #
+                # Antes havia duas fontes de verdade: o manifesto dizia uma
+                # versao e o versao.json dentro do pacote dizia outra, a de
+                # quando o programa foi compilado. O aplicativo baixava,
+                # aplicava, e ao conferir de novo continuava se vendo
+                # desatualizado - oferecendo a mesma atualizacao para sempre,
+                # sem nunca dar erro.
+                dados = json.dumps({"versao": versao, "novidades": list(novidades or [])},
+                                   ensure_ascii=False, indent=2).encode("utf-8")
+            else:
+                with open(inteiro, "rb") as fh:
+                    dados = fh.read()
+            z.writestr(info, dados)
+
+    return caminho, nome_zip, len(itens)
+
+
+def conferir_manifestos(sha_atual, nome_zip):
+    """Todo manifesto que aponta para este pacote tem de trazer o hash certo.
+
+    E' a checagem que faltava quando o canal de teste quebrou: o problema so'
+    aparecia na maquina de quem ia atualizar, e la' aparecia como nada
+    acontecendo.
+    """
+    problemas = []
+    for nome in sorted(os.listdir(SAIDA)):
+        if not nome.startswith("manifesto") or not nome.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(SAIDA, nome), encoding="utf-8") as fh:
+                m = json.load(fh)
+        except Exception:  # noqa: BLE001
+            problemas.append(f"{nome}: nao consegui ler")
+            continue
+        if not str(m.get("arquivo", "")).endswith(nome_zip):
+            continue                      # aponta para outro pacote: nao e' comigo
+        if m.get("sha256") != sha_atual:
+            problemas.append(
+                f"{nome}: aponta para {nome_zip} com sha256 {str(m.get('sha256'))[:12]}..., "
+                f"mas o arquivo agora e' {sha_atual[:12]}... "
+                f"-> republique este canal, senao a atualizacao dele sera recusada")
+    return problemas
 
 
 def main():
@@ -258,6 +312,11 @@ def main():
     nome_manifesto = "manifesto.json" if a.canal == "estavel" else f"manifesto-{a.canal}.json"
     with open(os.path.join(SAIDA, nome_manifesto), "w", encoding="utf-8") as fh:
         json.dump(manifesto, fh, ensure_ascii=False, indent=2)
+
+    # Confere TODOS os manifestos, nao so' o que acabou de ser escrito: o erro
+    # que motivou esta checagem quebrava o canal ANTERIOR, nao o atual.
+    for aviso in conferir_manifestos(sha, nome_zip):
+        print("ATENCAO: " + aviso)
 
     # O pacote pode estar sendo ignorado pelo git — foi o que aconteceu na
     # primeira publicacao, por causa de um "*.zip" generico no .gitignore. Os
