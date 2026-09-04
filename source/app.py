@@ -97,11 +97,36 @@ def _bloqueado_na_web():
     }), 403
 
 
+def edicao():
+    """Le' edicao.json, ao lado do executavel. Diz o que esta cópia mostra.
+
+    Serve para entregar o mesmo programa com abas diferentes por cliente. E'
+    decisao de EXECUCAO, nao de arquivo: se eu tirasse a aba editando o
+    index.html, a primeira atualizacao automatica traria ela de volta, porque
+    o pacote substitui templates/ e static/ inteiros. Lido aqui, sobrevive a
+    qualquer atualizacao.
+
+    Sem o arquivo, nada e' escondido — que e' o comportamento de sempre.
+    """
+    try:
+        with open(os.path.join(app_dir(), "edicao.json"), encoding="utf-8") as fh:
+            d = json.load(fh) or {}
+    except Exception:  # noqa: BLE001
+        return {"nome": "", "ocultar": []}
+    ocultar = d.get("ocultar") or []
+    if not isinstance(ocultar, list):
+        ocultar = []
+    return {"nome": str(d.get("nome") or ""),
+            "ocultar": [str(x).strip().lower() for x in ocultar if str(x).strip()]}
+
+
 @app.route("/api/ambiente")
 def api_ambiente():
     """O frontend usa isto para esconder botões que só existem no app de mesa."""
+    e = edicao()
     return jsonify({"web": MODO_WEB, "versao": "2.0",
-                    "dev": os.environ.get("CONCRE_DEV") == "1"})
+                    "dev": os.environ.get("CONCRE_DEV") == "1",
+                    "edicao": e["nome"], "ocultar": e["ocultar"]})
 
 
 def _usuario():

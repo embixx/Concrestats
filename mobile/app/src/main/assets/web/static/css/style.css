@@ -2782,3 +2782,13 @@ html {
   transition-duration: .12s;
 }
 .atz-codigo:hover { border-color: var(--text-3); color: var(--text); }
+
+/* Marca da edição, ao lado da versão. Sem isto, "sumiu uma aba" vira chamado. */
+.empty-edicao {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  letter-spacing: .3px;
+  color: var(--text-3, #9a968e);
+  opacity: .55;
+}

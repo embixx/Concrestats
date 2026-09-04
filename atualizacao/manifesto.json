@@ -1,10 +1,10 @@
 {
-  "versao": "02/09/2026 03:16",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-02-09-2026_03-16.zip",
-  "sha256": "e8b3479b4ff969ecdd4b788e57d64019a364047619eab101a3e33e79598441cc",
-  "assinatura": "3niLSrNyQOMCcvd3TNTX98EKuSUErcVUH0P33v0ZJD1V4Hzy6cCt7M7RmlKbAn1j49FkDfBZZDaGXYOj73zqCw==",
+  "versao": "04/09/2026 11:56",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-04-09-2026_11-56.zip",
+  "sha256": "62d2db1aa1c9a396f3cfc51639bde0c1185f029657b2ad885314c6dc111b933f",
+  "assinatura": "9XelJLflzVMkbAJgr/T7g8c1O9hsfvFZG7VayKHPZA3AyQ35VomEFAGdwVjvghBM6ccLq2HtgjKGq41oSibvCA==",
   "novidades": [
-    "Linha sem valor aparece como (em branco), nao como um traco"
+    "Linha sem valor aparece como (em branco)"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel"

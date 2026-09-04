@@ -1,7 +1,7 @@
 {
-  "versao": "02/09/2026 03:15",
+  "versao": "04/09/2026 11:56",
   "novidades": [
-    "Linha sem valor na coluna aparece como '(em branco)', nao como um traco",
-    "Trava de publicacao reconhece o formato de token do Trello"
+    "Edicao por cliente: da para entregar o app sem certas abas",
+    "Linha sem valor aparece como '(em branco)', nao como um traco"
   ]
 }
