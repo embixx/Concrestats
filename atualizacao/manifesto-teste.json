@@ -1,10 +1,12 @@
 {
-  "versao": "04/09/2026 11:56",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-04-09-2026_11-56.zip",
-  "sha256": "51f04a22cf23bbc2fe55ad6bf6f7fa83c40e0e6cb598c04c8966c3e49074f849",
-  "assinatura": "PMW0Ztnf8dQ6UvH2sChCE1uRbdjKv6C9ZJcZ5frciOmkeKf9OUjvscoXAAkAfOLfz5Eu56MNHYRw1KikX/1/Ag==",
+  "versao": "04/09/2026 15:11",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-04-09-2026_15-11.zip",
+  "sha256": "18f37e5f5cecb6d4cf2b1882908ae344aec77b32cbab4cbc696e0a31848c0fc4",
+  "assinatura": "VFnS16E5ifWTfFy2jLnYRoCvMeedOvVB84wbJroqYt2xv7IPxnOZVC+w0xmmmIZoFL7xWp9iXlvSBAR9vccaAA==",
   "novidades": [
-    "Linha sem valor aparece como (em branco)"
+    "PAINEL agora faz o que ANALISE e DASHBOARD fazem: monta sozinho o painel do laboratorio (com a distribuicao da resistencia) e clicar num grafico filtra o painel inteiro",
+    "Ruptura impossivel (3.554 MPa) nao entra mais na conta: o desvio padrao caiu de 55,29 para 13,01 MPa e o coeficiente de variacao de 142% para 34,3%",
+    "O cartao de resistencia le a coluna do jeito do laboratorio: junta MPA 28 com MPA 28.1 e ignora ensaio nao rompido"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "teste"

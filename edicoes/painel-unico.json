@@ -1,0 +1,4 @@
+{
+  "nome": "Painel único",
+  "ocultar": ["analise", "dashboard"]
+}

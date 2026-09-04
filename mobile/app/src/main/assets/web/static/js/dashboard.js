@@ -149,6 +149,47 @@ function faixas(vals, largura, fck) {
   return { inicio, largura, contas };
 }
 
+
+// Tira do calculo o que nao pode ser concreto.
+//
+// Na planilha real do laboratorio ha' 4 rupturas registradas como 327, 504,
+// 3021 e 3553 MPa, em 7464 ensaios. Concreto de usina rompe entre 20 e 60;
+// 3553 MPa e' aco. Sao erros de digitacao ou a carga em kgf caindo na coluna
+// de MPa. Sao 0,05% das linhas e sozinhas levavam o desvio padrao de ~8 para
+// 55,29 MPa e o coeficiente de variacao para 142%.
+//
+// O coeficiente de variacao E' a medida de constancia da usina — e' o numero
+// que diz se o processo esta sob controle. Com 142% a leitura e' de uma usina
+// descontrolada, e nao e' verdade.
+//
+// O corte e' pela MEDIANA, nao pela media: a media ja' vem contaminada pelos
+// proprios erros que se quer achar. Quatro vezes a mediana da' ~146 MPa nesta
+// planilha — deixa passar qualquer concreto real, inclusive os de alta
+// resistencia, e barra so' o impossivel.
+//
+// Nada e' apagado, e o que ficou de fora aparece na tela: numero errado
+// escondido volta como desconfianca no resto.
+function separarImpossiveis(vals) {
+  if (vals.length < 8) return { bons: vals, fora: [], limite: NaN };
+  const mediana = median(vals);
+  if (!(mediana > 0)) return { bons: vals, fora: [], limite: NaN };
+  const limite = mediana * 4;
+  const bons = [], fora = [];
+  vals.forEach(v => (v > limite ? fora : bons).push(v));
+  // Se MUITA coisa passou do limite, nao sao erros de digitacao: e' uma coluna
+  // que nao e' de resistencia (dinheiro, volume — distribuicoes com cauda
+  // longa, onde 4x a mediana e' normal). Ai' mostra tudo: melhor um grafico
+  // estranho do que esconder metade dos dados.
+  //
+  // O piso de 3 existe porque 2% de uma planilha pequena e' menos de um valor:
+  // num laboratorio com 31 ensaios e um 3553 digitado errado, a trava sozinha
+  // impedia a propria correcao de acontecer. Foi o autoteste que pegou.
+  if (fora.length > Math.max(3, vals.length * 0.02)) {
+    return { bons: vals, fora: [], limite: NaN };
+  }
+  return { bons: bons, fora: fora, limite: limite };
+}
+
 function drawDistribuicao(canvas, vals, fck) {
   const { ctx, w, h } = setupCanvas(canvas, 700, 300);
   ctx.clearRect(0, 0, w, h);
@@ -281,7 +322,8 @@ function drawDistribuicao(canvas, vals, fck) {
 // Junta tudo: números em cima, gráfico no meio, legenda embaixo. A legenda não
 // é enfeite — sem ela a diferença entre aprovado e reprovado seria só cor, e
 // cor sozinha não serve para quem não distingue vermelho de azul.
-function montarDistribuicao(vals, rows, headers) {
+function montarDistribuicao(entrada, rows, headers) {
+  const { bons: vals, fora, limite } = separarImpossiveis(entrada);
   const canvas = $('dash-chart-dist');
   const caixaNums = $('dist-numeros');
   const caixaLeg = $('dist-legenda');
@@ -336,6 +378,12 @@ function montarDistribuicao(vals, rows, headers) {
       leg += item('#2a5298', 'Corpos de prova') +
              '<span class="dist-alerta">Sem fck na coluna de produto ou receita, ' +
              'não dá para marcar o limite do projeto.</span>';
+    }
+    if (fora.length) {
+      leg += `<span class="dist-alerta">${fora.length} ` +
+        `${fora.length === 1 ? 'resultado ficou' : 'resultados ficaram'} de fora do cálculo ` +
+        `por passar de ${fmt(limite, 0)} MPa (${fora.map(v => fmt(v, 0)).join(', ')}). ` +
+        `Concreto não chega lá — provavelmente é erro de digitação na planilha.</span>`;
     }
     caixaLeg.innerHTML = leg;
   }
@@ -428,7 +476,35 @@ function drawHeatmap(container,dayMap){
   });
   svg+='</svg>';container.innerHTML=svg;
 }
-function render(){const d=window.getConcrestatsData?window.getConcrestatsData({filtered:true}):null;const body=$('dash-body');if(!d||!d.headers||!d.headers.length){body.innerHTML='<div class="graf-empty-state"><div class="empty-icon">◈</div><p>Sem planilha ativa</p></div>';return;}const {headers,data:rows}=d;const cM28=colsFor(headers,'MPA 28'), cM7=colsFor(headers,'MPA 7'), iVol=idx(headers,['M³','M3','VOLUME']);const m28=poolNums(rows,cM28),m7=poolNums(rows,cM7),vol=iVol>=0?nums(rows,iVol,false):[];const aprov=cM28.length?rows.reduce((acc,r)=>{const f=fckFrom(r,headers);if(isNaN(f))return acc;cM28.forEach(ci=>{const v=num(r[ci]);if(!isNaN(v)&&v>0&&v>=f)acc++;});return acc;},0):0;const pend=cM28.length?rows.filter(r=>cM28.every(ci=>{const v=num(r[ci]);return isNaN(v)||v===0;})).length:0;body.innerHTML=`<div class="dash-grid-cards"><div class="dash-card"><b>${rows.length}</b><span>Registros</span></div><div class="dash-card"><b>${fmt(vol.reduce((s,v)=>s+v,0))}</b><span>Volume M³</span></div><div class="dash-card"><b>${aprov}</b><span>CPs aprovados</span></div><div class="dash-card"><b>${pend}</b><span>Pendentes 28d</span></div></div>`;body.innerHTML+=`<div class="dash-section"><h3>Produção e Crescimento <span class="dash-toggle"><button class="dash-tgl ${prodModo==='mes'?'on':''}" data-modo="mes">Mensal</button><button class="dash-tgl ${prodModo==='ano'?'on':''}" data-modo="ano">Anual</button></span></h3><div id="dash-prod-cards" class="dash-grid-cards dash-cards-mini"></div><div class="dash-scroll"><canvas id="dash-chart-prod" style="width:100%;height:300px"></canvas></div></div><div class="dash-section"><h3>Mapa de calor — volume por dia (m³)</h3><div class="dash-scroll" id="dash-heatmap"></div></div><div class="dash-section"><h3>Volume por cliente (m³)</h3><div class="dash-scroll"><canvas id="dash-vol-cli" style="width:100%;height:320px"></canvas></div></div><div class="dash-section"><h3>Volume por produto (m³)</h3><div class="dash-scroll"><canvas id="dash-vol-prod" style="width:100%;height:320px"></canvas></div></div><div class="dash-section"><h3>Distribuição da resistência aos 28 dias</h3><div id="dist-numeros" class="dist-numeros"></div><div class="dash-scroll"><canvas id="dash-chart-dist" style="width:100%;height:300px"></canvas></div><div id="dist-legenda" class="dist-legenda"></div></div>`;/* gráfico "Análise por receita/produto" e seus dropdowns removidos a pedido do Naor */montarDistribuicao(m28,rows,headers);const iData=idx(headers,['DATA','Data']);if(iData>=0&&iVol>=0){const pp=producaoPorPeriodo(rows,iData,iVol,prodModo);const prodC=$('dash-chart-prod');if(prodC){prodC.style.width=Math.max(720,pp.labels.length*90)+'px';drawCombo(prodC,pp.labels,pp.prod,pp.growth);}document.querySelectorAll('.dash-tgl').forEach(b=>b.onclick=()=>{prodModo=b.dataset.modo;render();});const ppA=producaoPorPeriodo(rows,iData,iVol,'ano');const prodTot=ppA.prod.reduce((s,v)=>s+v,0),nAnos=ppA.labels.length||1,gA=ppA.growth.filter(v=>v!=null&&isFinite(v)),crescMed=gA.length?mean(gA):NaN,crescTot=(ppA.prod.length>1&&ppA.prod[0]>0)?((ppA.prod[ppA.prod.length-1]-ppA.prod[0])/ppA.prod[0]*100):NaN;const pc=$('dash-prod-cards');if(pc)pc.innerHTML=`<div class="dash-card"><b>${fmt(prodTot,0)}</b><span>Produção total (m³)</span></div><div class="dash-card"><b>${fmt(prodTot/nAnos,0)}</b><span>Produção média/ano</span></div><div class="dash-card"><b>${isNaN(crescTot)?'—':fmt(crescTot,1)+'%'}</b><span>Crescimento total</span></div><div class="dash-card"><b>${isNaN(crescMed)?'—':fmt(crescMed,1)+'%'}</b><span>Crescimento médio/ano</span></div>`;drawHeatmap($('dash-heatmap'),volumePorDia(rows,iData,iVol));const iCli=idx(headers,['CLIENTE']),iProd=idx(headers,['PRODUTO']);if(iCli>=0){const g=limitarGrupos(volumePorGrupo(rows,iCli,iVol));const vc=g.pares;const c=$('dash-vol-cli');if(c){c.style.width=Math.max(720,vc.length*54)+'px';drawCanvas(c,vc.map(x=>x[0]),vc.map(x=>x[1]),'bar',vc.map((x,i)=>`${fmt(x[1],0)} m³`+(g.agrupados&&i===vc.length-1?` · ${g.agrupados} clientes somados`:'')));}}if(iProd>=0){const g=limitarGrupos(volumePorGrupo(rows,iProd,iVol));const vp=g.pares;const c=$('dash-vol-prod');if(c){c.style.width=Math.max(720,vp.length*54)+'px';drawCanvas(c,vp.map(x=>x[0]),vp.map(x=>x[1]),'bar',vp.map((x,i)=>`${fmt(x[1],0)} m³`+(g.agrupados&&i===vp.length-1?` · ${g.agrupados} produtos somados`:'')));}}}$('dash-info').textContent=`${d.activeSheet||''} · ${rows.length} registros`;}
+function render(){const d=window.getConcrestatsData?window.getConcrestatsData({filtered:true}):null;const body=$('dash-body');/* Numa edicao que esconde esta aba, o elemento nao existe mais — mas o modulo continua ouvindo a troca de planilha e quebrava aqui a cada arquivo aberto. */if(!body)return;if(!d||!d.headers||!d.headers.length){body.innerHTML='<div class="graf-empty-state"><div class="empty-icon">◈</div><p>Sem planilha ativa</p></div>';return;}const {headers,data:rows}=d;const cM28=colsFor(headers,'MPA 28'), cM7=colsFor(headers,'MPA 7'), iVol=idx(headers,['M³','M3','VOLUME']);const m28=poolNums(rows,cM28),m7=poolNums(rows,cM7),vol=iVol>=0?nums(rows,iVol,false):[];const aprov=cM28.length?rows.reduce((acc,r)=>{const f=fckFrom(r,headers);if(isNaN(f))return acc;cM28.forEach(ci=>{const v=num(r[ci]);if(!isNaN(v)&&v>0&&v>=f)acc++;});return acc;},0):0;const pend=cM28.length?rows.filter(r=>cM28.every(ci=>{const v=num(r[ci]);return isNaN(v)||v===0;})).length:0;body.innerHTML=`<div class="dash-grid-cards"><div class="dash-card"><b>${rows.length}</b><span>Registros</span></div><div class="dash-card"><b>${fmt(vol.reduce((s,v)=>s+v,0))}</b><span>Volume M³</span></div><div class="dash-card"><b>${aprov}</b><span>CPs aprovados</span></div><div class="dash-card"><b>${pend}</b><span>Pendentes 28d</span></div></div>`;body.innerHTML+=`<div class="dash-section"><h3>Produção e Crescimento <span class="dash-toggle"><button class="dash-tgl ${prodModo==='mes'?'on':''}" data-modo="mes">Mensal</button><button class="dash-tgl ${prodModo==='ano'?'on':''}" data-modo="ano">Anual</button></span></h3><div id="dash-prod-cards" class="dash-grid-cards dash-cards-mini"></div><div class="dash-scroll"><canvas id="dash-chart-prod" style="width:100%;height:300px"></canvas></div></div><div class="dash-section"><h3>Mapa de calor — volume por dia (m³)</h3><div class="dash-scroll" id="dash-heatmap"></div></div><div class="dash-section"><h3>Volume por cliente (m³)</h3><div class="dash-scroll"><canvas id="dash-vol-cli" style="width:100%;height:320px"></canvas></div></div><div class="dash-section"><h3>Volume por produto (m³)</h3><div class="dash-scroll"><canvas id="dash-vol-prod" style="width:100%;height:320px"></canvas></div></div><div class="dash-section"><h3>Distribuição da resistência aos 28 dias</h3><div id="dist-numeros" class="dist-numeros"></div><div class="dash-scroll"><canvas id="dash-chart-dist" style="width:100%;height:300px"></canvas></div><div id="dist-legenda" class="dist-legenda"></div></div>`;/* gráfico "Análise por receita/produto" e seus dropdowns removidos a pedido do Naor */montarDistribuicao(m28,rows,headers);const iData=idx(headers,['DATA','Data']);if(iData>=0&&iVol>=0){const pp=producaoPorPeriodo(rows,iData,iVol,prodModo);const prodC=$('dash-chart-prod');if(prodC){prodC.style.width=Math.max(720,pp.labels.length*90)+'px';drawCombo(prodC,pp.labels,pp.prod,pp.growth);}document.querySelectorAll('.dash-tgl').forEach(b=>b.onclick=()=>{prodModo=b.dataset.modo;render();});const ppA=producaoPorPeriodo(rows,iData,iVol,'ano');const prodTot=ppA.prod.reduce((s,v)=>s+v,0),nAnos=ppA.labels.length||1,gA=ppA.growth.filter(v=>v!=null&&isFinite(v)),crescMed=gA.length?mean(gA):NaN,crescTot=(ppA.prod.length>1&&ppA.prod[0]>0)?((ppA.prod[ppA.prod.length-1]-ppA.prod[0])/ppA.prod[0]*100):NaN;const pc=$('dash-prod-cards');if(pc)pc.innerHTML=`<div class="dash-card"><b>${fmt(prodTot,0)}</b><span>Produção total (m³)</span></div><div class="dash-card"><b>${fmt(prodTot/nAnos,0)}</b><span>Produção média/ano</span></div><div class="dash-card"><b>${isNaN(crescTot)?'—':fmt(crescTot,1)+'%'}</b><span>Crescimento total</span></div><div class="dash-card"><b>${isNaN(crescMed)?'—':fmt(crescMed,1)+'%'}</b><span>Crescimento médio/ano</span></div>`;drawHeatmap($('dash-heatmap'),volumePorDia(rows,iData,iVol));const iCli=idx(headers,['CLIENTE']),iProd=idx(headers,['PRODUTO']);if(iCli>=0){const g=limitarGrupos(volumePorGrupo(rows,iCli,iVol));const vc=g.pares;const c=$('dash-vol-cli');if(c){c.style.width=Math.max(720,vc.length*54)+'px';drawCanvas(c,vc.map(x=>x[0]),vc.map(x=>x[1]),'bar',vc.map((x,i)=>`${fmt(x[1],0)} m³`+(g.agrupados&&i===vc.length-1?` · ${g.agrupados} clientes somados`:'')));}}if(iProd>=0){const g=limitarGrupos(volumePorGrupo(rows,iProd,iVol));const vp=g.pares;const c=$('dash-vol-prod');if(c){c.style.width=Math.max(720,vp.length*54)+'px';drawCanvas(c,vp.map(x=>x[0]),vp.map(x=>x[1]),'bar',vp.map((x,i)=>`${fmt(x[1],0)} m³`+(g.agrupados&&i===vp.length-1?` · ${g.agrupados} produtos somados`:'')));}}}const inf=$('dash-info');if(inf)inf.textContent=`${d.activeSheet||''} · ${rows.length} registros`;}
 function init(){['dash-refresh','dash-reset'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',render)});['dash-group','dash-metric'].forEach(id=>{const el=$(id);if(el)el.addEventListener('change',render)});window.addEventListener('concrestats:datachanged',()=>setTimeout(render,50));}
+// Estatistica de laboratorio reutilizada pelo Painel.
+//
+// O Naor quer que o PAINEL substitua ANALISE e DASHBOARD. A Analise ja exporta
+// o desenho dela em window.ConcreViz; faltava esta parte, que e' a unica que
+// sabe o que e' fck, corpo de prova e desvio padrao. Sem ela o Painel monta
+// grafico de barra bonito e perde justamente o numero que o laboratorio olha.
+window.ConcreLab = {
+  drawDistribuicao: drawDistribuicao,
+  faixas: faixas,
+  larguraDeFaixa: larguraDeFaixa,
+  desvioPadrao: desvioPadrao,
+  fckPredominante: fckPredominante,
+  fckFrom: fckFrom,
+  colsFor: colsFor,
+  poolNums: poolNums,
+  baseName: baseName,
+  idx: idx,
+  nums: nums,
+  mean: mean,
+  median: median,
+  drawHeatmap: drawHeatmap,
+  volumePorDia: volumePorDia,
+  volumePorGrupo: volumePorGrupo,
+  producaoPorPeriodo: producaoPorPeriodo,
+  limitarGrupos: limitarGrupos,
+  separarImpossiveis: separarImpossiveis,
+};
+
 window.DashboardModule={onModuleEnter:render};document.addEventListener('DOMContentLoaded',init);
 })();

@@ -2395,6 +2395,39 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .pan-graf-scroll::-webkit-scrollbar-track { background: var(--bg-panel); border-radius: 4px; }
 .pan-graf-scroll::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 4px; }
 
+/* Barra de foco: aparece quando um clique num grafico filtra o painel todo.
+   Fica ACIMA do canvas e nao dentro dele — o filtro vale para tudo, e uma
+   marca presa a um widget so' daria a entender que so' aquele mudou. */
+.pan-foco {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 7px 10px; margin-bottom: 8px;
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent); border-radius: 6px;
+}
+.pan-foco-tit { font-size: 11px; color: var(--text-2); font-family: var(--sans); }
+.pan-foco-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--accent); border: 1px solid var(--accent); color: #fff;
+  border-radius: 12px; padding: 3px 10px; font-size: 11px;
+  font-family: var(--sans); cursor: pointer;
+  transition-property: background-color, opacity; transition-duration: .15s;
+}
+.pan-foco-chip i { font-style: normal; opacity: .75; }
+.pan-foco-chip:hover { opacity: .82; }
+.pan-foco-limpar {
+  background: none; border: none; color: var(--text-3);
+  font-size: 11px; font-family: var(--sans); cursor: pointer;
+  text-decoration: underline; padding: 3px 4px;
+}
+.pan-foco-limpar:hover { color: var(--danger); }
+
+/* A distribuicao dentro de um widget: os numeros e a legenda ficam mais
+   apertados que na aba Dashboard, que tem a largura toda da tela. */
+.pan-w-body .dist-numeros { margin: 0 0 6px; gap: 8px; }
+.pan-w-body .dist-num b { font-size: 15px; }
+.pan-w-body .dist-legenda { margin-top: 6px; }
+
 /* ── Alertas automaticos ─────────────────────── */
 #btn-alertas .alr-conta {
   display: inline-flex; align-items: center; justify-content: center;

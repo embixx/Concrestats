@@ -15,6 +15,7 @@
 
   const $ = id => document.getElementById(id);
   const V = () => window.ConcreViz || {};
+  const LAB = () => window.ConcreLab || {};
   const esc = s => String(s ?? '').replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -192,11 +193,83 @@
     }
   }
 
+
+  /* ── foco: clicar num gráfico filtra o painel inteiro ──
+   *
+   * É o que a aba ANÁLISE faz e o Painel não fazia: lá um clique numa barra
+   * refazia a tela toda com só aquele cliente. Sem isso o Painel só desenha, e
+   * quem quisesse investigar tinha que voltar para a Análise — que é
+   * exatamente a aba que ele deve substituir.
+   *
+   * Não é salvo em disco de propósito: filtro é pergunta do momento. Um painel
+   * que reabrisse mostrando um cliente só passaria a impressão de que a
+   * planilha encolheu.
+   */
+  const foco = { tipo: null, col: null, grao: 'mes', vals: [] };
+
+  function limparFoco() { foco.tipo = null; foco.col = null; foco.vals = []; }
+
+  function focar(cfg, rotulo) {
+    const porPeriodo = cfg.grupo === '__periodo__';
+    const col = porPeriodo ? cfg.colData : cfg.grupo;
+    const tipo = porPeriodo ? 'periodo' : 'coluna';
+    if (!col || rotulo == null) return;
+    // Trocar de coluna zera a seleção. Empilhar "CLIENTE = A" com "PRODUTO = B"
+    // dá interseção, e quase sempre vazia — o painel esvaziaria e pareceria bug.
+    if (foco.col !== col || foco.tipo !== tipo) {
+      foco.tipo = tipo; foco.col = col; foco.grao = cfg.grao || 'mes'; foco.vals = [];
+    }
+    const i = foco.vals.indexOf(rotulo);
+    if (i >= 0) foco.vals.splice(i, 1); else foco.vals.push(rotulo);
+    if (!foco.vals.length) limparFoco();
+    render();
+  }
+
+  function aplicarFoco(f) {
+    if (!foco.tipo || !foco.vals.length) return f;
+    const i = f.headers.indexOf(foco.col);
+    if (i < 0) return f;                       // coluna sumiu: mostra tudo
+    const rows = f.rows.filter(r => {
+      const k = foco.tipo === 'periodo'
+        ? chavePeriodo(r[i], foco.grao)
+        : (String(r[i] == null ? '' : r[i]).trim() || SEM_VALOR);
+      return foco.vals.indexOf(k) >= 0;
+    });
+    return { headers: f.headers, rows: rows, sheet: f.sheet };
+  }
+
+  // Só devolve a função de clique quando há mesmo por onde filtrar; senão o
+  // cursor vira mãozinha num gráfico que não reage.
+  function cliqueDe(cfg) {
+    const col = cfg.grupo === '__periodo__' ? cfg.colData : cfg.grupo;
+    return col ? (rotulo => focar(cfg, rotulo)) : null;
+  }
+
+  function barraDeFoco(host) {
+    if (!foco.vals.length) return;
+    const nome = foco.tipo === 'periodo' ? 'período' : foco.col;
+    const barra = document.createElement('div');
+    barra.className = 'pan-foco';
+    barra.innerHTML = '<span class="pan-foco-tit">Filtrando por ' + esc(nome) + ':</span>' +
+      foco.vals.map((v, i) => '<button type="button" class="pan-foco-chip" data-i="' + i + '">' +
+        esc(v) + ' <i>✕</i></button>').join('') +
+      '<button type="button" class="pan-foco-limpar">limpar</button>';
+    barra.querySelectorAll('.pan-foco-chip').forEach(b => {
+      b.addEventListener('click', () => {
+        foco.vals.splice(parseInt(b.dataset.i), 1);
+        if (!foco.vals.length) limparFoco();
+        render();
+      });
+    });
+    barra.querySelector('.pan-foco-limpar').addEventListener('click', () => { limparFoco(); render(); });
+    host.appendChild(barra);
+  }
+
   /* ── render do canvas ──────────────────────────── */
   function render() {
     const host = $('pan-body');
     if (!host) return;
-    const f = dados();
+    let f = dados();
     if (!f) {
       host.innerHTML = '<div class="graf-empty-state"><div class="empty-icon">◈</div>' +
         '<p>Abra uma planilha para montar seu painel</p>' +
@@ -205,9 +278,17 @@
       if (i0) i0.textContent = 'Sem planilha ativa';
       return;
     }
-    if (f.sheet !== state.sheet) state.sheet = f.sheet;
+    // Planilha nova, pergunta nova: um filtro de CLIENTE herdado de outra
+    // planilha esconderia quase tudo sem explicação.
+    if (f.sheet !== state.sheet) { state.sheet = f.sheet; limparFoco(); }
     const L = layout();
-    host.innerHTML = '<div id="pan-canvas" class="pan-canvas"></div>';
+    const total = f.rows.length;
+    f = aplicarFoco(f);
+    host.innerHTML = '';
+    barraDeFoco(host);
+    const div = document.createElement('div');
+    div.id = 'pan-canvas'; div.className = 'pan-canvas';
+    host.appendChild(div);
     const canvas = $('pan-canvas');
 
     if (!L.length) {
@@ -231,7 +312,11 @@
     });
 
     const info = $('pan-info');
-    if (info) info.textContent = (state.sheet || '') + ' · ' + L.length + ' widget(s) · ' + f.rows.length + ' linhas';
+    if (info) {
+      info.textContent = (state.sheet || '') + ' · ' + L.length + ' widget(s) · ' +
+        f.rows.length + ' linhas' +
+        (f.rows.length !== total ? ' (de ' + total + ')' : '');
+    }
   }
 
   function criarWidget(f, it) {
@@ -262,7 +347,8 @@
     return el;
   }
 
-  const rotuloTipo = it => it.type === 'grafico' ? (it.config.tipo || 'barra') : it.type;
+  const rotuloTipo = it => it.type === 'grafico' ? (it.config.tipo || 'barra')
+    : it.type === 'distribuicao' ? 'distribuição' : it.type;
 
   function tituloAuto(it) {
     const c = it.config;
@@ -270,6 +356,7 @@
     if (it.type === 'dado') return (c.op || 'Soma') + ' de ' + (c.valor || '—');
     if (it.type === 'tabela') return 'Por ' + alvo;
     if (it.type === 'insights') return 'Insights automáticos';
+    if (it.type === 'distribuicao') return 'Distribuição de ' + (c.valor || 'resistência');
     return (c.valor || 'Contagem') + ' por ' + alvo;
   }
 
@@ -307,6 +394,7 @@
         : '<p class="pan-vazio">Sem insights — defina Data e Valor nas propriedades.</p>';
       return;
     }
+    if (it.type === 'distribuicao') return desenharDistribuicao(f, it, body);
     if (it.type === 'tabela') return desenharTabela(f, it, body);
 
     desenharGrafico(f, it, body);
@@ -463,20 +551,157 @@
     const sufixo = ehPct(c.op) ? '%' : '';
     const fv = v => viz.fmt0(v) + sufixo;
     esticarParaCaber(canvas, dat.length);
+    const aoClicar = cliqueDe(c);
     if (c.tipo === 'pizza') {
       canvas.style.width = '100%';          // pizza nao rola: nao tem eixo
-      viz.drawDonut(canvas, dat.map(d => d.k), dat.map(d => d.v), null);
+      viz.drawDonut(canvas, dat.map(d => d.k), dat.map(d => d.v), aoClicar);
     } else {
-      viz.drawBars(canvas, dat.map(d => d.k), dat.map(d => d.v), null, fv);
+      viz.drawBars(canvas, dat.map(d => d.k), dat.map(d => d.v), aoClicar, fv);
     }
 
+  }
+
+
+  /* ── distribuição (histograma de resistência × fck) ──
+   *
+   * Este era o único widget que faltava para o Painel dar conta do que o
+   * Dashboard dá: o desenho é o MESMO (window.ConcreLab.drawDistribuicao), não
+   * uma segunda versão parecida. Dois histogramas independentes acabariam
+   * discordando um dia, e quem visse a diferença não saberia em qual acreditar.
+   */
+  function colunasIrmas(f, col) {
+    // Na planilha do laboratório os corpos de prova do mesmo dia ficam em
+    // colunas repetidas: "MPA 28", "MPA 28.1", "MPA 28.2". Ler só a escolhida
+    // mostraria um terço dos ensaios — e o histograma do Painel não bateria
+    // com o do Dashboard, que junta todas.
+    const lab = LAB();
+    if (!lab.colsFor || !lab.baseName) {
+      const i = f.headers.indexOf(col);
+      return i >= 0 ? [i] : [];
+    }
+    return lab.colsFor(f.headers, lab.baseName(col));
+  }
+
+  /* Lê uma coluna de ensaio pelas regras do laboratório: junta as colunas
+   * irmãs, ignora o zero (ensaio não rompido) e tira o que é impossível para
+   * concreto. É a MESMA leitura do histograma — sem isso o cartão "Desvio
+   * padrão" mostrava 47,58 MPa logo acima de um histograma dizendo 13,01, na
+   * mesma tela. Dois números discordando ali derrubam a confiança nos dois. */
+  function lerEnsaio(f, coluna) {
+    const lab = LAB();
+    if (!lab.poolNums) return { vals: [], fora: [], limite: NaN, cols: [] };
+    const cols = colunasIrmas(f, coluna);
+    const brutos = lab.poolNums(f.rows, cols, true);
+    const sep = lab.separarImpossiveis ? lab.separarImpossiveis(brutos)
+      : { bons: brutos, fora: [], limite: NaN };
+    return { vals: sep.bons, fora: sep.fora, limite: sep.limite, cols: cols };
+  }
+
+  function desenharDistribuicao(f, it, body) {
+    const c = it.config, lab = LAB(), viz = V();
+    if (!lab.drawDistribuicao) {
+      body.innerHTML = '<p class="pan-vazio">Estatística de laboratório indisponível.</p>';
+      return;
+    }
+    if (!c.valor) {
+      body.innerHTML = '<p class="pan-vazio">Escolha em <b>Coluna de valor</b> a ' +
+        'resistência a analisar (ex.: MPA 28).</p>';
+      return;
+    }
+
+    // zero não é ruptura fraca, é ensaio que ainda não foi rompido; e o que é
+    // grande demais para ser concreto sai do cálculo.
+    const sep = lerEnsaio(f, c.valor);
+    const cols = sep.cols;
+    const vals = sep.vals;
+
+    const numeros = document.createElement('div');
+    numeros.className = 'dist-numeros';
+    const rolagem = document.createElement('div');
+    rolagem.className = 'pan-graf-scroll';
+    const canvas = document.createElement('canvas');
+    canvas.style.width = '100%';
+    canvas.style.height = Math.max(120, (it.h || 360) - HEADER_H - 116) + 'px';
+    rolagem.appendChild(canvas);
+    const legenda = document.createElement('div');
+    legenda.className = 'dist-legenda';
+    body.appendChild(numeros); body.appendChild(rolagem); body.appendChild(legenda);
+
+    if (!vals.length) {
+      legenda.innerHTML = '<span class="dist-vazio">Sem resultado em ' +
+        esc(c.valor) + ' nesta seleção</span>';
+      return;
+    }
+
+    // fck manual ganha do automático: numa planilha sem PRODUTO/RECEITA o
+    // automático não acha nada, e sem limite o gráfico não diz o que reprovou.
+    const manual = parseFloat(String(c.fck || '').replace(',', '.'));
+    const auto = lab.fckPredominante(f.rows, f.headers);
+    const fck = isNaN(manual) ? auto.fck : manual;
+    const quantos = isNaN(manual) ? auto.quantos : 1;
+
+    const media = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const dp = lab.desvioPadrao(vals, media);
+    const cv = (!isNaN(dp) && media > 0) ? (dp / media * 100) : NaN;
+    const abaixo = !isNaN(fck) ? vals.filter(v => v < fck).length : 0;
+
+    lab.drawDistribuicao(canvas, vals, fck);
+
+    const numero = (rotulo, valor, obs) =>
+      '<div class="dist-num"><b>' + valor + '</b><span>' + rotulo + '</span>' +
+      (obs ? '<i>' + obs + '</i>' : '') + '</div>';
+    numeros.innerHTML =
+      numero('Corpos de prova', vals.length) +
+      numero('Média', viz.fmt(media, 1) + ' MPa') +
+      numero('Desvio padrão', isNaN(dp) ? '—' : viz.fmt(dp, 2) + ' MPa', 'constância da usina') +
+      numero('Coef. de variação', isNaN(cv) ? '—' : viz.fmt(cv, 1) + '%') +
+      (!isNaN(fck)
+        ? numero('Abaixo do fck', abaixo, viz.fmt(abaixo / vals.length * 100, 1) + '% do total')
+        : '');
+
+    const item = (cor, texto) =>
+      '<span class="dist-item"><i class="dist-cor" style="background:' + cor + '"></i>' + texto + '</span>';
+    let leg = '';
+    if (!isNaN(fck)) {
+      leg += item('#2a5298', 'Atingiu o fck (' + viz.fmt(fck, 0) + ' MPa)') +
+        item('#b33a2a', 'Abaixo do fck') +
+        '<span class="dist-item"><i class="dist-tracejado"></i>Limite do projeto</span>';
+      if (quantos > 1) {
+        leg += '<span class="dist-alerta">Esta seleção tem ' + quantos + ' fck diferentes. ' +
+          'A linha marca o mais frequente; para ler a distribuição de um só, filtre por produto.</span>';
+      }
+    } else {
+      leg += item('#2a5298', 'Corpos de prova') +
+        '<span class="dist-alerta">Sem fck na coluna de produto ou receita, ' +
+        'não dá para marcar o limite do projeto. Informe-o nas propriedades.</span>';
+    }
+    if (cols.length > 1) {
+      leg += '<span class="dist-item">' + cols.length + ' colunas de ' +
+        esc(lab.baseName ? lab.baseName(c.valor) : c.valor) + ' somadas</span>';
+    }
+    if (sep.fora.length) {
+      leg += '<span class="dist-alerta">' + sep.fora.length + ' ' +
+        (sep.fora.length === 1 ? 'resultado ficou' : 'resultados ficaram') +
+        ' de fora do cálculo por passar de ' + viz.fmt(sep.limite, 0) + ' MPa (' +
+        sep.fora.map(v => viz.fmt(v, 0)).join(', ') + '). Concreto não chega lá — ' +
+        'provavelmente é erro de digitação na planilha.</span>';
+    }
+    legenda.innerHTML = leg;
   }
 
   function desenharDado(f, it, body) {
     const c = it.config, viz = V();
     const iV = f.headers.indexOf(c.valor);
-    const vals = iV >= 0 ? f.rows.map(r => viz.num(r[iV])) : f.rows.map(() => NaN);
+    const ens = c.ensaio ? lerEnsaio(f, c.valor) : null;
+    const vals = ens ? ens.vals
+      : (iV >= 0 ? f.rows.map(r => viz.num(r[iV])) : f.rows.map(() => NaN));
     let valor, pct = false, sub = c.subtitulo || '';
+    if (ens && !c.subtitulo) {
+      const partes = [];
+      if (ens.cols.length > 1) partes.push(ens.cols.length + ' colunas');
+      if (ens.fora.length) partes.push(ens.fora.length + ' fora do cálculo');
+      if (partes.length) sub = partes.join(' · ');
+    }
 
     if (c.op === 'Crescimento %') {
       const g = agrupar(f, f.rows, {
@@ -673,7 +898,9 @@
     };
     if (outros.vals.some(v => v > 0)) series.push(outros);
     esticarParaCaber(canvas, xs.length);
-    viz.drawStacked(canvas, xs, series, null);
+    // Num empilhado o clique acerta a fatia, não a barra: quem foi clicado é
+    // a categoria que divide as barras, não o eixo X.
+    viz.drawStacked(canvas, xs, series, cliqueDe({ grupo: c.serieCat, grao: c.grao }));
     if (deFora > 0) marcarCorte(canvas, deFora, porPeriodo);
   }
 
@@ -797,6 +1024,17 @@
       lx += ctx.measureText(nome).width + 30;
     });
     ctx.textAlign = 'start';
+
+    // Clicar no mês filtra o painel inteiro por aquele período, como na Análise.
+    const aoClicar = cliqueDe(c);
+    if (aoClicar) {
+      canvas.style.cursor = 'pointer';
+      canvas.onclick = ev => {
+        const r = canvas.getBoundingClientRect();
+        const i = Math.floor((ev.clientX - r.left - left) / slot);
+        if (i >= 0 && i < labels.length) aoClicar(labels[i]);
+      };
+    }
   }
 
   /* ── mapa de calor (calendário) ────────────────── */
@@ -982,6 +1220,7 @@
       { label: '+ Tabela', fn: () => novoWidget('tabela', px, py) },
       { label: '+ Gráfico', fn: () => novoWidget('grafico', px, py) },
       { label: '+ Insights', fn: () => novoWidget('insights', px, py) },
+      { label: '+ Distribuição (resistência × fck)', fn: () => novoWidget('distribuicao', px, py) },
       { sep: true },
       { label: 'Montar painel automático', fn: painelAutomatico },
       {
@@ -1022,6 +1261,15 @@
     return (window.ConcreAutoMap && window.ConcreAutoMap(f.headers, f.rows)) || {};
   }
 
+  // Coluna de ensaio: MPA 28 primeiro (e' o que vale o laudo), depois 7 dias,
+  // depois qualquer cabecalho que fale de MPa ou resistencia.
+  function colunaDeResistencia(f) {
+    const norm = h => String(h || '').trim().toUpperCase();
+    const acha = alvo => f.headers.find(h => norm(h).replace(/\.\d+$/, '') === alvo);
+    return acha('MPA 28') || acha('MPA 7') ||
+      f.headers.find(h => /MPA|RESIST/.test(norm(h))) || '';
+  }
+
   function novoWidget(tipo, x, y) {
     const f = dados();
     if (!f) return;
@@ -1032,9 +1280,14 @@
     };
     if (tipo === 'grafico') { cfg.tipo = 'barra'; cfg.series = []; }
     if (tipo === 'tabela') cfg.colunas = [{ valor: cfg.valor, op: 'Soma' }, { valor: cfg.valor, op: '% do total' }];
+    // A distribuicao nao e' sobre a coluna que mais soma, e' sobre a
+    // resistencia. O autodetect escolhe volume (M3) e o widget nasceria
+    // desenhando o histograma do tamanho dos caminhoes.
+    if (tipo === 'distribuicao') cfg.valor = colunaDeResistencia(f) || cfg.valor;
     const tam = tipo === 'dado' ? { w: 240, h: 130 }
       : tipo === 'insights' ? { w: 460, h: 210 }
-        : tipo === 'tabela' ? { w: 460, h: 300 } : { w: 520, h: 280 };
+        : tipo === 'tabela' ? { w: 460, h: 300 }
+          : tipo === 'distribuicao' ? { w: 700, h: 400 } : { w: 520, h: 280 };
     const it = { id: genId(), type: tipo, x: x || 0, y: y || 0, w: tam.w, h: tam.h, config: cfg };
     layout().push(it);
     salvar(); render();
@@ -1068,11 +1321,25 @@
     if (it.type === 'tabela' || it.type === 'grafico') {
       corpo += '<label>Agrupar por</label><select id="pw-grupo">' + grupoOpts + '</select>';
     }
-    corpo += selHtml('pw-data', H, c.colData, 'Coluna de data');
-    corpo += '<label>Agrupar datas por</label><select id="pw-grao">' +
-      [['dia', 'Dia'], ['mes', 'Mês'], ['ano', 'Ano']].map(g =>
-        '<option value="' + g[0] + '"' + (g[0] === (c.grao || 'mes') ? ' selected' : '') + '>' + g[1] + '</option>').join('') + '</select>';
-    corpo += selHtml('pw-valor', H, c.valor, 'Coluna de valor');
+    // A distribuição não tem eixo de tempo: ela conta quantos ensaios caíram em
+    // cada faixa de resistência. Oferecer "agrupar datas por mês" ali só faz o
+    // usuário preencher um campo que não muda nada no desenho.
+    if (it.type !== 'distribuicao') {
+      corpo += selHtml('pw-data', H, c.colData, 'Coluna de data');
+      corpo += '<label>Agrupar datas por</label><select id="pw-grao">' +
+        [['dia', 'Dia'], ['mes', 'Mês'], ['ano', 'Ano']].map(g =>
+          '<option value="' + g[0] + '"' + (g[0] === (c.grao || 'mes') ? ' selected' : '') + '>' + g[1] + '</option>').join('') + '</select>';
+    }
+    corpo += selHtml('pw-valor', H, c.valor,
+      it.type === 'distribuicao' ? 'Coluna do ensaio (ex.: MPA 28)' : 'Coluna de valor');
+
+    if (it.type === 'distribuicao') {
+      corpo += '<label>fck do projeto (MPa)</label><input id="pw-fck" value="' +
+        esc(c.fck || '') + '" placeholder="deixe vazio para ler do produto/receita">';
+      corpo += '<p class="rc-dica">Vazio, o fck sai da coluna PRODUTO ou RECEITA ' +
+        '(o valor depois de "FCK"). Preencha quando a planilha não trouxer essa ' +
+        'informação, ou para comparar a mesma produção com outro limite.</p>';
+    }
 
     if (it.type === 'dado') {
       corpo += '<label>Operação</label>' + opSel('pw-op', c.op || 'Soma');
@@ -1080,6 +1347,12 @@
       corpo += '<label>Categoria (para "% do total")</label><select id="pw-grupo">' + grupoOpts + '</select>';
       corpo += '<label>Valor da categoria</label><input id="pw-fval" value="' + esc(c.filtroValor || '') +
         '" placeholder="ex.: Serviços">';
+      corpo += '<label class="pw-check"><input type="checkbox" id="pw-ensaio"' +
+        (c.ensaio ? ' checked' : '') + '> Tratar como ensaio de resistência</label>';
+      corpo += '<p class="rc-dica">Marcado, o cartão lê a coluna do jeito do ' +
+        'laboratório: junta as colunas repetidas (MPA 28 e MPA 28.1), ignora ' +
+        'o ensaio ainda não rompido (zero) e descarta valor impossível para ' +
+        'concreto — os mesmos números do gráfico de distribuição.</p>';
       corpo += '<label>Legenda</label><input id="pw-sub" value="' + esc(c.subtitulo || '') + '" placeholder="opcional">';
     }
     if (it.type === 'tabela') {
@@ -1127,14 +1400,15 @@
     }
 
     const nomeTipo = it.type === 'dado' ? 'Dado' : it.type === 'tabela' ? 'Tabela'
-      : it.type === 'insights' ? 'Insights' : 'Gráfico';
+      : it.type === 'insights' ? 'Insights'
+        : it.type === 'distribuicao' ? 'Distribuição' : 'Gráfico';
 
     window.openModal('Propriedades — ' + nomeTipo, corpo, () => {
       const g = id => { const el = document.getElementById(id); return el ? el.value : undefined; };
       const gc = id => { const el = document.getElementById(id); return el ? el.checked : undefined; };
       c.titulo = g('pw-tit') || '';
-      c.colData = g('pw-data') || '';
-      c.grao = g('pw-grao') || 'mes';
+      if (g('pw-data') !== undefined) c.colData = g('pw-data');
+      if (g('pw-grao') !== undefined) c.grao = g('pw-grao');
       c.valor = g('pw-valor') || '';
       if (g('pw-grupo') !== undefined) c.grupo = g('pw-grupo') || '';
       if (g('pw-tipo') !== undefined) c.tipo = g('pw-tipo');
@@ -1142,6 +1416,8 @@
       if (g('pw-opbase') !== undefined) c.opBase = g('pw-opbase');
       if (g('pw-fval') !== undefined) c.filtroValor = g('pw-fval');
       if (g('pw-sub') !== undefined) c.subtitulo = g('pw-sub');
+      if (g('pw-fck') !== undefined) c.fck = g('pw-fck');
+      if (gc('pw-ensaio') !== undefined) c.ensaio = gc('pw-ensaio');
       if (g('pw-seriecat') !== undefined) c.serieCat = g('pw-seriecat') || '';
       if (gc('pw-ins') !== undefined) c.insights = gc('pw-ins');
       if (gc('pw-tot') !== undefined) c.total = gc('pw-tot');
@@ -1271,14 +1547,87 @@
   }
 
   /* ── painel automático (um clique monta tudo) ──── */
-  function painelAutomatico() {
-    const f = dados();
-    if (!f) return;
-    const m = autoMapa(f);
-    if (!m.valor && !m.cat) {
-      if (window.showToast) window.showToast('Não consegui detectar as colunas — adicione widgets manualmente', 'error');
-      return;
+
+  // Acha uma coluna pelo nome, ignorando caixa, acento de M³ e o sufixo que o
+  // Excel gruda em cabeçalho repetido (".1", ".2").
+  function acharCol(f, nomes) {
+    const norm = h => String(h || '').trim().toUpperCase().replace(/\.\d+$/, '');
+    for (const n of nomes) {
+      const achou = f.headers.find(h => norm(h) === n);
+      if (achou) return achou;
     }
+    return '';
+  }
+
+  /* O Naor quer que o Painel substitua o DASHBOARD. Para isso, um clique tem de
+   * entregar o painel do laboratório pronto — os mesmos números e os mesmos
+   * gráficos que ele já aprovou lá. Montar barra genérica e deixar o resto por
+   * conta do usuário não substitui nada: só transfere o trabalho para ele.  */
+  function planoLaboratorio(f) {
+    const mpa = colunaDeResistencia(f);
+    const vol = acharCol(f, ['M³', 'M3', 'VOLUME']);
+    const cli = acharCol(f, ['CLIENTE']);
+    const prod = acharCol(f, ['PRODUTO', 'RECEITA']);
+    const data = acharCol(f, ['DATA']) || (autoMapa(f).data || '');
+    // Sem ensaio nem volume não é planilha de usina; cai no painel genérico.
+    if (!mpa && !vol) return null;
+    return { mpa, vol, cli, prod, data };
+  }
+
+  function montarLaboratorio(f, lb) {
+    const L = [];
+    const add = (type, x, y, w, h, cfg) => L.push({
+      id: genId(), type: type, x: x, y: y, w: w, h: h, config: cfg
+    });
+    const base = () => ({ colData: lb.data, grao: 'mes', topN: 12 });
+    const com = extra => Object.assign(base(), extra);
+
+    let y = 0;
+    add('dado', 0, y, 240, 120, com({ valor: '', op: 'Contagem', titulo: 'Registros' }));
+    if (lb.vol) add('dado', 250, y, 240, 120, com({ valor: lb.vol, op: 'Soma', titulo: 'Volume total (m³)' }));
+    if (lb.mpa) add('dado', 500, y, 240, 120,
+      com({ valor: lb.mpa, op: 'Média', titulo: 'Média ' + lb.mpa, ensaio: true }));
+    if (lb.mpa) add('dado', 750, y, 240, 120,
+      com({ valor: lb.mpa, op: 'Desvio padrão', titulo: 'Desvio padrão', ensaio: true }));
+    y += 130;
+
+    if (lb.data && lb.vol) {
+      add('grafico', 0, y, 740, 300, com({
+        tipo: 'barra', grupo: '__periodo__', valor: lb.vol, op: 'Soma',
+        titulo: 'Produção e crescimento',
+        series: [
+          { valor: lb.vol, op: 'Soma', tipo: 'barra', eixo: 'esq', cor: '#2a5298', titulo: 'Produção (m³)' },
+          { valor: lb.vol, op: 'Crescimento %', tipo: 'linha', eixo: 'dir', cor: '#2a6640', titulo: 'Crescimento %' }
+        ]
+      }));
+      add('grafico', 750, y, 480, 300, com({
+        tipo: 'calor', valor: lb.vol, titulo: 'Mapa de calor — volume por dia'
+      }));
+      y += 310;
+    }
+
+    if (lb.cli && lb.vol) {
+      add('grafico', 0, y, 610, 300, com({
+        tipo: 'barra', grupo: lb.cli, valor: lb.vol, op: 'Soma', titulo: 'Volume por cliente (m³)'
+      }));
+    }
+    if (lb.prod && lb.vol) {
+      add('grafico', 620, y, 610, 300, com({
+        tipo: 'barra', grupo: lb.prod, valor: lb.vol, op: 'Soma', titulo: 'Volume por produto (m³)'
+      }));
+    }
+    if ((lb.cli || lb.prod) && lb.vol) y += 310;
+
+    if (lb.mpa) {
+      add('distribuicao', 0, y, 740, 400, com({
+        valor: lb.mpa, titulo: 'Distribuição da resistência (' + lb.mpa + ')'
+      }));
+      add('insights', 750, y, 480, 400, com({ valor: lb.vol || lb.mpa, grupo: lb.prod || lb.cli }));
+    }
+    return L;
+  }
+
+  function montarGenerico(f, m) {
     const base = { valor: m.valor || '', grupo: m.cat || '', colData: m.data || '', grao: 'mes', topN: 12 };
     const L = [];
     const add = (type, x, y, w, h, cfg) => {
@@ -1314,9 +1663,30 @@
         ]
       });
     }
+    return L;
+  }
+
+  function painelAutomatico() {
+    const f = dados();
+    if (!f) return;
+    const lb = planoLaboratorio(f);
+    let L, aviso;
+    if (lb) {
+      L = montarLaboratorio(f, lb);
+      aviso = 'Painel do laboratório montado';
+    } else {
+      const m = autoMapa(f);
+      if (!m.valor && !m.cat) {
+        if (window.showToast) window.showToast('Não consegui detectar as colunas — adicione widgets manualmente', 'error');
+        return;
+      }
+      L = montarGenerico(f, m);
+      aviso = 'Painel montado automaticamente';
+    }
+    limparFoco();
     state.layouts[state.sheet] = L;
     salvar(); render();
-    if (window.showToast) window.showToast('Painel montado automaticamente', 'success');
+    if (window.showToast) window.showToast(aviso, 'success');
   }
 
   /* ── init ──────────────────────────────────────── */

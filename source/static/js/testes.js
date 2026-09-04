@@ -599,6 +599,106 @@
       ir: () => ConcrestatsOpenModule('painel'),
     },
     {
+      id: 'painel-impossivel',
+      grupo: G_VIS,
+      titulo: 'Ruptura impossível não entra na conta do desvio padrão',
+      olhar: 'Na distribuição, se a planilha tiver um valor absurdo (ex.: 3000 MPa), ' +
+        'a legenda tem que dizer quantos ficaram de fora — e o desvio padrão não pode explodir.',
+      auto: async () => {
+        const sep = window.ConcreLab && window.ConcreLab.separarImpossiveis;
+        if (!sep) return { ok: false, msg: 'ConcreLab.separarImpossiveis não existe' };
+        // 30 rupturas normais de usina + um 3553 digitado errado (foi o que
+        // apareceu na planilha real: levava o desvio de ~8 para 55 MPa).
+        const bons = [];
+        for (let i = 0; i < 30; i++) bons.push(28 + (i % 9));
+        const r = sep(bons.concat([3553.6]));
+        const okFora = r.fora.length === 1 && Math.round(r.fora[0]) === 3554;
+        const okBons = r.bons.length === 30;
+        // e uma planilha que NAO e' de MPa (valores altos legitimos) tem que
+        // passar inteira: o corte so' vale para o caso raro.
+        const outra = sep([100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]);
+        const okOutra = outra.fora.length === 0;
+        const ok = okFora && okBons && okOutra;
+        return {
+          ok,
+          msg: ok ? '1 valor de 3554 MPa fora, 30 mantidos, escala grande intacta'
+            : 'fora=' + r.fora.length + ' bons=' + r.bons.length + ' outra=' + outra.fora.length
+        };
+      },
+      ir: () => ConcrestatsOpenModule('painel'),
+    },
+    {
+      id: 'painel-distribuicao',
+      grupo: G_VIS,
+      titulo: 'Distribuição no Painel bate com a do Dashboard',
+      olhar: 'Compare os números da distribuição no Painel com os da aba Dashboard: ' +
+        'corpos de prova, média e desvio padrão têm que ser iguais.',
+      auto: async () => {
+        const leia = raiz => [].slice.call(raiz.querySelectorAll('.dist-num'))
+          .map(n => n.querySelector('b').textContent).join(' | ');
+        ConcrestatsOpenModule('painel');
+        await ate(() => document.querySelectorAll('.pan-widget').length > 0, 6000);
+        let alvo = [].slice.call(document.querySelectorAll('.pan-widget'))
+          .filter(w => w.querySelector('.dist-num'))[0];
+        if (!alvo) {
+          $('pan-auto') && $('pan-auto').click();
+          await ate(() => [].slice.call(document.querySelectorAll('.pan-widget'))
+            .some(w => w.querySelector('.dist-num')), 8000);
+          alvo = [].slice.call(document.querySelectorAll('.pan-widget'))
+            .filter(w => w.querySelector('.dist-num'))[0];
+        }
+        if (!alvo) return { ok: false, msg: 'o Painel não montou a distribuição' };
+        const noPainel = leia(alvo);
+
+        if (!document.querySelector('.nav-btn[data-module="dashboard"]')) {
+          return { ok: !!noPainel, msg: 'sem aba Dashboard nesta edição; Painel: ' + noPainel };
+        }
+        ConcrestatsOpenModule('dashboard');
+        await ate(() => document.querySelectorAll('#dist-numeros .dist-num').length > 0, 6000);
+        const noDash = leia($('dist-numeros'));
+        const ok = !!noPainel && noPainel === noDash;
+        return { ok, msg: ok ? noPainel : 'Painel: ' + noPainel + '  ≠  Dashboard: ' + noDash };
+      },
+      ir: () => ConcrestatsOpenModule('painel'),
+    },
+    {
+      id: 'painel-foco',
+      grupo: G_VIS,
+      titulo: 'Clicar num gráfico filtra o painel inteiro',
+      olhar: 'No Painel, clique numa barra: aparece a faixa "Filtrando por..." no topo ' +
+        'e TODOS os blocos passam a mostrar só aquele pedaço. O botão limpar desfaz.',
+      auto: async () => {
+        ConcrestatsOpenModule('painel');
+        await ate(() => document.querySelectorAll('.pan-widget').length > 0, 6000);
+        const alvo = [].slice.call(document.querySelectorAll('.pan-widget'))
+          .filter(w => (w.querySelector('.pan-w-tag') || {}).textContent === 'barra'
+            && w.querySelector('canvas'))[0];
+        if (!alvo) return { ok: false, msg: 'nenhum gráfico de barra no painel' };
+        const antes = $('pan-info').textContent;
+        const cv = alvo.querySelector('canvas');
+        const r = cv.getBoundingClientRect();
+        // 56px e' a margem esquerda do eixo; a primeira barra comeca logo depois.
+        cv.dispatchEvent(new MouseEvent('click', {
+          clientX: r.left + 56 + (r.width - 68) / 24, clientY: r.top + r.height / 2, bubbles: true
+        }));
+        await ate(() => document.querySelectorAll('.pan-foco-chip').length > 0, 4000);
+        const filtrou = $('pan-info').textContent;
+        const temChip = document.querySelectorAll('.pan-foco-chip').length === 1;
+        const mudou = filtrou !== antes && filtrou.indexOf('(de ') > 0;
+        const limpar = document.querySelector('.pan-foco-limpar');
+        if (limpar) limpar.click();
+        await ate(() => document.querySelectorAll('.pan-foco-chip').length === 0, 4000);
+        const voltou = $('pan-info').textContent === antes;
+        const ok = temChip && mudou && voltou;
+        return {
+          ok,
+          msg: ok ? 'filtrou e desfez: ' + filtrou
+            : 'chip=' + temChip + ' filtrou=' + mudou + ' desfez=' + voltou
+        };
+      },
+      ir: () => ConcrestatsOpenModule('painel'),
+    },
+    {
       id: 'grafico-desenha',
       grupo: G_VIS,
       titulo: 'Gráfico desenha mesmo (não fica em branco)',
