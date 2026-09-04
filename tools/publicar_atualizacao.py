@@ -340,6 +340,29 @@ def main():
     # Cada canal e' um arquivo. Quem esta' no canal estavel nunca chega a ler o
     # manifesto de teste, entao publicar um nao mexe no outro.
     nome_manifesto = "manifesto.json" if a.canal == "estavel" else f"manifesto-{a.canal}.json"
+
+    # Uma edicao que sai do manifesto e' uma edicao DESLIGADA na maquina de
+    # alguem. Publicar com --edicao para uma instalacao nova, esquecendo as
+    # que ja' estavam, devolveria a aba escondida para o cliente antigo - meses
+    # depois, sem ninguem relacionar uma coisa com a outra.
+    #
+    # (Manifesto SEM edicao nenhuma nao mexe em nada: quem ja' aprendeu a sua
+    # continua com ela. O risco e' so' quando ha' edicoes e falta alguem.)
+    anterior = os.path.join(SAIDA, nome_manifesto)
+    if edicoes and os.path.exists(anterior):
+        try:
+            with open(anterior, encoding="utf-8") as fh:
+                antigas = (json.load(fh) or {}).get("edicoes") or {}
+        except Exception:  # noqa: BLE001
+            antigas = {}
+        perdidas = [k for k in antigas if k not in edicoes]
+        if perdidas:
+            print("ATENCAO: este manifesto deixa de fora " +
+                  ", ".join(sorted(perdidas)) +
+                  " - essas instalacoes VOLTAM a mostrar todas as abas.")
+            print("         Se nao e' isso que voce quer, repita o --edicao-para "
+                  "com elas junto.")
+
     with open(os.path.join(SAIDA, nome_manifesto), "w", encoding="utf-8") as fh:
         json.dump(manifesto, fh, ensure_ascii=False, indent=2)
 
