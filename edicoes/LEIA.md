@@ -32,9 +32,19 @@ Precisa do código de 10 letras da máquina, que aparece na tela de
 tem como adivinhar qual computador é o da Usinop.
 
 ```
-python tools/publicar_atualizacao.py --versao "..." --canal estavel     --edicao usinop --edicao-para a1b2c3d4e5
+python tools/publicar_atualizacao.py --canal estavel --edicao usinop --edicao-para a1b2c3d4e5
+python tools/publicar_atualizacao.py --canal teste   --edicao usinop --edicao-para a1b2c3d4e5
 git push origin main
 ```
+
+Nos dois canais, para a máquina receber esteja ela em qual estiver.
+
+Sem `--versao` e sem `--novidades`, o comando **repete o que já está
+publicado**. Não é comodidade: versão ou novidades diferentes mudam o
+conteúdo do pacote, mudam o hash, e os manifestos passam a apontar um arquivo
+que não existe mais — a atualização para de funcionar sem dar erro. E ele
+começa das edições já publicadas nos dois canais, então ligar a de uma
+máquina nova nunca desliga a de outra.
 
 Na abertura seguinte daquela máquina a aba some, e continua sumida em todas
 as atualizações futuras. Para desfazer, publique de novo apontando uma edição

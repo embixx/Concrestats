@@ -256,7 +256,9 @@ def conferir_manifestos(sha_atual, nome_zip):
 
 def main():
     ap = argparse.ArgumentParser(description="Empacota e assina uma atualização")
-    ap.add_argument("--versao", default=datetime.datetime.now().strftime("%d/%m/%Y %H:%M"))
+    ap.add_argument("--versao", default=None,
+                    help="padrao: agora. Com --edicao e sem --versao, repete a "
+                         "versao que ja' esta' publicada no canal.")
     ap.add_argument("--novidades", nargs="*", default=[])
     ap.add_argument("--onde", default="https://trello.com/c/QL8BmY8O",
                     help="para onde mandar quem preferir baixar à mão")
@@ -279,6 +281,24 @@ def main():
                     help="quais instalacoes recebem a edicao; use * para todas "
                          "as deste canal")
     a = ap.parse_args()
+
+    # Ligar uma edicao nao e' lancar versao. Se a versao e as novidades nao
+    # forem as que ja' estao publicadas, o pacote muda de conteudo, muda de
+    # hash, e os manifestos passam a apontar um arquivo que nao existe mais -
+    # a atualizacao para de funcionar sem dar erro. Entao, por padrao, repete.
+    nome_manif = "manifesto.json" if a.canal == "estavel" else f"manifesto-{a.canal}.json"
+    publicado = {}
+    caminho_manif = os.path.join(SAIDA, nome_manif)
+    if os.path.exists(caminho_manif):
+        try:
+            with open(caminho_manif, encoding="utf-8") as fh:
+                publicado = json.load(fh) or {}
+        except Exception:  # noqa: BLE001
+            publicado = {}
+    if a.versao is None:
+        a.versao = (publicado.get("versao") if a.edicao else None)             or datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
+    if a.edicao and not a.novidades:
+        a.novidades = list(publicado.get("novidades") or [])
 
     if not os.path.isdir(DIST):
         print("Compile antes: python -m PyInstaller Concrestats.spec --noconfirm")
@@ -305,7 +325,21 @@ def main():
         corpo_ed = {"nome": str(cfg.get("nome") or ""),
                     "ocultar": sorted(str(x).strip().lower()
                                       for x in (cfg.get("ocultar") or []))}
-        edicoes = {str(x).strip(): corpo_ed for x in a.edicao_para}
+        # Comeca do que JA' esta' publicado, nos dois canais: sair do manifesto
+        # e' ser desligado na maquina de alguem, e uma instalacao pode ter
+        # ganhado a edicao pelo canal de teste e nao constar do estavel.
+        edicoes = {}
+        for nome in ("manifesto.json", f"manifesto-{a.canal}.json", "manifesto-teste.json"):
+            caminho = os.path.join(SAIDA, nome)
+            if not os.path.exists(caminho):
+                continue
+            try:
+                with open(caminho, encoding="utf-8") as fh:
+                    edicoes.update((json.load(fh) or {}).get("edicoes") or {})
+            except Exception:  # noqa: BLE001
+                pass
+        for x in a.edicao_para:
+            edicoes[str(x).strip()] = corpo_ed
     elif a.edicao_para:
         print("--edicao-para sem --edicao nao faz nada")
         return 1
