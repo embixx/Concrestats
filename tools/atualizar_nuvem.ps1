@@ -2,7 +2,9 @@
 # Uso:  powershell -ExecutionPolicy Bypass -File tools\atualizar_nuvem.ps1
 $raiz  = Split-Path -Parent $PSScriptRoot
 $dist  = Join-Path $raiz "source\dist\Concrestats"
-$nuvem = "C:\Users\Administrator\Desktop\Concrestats_Nuvem"
+# Area de trabalho de quem esta' rodando. Aponte pra outro lugar com CONCRE_NUVEM.
+$nuvem = if ($env:CONCRE_NUVEM) { $env:CONCRE_NUVEM }
+         else { Join-Path ([Environment]::GetFolderPath('Desktop')) "Concrestats_Nuvem" }
 
 if (-not (Test-Path $dist)) { Write-Host "Build nao encontrada em $dist" -ForegroundColor Red; exit 1 }
 New-Item -ItemType Directory -Force -Path $nuvem | Out-Null

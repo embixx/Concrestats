@@ -1,14 +1,9 @@
 /**
  * carimbo-versao.js — mostra na tela inicial qual build está rodando.
  *
- * Por que isso existe: quatro correções seguidas voltaram como "não funciona
- * no meu computador", e em pelo menos um caso o próprio testador desconfiou
- * ("tentei até reiniciar o PC para ver se não estava lembrando da versão
- * antiga"). Sem um carimbo visível não dá para saber se o conserto não pegou
- * ou se a pasta antiga é que continuou sendo aberta.
- *
- * Fica discreto no rodapé da tela inicial. Um clique copia o texto, para
- * mandar junto quando reportar algo.
+ * Quatro correções seguidas voltaram como "não funciona aqui" — e sem um
+ * carimbo na tela não dá pra saber se o conserto não pegou ou se abriram a
+ * pasta antiga. Clique copia, pra mandar junto ao reportar.
  */
 (function () {
   'use strict';

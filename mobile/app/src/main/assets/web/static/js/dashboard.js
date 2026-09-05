@@ -150,25 +150,16 @@ function faixas(vals, largura, fck) {
 }
 
 
-// Tira do calculo o que nao pode ser concreto.
+// Tira da conta o que nao pode ser concreto.
 //
-// Na planilha real do laboratorio ha' 4 rupturas registradas como 327, 504,
-// 3021 e 3553 MPa, em 7464 ensaios. Concreto de usina rompe entre 20 e 60;
-// 3553 MPa e' aco. Sao erros de digitacao ou a carga em kgf caindo na coluna
-// de MPa. Sao 0,05% das linhas e sozinhas levavam o desvio padrao de ~8 para
-// 55,29 MPa e o coeficiente de variacao para 142%.
+// A planilha da usina tem 4 rupturas de 327, 505, 3021 e 3554 MPa em 7464
+// ensaios (digitacao, ou kgf na coluna de MPa). So' elas levavam o desvio de
+// ~13 para 55 MPa e o CV para 142% — e o CV e' o numero que diz se a usina
+// esta sob controle.
 //
-// O coeficiente de variacao E' a medida de constancia da usina — e' o numero
-// que diz se o processo esta sob controle. Com 142% a leitura e' de uma usina
-// descontrolada, e nao e' verdade.
-//
-// O corte e' pela MEDIANA, nao pela media: a media ja' vem contaminada pelos
-// proprios erros que se quer achar. Quatro vezes a mediana da' ~146 MPa nesta
-// planilha — deixa passar qualquer concreto real, inclusive os de alta
-// resistencia, e barra so' o impossivel.
-//
-// Nada e' apagado, e o que ficou de fora aparece na tela: numero errado
-// escondido volta como desconfianca no resto.
+// Corte pela MEDIANA e nao pela media, que ja' vem contaminada. 4x a mediana
+// da' ~146 MPa aqui: passa concreto de alta resistencia, barra o impossivel.
+// Nada e' apagado; o que ficou de fora aparece na legenda.
 function separarImpossiveis(vals) {
   if (vals.length < 8) return { bons: vals, fora: [], limite: NaN };
   const mediana = median(vals);

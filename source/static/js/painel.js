@@ -214,16 +214,9 @@
 
 
   /* ── foco: clicar num gráfico filtra o painel inteiro ──
-   *
-   * É o que a aba ANÁLISE faz e o Painel não fazia: lá um clique numa barra
-   * refazia a tela toda com só aquele cliente. Sem isso o Painel só desenha, e
-   * quem quisesse investigar tinha que voltar para a Análise — que é
-   * exatamente a aba que ele deve substituir.
-   *
-   * Não é salvo em disco de propósito: filtro é pergunta do momento. Um painel
-   * que reabrisse mostrando um cliente só passaria a impressão de que a
-   * planilha encolheu.
-   */
+   * É o que a Análise já fazia. Não é salvo em disco de propósito: filtro é
+   * pergunta do momento, e reabrir mostrando um cliente só pareceria que a
+   * planilha encolheu. */
   const foco = { tipo: null, col: null, grao: 'mes', vals: [] };
 
   function limparFoco() { foco.tipo = null; foco.col = null; foco.vals = []; }

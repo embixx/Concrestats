@@ -1,22 +1,12 @@
 /**
- * edicao.js — esconde abas que esta cópia não mostra.
+ * edicao.js — esconde as abas que esta cópia não mostra.
  *
- * O mesmo programa é entregue para pessoas diferentes, e nem todas veem as
- * mesmas abas. O Naor pediu a versão da Usinop sem o PAINEL, porque ele ainda
- * vai mudar muito e não quer o cliente usando algo instável.
+ * Não dá pra apagar a aba do index.html: a atualização substitui templates/ e
+ * static/ inteiros, e ela voltaria sozinha na primeira atualização.
  *
- * POR QUE ISSO NÃO É FEITO APAGANDO DO index.html: o pacote de atualização
- * substitui templates/ e static/ inteiros. Uma aba removida do arquivo
- * voltaria na primeira atualização automática, sozinha, sem ninguém entender
- * por quê. Aqui a decisão é lida a cada abertura, de um arquivo que a
- * atualização não toca.
- *
- * Três origens, decididas no servidor (ver edicao() em app.py):
- *   1. edicao.json ao lado do executável   { "nome": "Usinop", "ocultar": ["painel"] }
- *   2. a edição compilada dentro do programa
- *   3. a que veio assinada no manifesto de atualização — sem baixar nada
- *
- * Sem nenhuma das três, nada é escondido.
+ * Quem decide é o servidor (edicao() no app.py), em três lugares: edicao.json
+ * ao lado do exe, a edição compilada dentro, ou a que veio no manifesto.
+ * Sem nenhum dos três, mostra tudo.
  */
 (function () {
   'use strict';

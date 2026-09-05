@@ -35,15 +35,10 @@ def _python():
 
 # O que NAO pode viajar junto com a entrega.
 #
-# Nao e' zelo: rodar o exe uma vez para conferir ja' escreve prefs.json ao lado
-# dele, e foi assim que a entrega da Usinop saiu com "__teste_desde" da MINHA
-# maquina. Sao 15 dias de teste comecando na data em que eu compilei, e nao na
-# que o cliente instalar. Se demorasse duas semanas para chegar la', o cliente
-# abriria o programa pela primeira vez ja' sem poder salvar nem exportar - e o
-# que ele veria e' um produto quebrado.
-#
-# Junto vinham o codigo da instalacao (que deveria nascer na maquina dele) e a
-# edicao aprendida aqui.
+# Rodar o exe uma vez pra conferir ja' escreve prefs.json ao lado dele - e foi
+# assim que a entrega da Usinop saiu com o "__teste_desde" da minha maquina.
+# Os 15 dias comecariam na data em que eu compilei, nao na que o cliente
+# instala. Vinha junto o codigo da instalacao, que deve nascer la'.
 PASTAS_QUE_NAO_VAO = ("webview_data", "copias", "codigo", "codigo.quebrado",
                       "_antes_da_atualizacao")
 ARQUIVOS_QUE_NAO_VAO = ("prefs.json", "edicao.json", "canal.txt",

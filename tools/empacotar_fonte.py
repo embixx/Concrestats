@@ -32,6 +32,7 @@ from publicar_atualizacao import PADROES  # noqa: E402
 
 # O que entra, e nada mais.
 PASTAS = [
+    ("mobile", "mobile"),
     ("source/static", "source/static"),
     ("source/templates", "source/templates"),
     ("source/tests", "source/tests"),
@@ -64,11 +65,8 @@ NUNCA = re.compile(
     r"|\.(pyc|pyo|xlsx|xls|csv|rar|zip|apk|idsig|keystore|jks|key|pem)$"
     r"|(^|/)(prefs|receitas|recebedor|edicao|\.trello)\.json$"
     r"|(^|/)canal\.txt$"
-    # Atalhos meus, de clicar duas vezes: trazem o caminho completo desta
-    # maquina, com o nome de usuario. Nao sao o programa, sao a minha bancada.
-    # (Os .bat de edicoes/ ficam: aqueles sao do produto e usam caminho
-    # relativo — vao junto com a copia entregue.)
-    r"|^tools/.*\.(bat|ps1)$"
+    r"|(^|/)(\.gradle|\.idea|captures|gradle)(/|$)"
+    r"|\.(iml|aab|so|dex)$"
 )
 
 # Caminho absoluto de maquina, em qualquer formato. Nao e' segredo, mas mostra
@@ -165,6 +163,9 @@ aplicativo de mesa (janela própria, sem navegador).
     source/tests/          testes automáticos do servidor
     tools/                 compilar, publicar, gerar as edições por cliente
     edicoes/               qual cópia mostra quais abas
+    mobile/                a versão de tablet (Android). Não tem Python: a
+                           ponte-mobile.js responde às chamadas /api no lugar
+                           do servidor, e o resto da tela funciona igual
 
 ## Como rodar a partir do código
 

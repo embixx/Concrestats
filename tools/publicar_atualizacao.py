@@ -483,6 +483,17 @@ def main():
     for aviso in conferir_manifestos(sha, nome_zip):
         print("ATENCAO: " + aviso)
 
+    # Carimba o fonte com a versao publicada. Sem isto, o proximo exe compilado
+    # nasce com a versao de uma publicacao antiga: mostra uma data na tela e se
+    # oferece para atualizar para a de hoje, na primeira vez que abre.
+    try:
+        with open(os.path.join(FONTE_PY, "static", "versao.json"), "w",
+                  encoding="utf-8") as fh:
+            json.dump({"versao": a.versao, "novidades": list(a.novidades or [])},
+                      fh, ensure_ascii=False, indent=2)
+    except OSError as e:
+        print("aviso: nao consegui carimbar o fonte (%s)" % e)
+
     # O pacote pode estar sendo ignorado pelo git — foi o que aconteceu na
     # primeira publicacao, por causa de um "*.zip" generico no .gitignore. Os
     # manifestos subiam, a carga nao, e o aplicativo anunciava versao nova para

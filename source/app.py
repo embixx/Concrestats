@@ -1560,21 +1560,11 @@ def api_atualizacao():
         # Nesse caso a tela nao mente dizendo "voce esta' na mais recente":
         # diz que ha' uma versao restrita, e continua sem oferecer o download.
         restricao = _liberado_para_mim(info, ident)
-        # A edicao chega junto com a resposta da verificacao - e' a via que nao
-        # pede download nenhum. Guardada so' depois de conferida a assinatura:
-        # sem isso, quem trocasse o manifesto no caminho mandaria esconder abas
-        # na maquina dos outros.
-        # O manifesto do canal MANDA na edicao remota, inclusive para
-        # desliga-la: manifesto sem edicao nenhuma devolve todas as abas.
-        #
-        # Antes so' ligava. Quem estivesse com o Painel escondido e trocasse
-        # para um canal que nao esconde nada ficaria escondido para sempre —
-        # e trocar de canal e' justamente como se volta atras sem eu precisar
-        # do codigo da maquina.
-        #
-        # A assinatura e' conferida ANTES, e nada e' gravado se ela nao bater:
-        # senao um manifesto forjado tanto esconderia abas quanto desfaria uma
-        # edicao legitima.
+        # A edicao vem junto na resposta - e' a via que nao pede download.
+        # O manifesto do canal manda, inclusive para DESLIGAR: sem edicao
+        # nenhuma, volta tudo. (Se so' ligasse, trocar de canal nao desfazia.)
+        # Assinatura conferida antes de gravar, senao um manifesto trocado no
+        # caminho escondia aba na maquina dos outros.
         edicao_nova = None
         if atualizador.conferir_manifesto(info, licenca.CHAVE_PUBLICA) is None:
             edicao_nova = atualizador.edicao_do_manifesto(info, ident)
@@ -1667,15 +1657,10 @@ def api_prefs():
     if not isinstance(body, dict):
         return jsonify({"success": False, "error": "esperado objeto JSON"}), 400
 
-    # Estas chaves são do SERVIDOR e não da tela. No app de mesa a gravação
-    # caía direto na raiz das preferências, sem filtro nenhum: qualquer coisa
-    # capaz de fazer um POST em 127.0.0.1 podia mandar
-    # {"__url_atualizacao": "..."} e passar a decidir de onde vêm as
-    # atualizações — ou zerar o período de teste, ou esconder abas.
-    #
-    # Não é buraco de execução: o pacote continua conferido pela assinatura, e
-    # sem a chave privada ninguém instala nada. Mas o endereço de onde o
-    # programa se atualiza não é assunto de página nenhuma.
+    # Chaves do servidor, não da tela. O POST caía direto na raiz sem filtro:
+    # qualquer coisa que falasse com 127.0.0.1 podia trocar de onde vêm as
+    # atualizações, zerar o teste ou esconder abas. Não dá pra instalar nada
+    # falso (a assinatura continua valendo), mas isso não é assunto de página.
     reservadas = [k for k in body if k in (
         "__url_atualizacao", "__canal_atualizacao", "__edicao_remota",
         "__instalacao", "__relogio", "__teste_desde", "__users__")]

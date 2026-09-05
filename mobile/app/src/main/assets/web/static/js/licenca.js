@@ -372,18 +372,9 @@
     return r;
   };
 
-  /* ── aviso de versao nova, sem ninguem ir procurar ──
-   *
-   * Antes so' sabia que havia atualizacao quem abrisse a tela de Atualizacao e
-   * clicasse em procurar. Quem nunca abriu essa tela — que e' a maioria —
-   * ficava na versao velha sem saber, e a correcao publicada nao chegava a
-   * ninguem.
-   *
-   * A busca ja' acontece a cada abertura (edicao.js); aqui so' se mostra o
-   * resultado. Reaparece a cada abertura enquanto houver versao nova: "Depois"
-   * vale para esta sessao, nao para sempre. Um aviso que se pode dispensar
-   * para sempre e' um aviso que nao avisa.
-   */
+  /* ── aviso de versao nova ──
+   * A busca ja' roda a cada abertura (edicao.js); aqui so' mostra o resultado.
+   * "Depois" vale so' pra sessao — aviso que se dispensa pra sempre nao avisa. */
   let avisoNaTela = false;
 
   function fecharAviso() {
