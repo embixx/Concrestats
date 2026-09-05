@@ -2428,6 +2428,36 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .pan-w-body .dist-num b { font-size: 15px; }
 .pan-w-body .dist-legenda { margin-top: 6px; }
 
+/* Aviso de versao nova. Fica no rodape, a direita: no topo cobriria a barra de
+   abas, e quem esta' no meio de uma planilha nao quer perder a referencia de
+   onde estava so' porque saiu atualizacao. */
+.atz-aviso {
+  position: fixed; right: 16px; bottom: 16px; z-index: 9000;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 12px 14px;
+  background: var(--bg-white); color: var(--text);
+  border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.14);
+  font-family: var(--sans);
+  animation: atzSobe .22s ease-out;
+}
+@keyframes atzSobe { from { opacity: 0; transform: translateY(8px); } }
+.atz-aviso-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 240px; }
+.atz-aviso-txt b { font-size: 12.5px; }
+.atz-aviso-txt span {
+  font-size: 11px; color: var(--text-2);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.atz-aviso-ok { padding: 6px 14px; font-size: 11.5px; white-space: nowrap; }
+.atz-aviso-depois {
+  background: none; border: none; color: var(--text-3);
+  font-size: 11px; font-family: var(--sans); cursor: pointer;
+  text-decoration: underline; padding: 6px 2px; white-space: nowrap;
+}
+.atz-aviso-depois:hover { color: var(--text); }
+
 /* ── Alertas automaticos ─────────────────────── */
 #btn-alertas .alr-conta {
   display: inline-flex; align-items: center; justify-content: center;

@@ -1374,7 +1374,34 @@ def _id_da_instalacao():
     return ident
 
 
+def _canal_de_arquivo():
+    """canal.txt ao lado do executavel. Vazio/ausente = estavel.
+
+    O canal deixou de ser um seletor na tela. Ele existia para quem testa
+    receber antes - mas virou tambem a porta de saida da edicao do cliente: o
+    canal de teste nao esconde a aba PAINEL, entao um cliente que mexesse no
+    seletor desfazia sozinho o que foi combinado com ele.
+
+    Como arquivo, quem testa liga em dois cliques (Canal_Teste.bat) e o cliente
+    nao tem por onde chegar.
+    """
+    try:
+        with open(os.path.join(app_dir(), "canal.txt"), encoding="utf-8") as fh:
+            c = fh.read().strip().lower()
+    except Exception:  # noqa: BLE001
+        return None
+    return c if c in CANAIS else None
+
+
+def _pode_trocar_canal():
+    """So' quem ja' tem o arquivo (ou esta' em desenvolvimento) troca de canal."""
+    return _canal_de_arquivo() is not None or os.environ.get("CONCRE_DEV") == "1"
+
+
 def _canal_atual():
+    do_arquivo = _canal_de_arquivo()
+    if do_arquivo:
+        return do_arquivo
     c = str(_prefs_cru().get("__canal_atualizacao") or "estavel").strip().lower()
     return c if c in CANAIS else "estavel"
 
@@ -1439,6 +1466,11 @@ def api_atualizacao():
         if canal not in CANAIS:
             return jsonify({"success": False,
                             "error": "canal deve ser um de: " + ", ".join(CANAIS)}), 400
+        # Esconder o seletor da tela nao basta: sem esta trava, bastava chamar
+        # a rota para o cliente sair da edicao combinada com ele.
+        if not _pode_trocar_canal():
+            return jsonify({"success": False,
+                            "error": "esta cópia não escolhe canal"}), 403
         _prefs_grava({"__canal_atualizacao": canal})
         return jsonify({"success": True, "canal": canal})
 
@@ -1453,7 +1485,10 @@ def api_atualizacao():
     base = _prefs_cru().get("__url_atualizacao") or URL_ATUALIZACAO_PADRAO
     url = _url_do_canal(base, canal)
     comum = {"success": True, "versao_atual": atual, "instalacao": ident,
-             "canal": canal, "canais": list(CANAIS)}
+             "canal": canal,
+             # A tela so' mostra o seletor para quem pode trocar. Lista vazia
+             # para o cliente: nao ha' o que escolher.
+             "canais": list(CANAIS) if _pode_trocar_canal() else []}
     if not url:
         return jsonify(dict(comum, verificou=False))
 

@@ -288,7 +288,7 @@
       j.canais.forEach(c => {
         const o = document.createElement('option');
         o.value = c;
-        o.textContent = c === 'teste' ? 'Teste (recebe antes)' : 'Estável';
+        o.textContent = c === 'teste' ? 'Teste (recebe antes, com o PAINEL)' : 'Estável (igual ao do cliente)';
         if (c === j.canal) o.selected = true;
         sel.appendChild(o);
       });
@@ -372,6 +372,72 @@
     return r;
   };
 
+  /* ── aviso de versao nova, sem ninguem ir procurar ──
+   *
+   * Antes so' sabia que havia atualizacao quem abrisse a tela de Atualizacao e
+   * clicasse em procurar. Quem nunca abriu essa tela — que e' a maioria —
+   * ficava na versao velha sem saber, e a correcao publicada nao chegava a
+   * ninguem.
+   *
+   * A busca ja' acontece a cada abertura (edicao.js); aqui so' se mostra o
+   * resultado. Reaparece a cada abertura enquanto houver versao nova: "Depois"
+   * vale para esta sessao, nao para sempre. Um aviso que se pode dispensar
+   * para sempre e' um aviso que nao avisa.
+   */
+  let avisoNaTela = false;
+
+  function fecharAviso() {
+    const v = document.getElementById('atz-aviso');
+    if (v) v.remove();
+  }
+
+  function avisoDeAtualizacao(j) {
+    if (!j || !j.tem_nova || avisoNaTela) return;
+    if (document.getElementById('atz-aviso')) return;
+    avisoNaTela = true;
+
+    const bar = document.createElement('div');
+    bar.id = 'atz-aviso';
+    bar.className = 'atz-aviso';
+
+    const txt = document.createElement('div');
+    txt.className = 'atz-aviso-txt';
+    const t1 = document.createElement('b');
+    t1.textContent = 'Saiu a versão ' + (j.versao_nova || '');
+    txt.appendChild(t1);
+    const primeira = (j.novidades || [])[0];
+    if (primeira) {
+      const t2 = document.createElement('span');
+      t2.textContent = primeira;
+      txt.appendChild(t2);
+    }
+    bar.appendChild(txt);
+
+    const ok = document.createElement('button');
+    ok.type = 'button';
+    ok.className = 'primary-btn atz-aviso-ok';
+    ok.textContent = 'Atualizar agora';
+    ok.addEventListener('click', () => {
+      fecharAviso();
+      abrir();
+      // Abre a tela ja' procurando: quem clicou em "Atualizar agora" nao
+      // deveria ter que clicar em "procurar" logo depois.
+      setTimeout(procurarAtualizacao, 150);
+    });
+    bar.appendChild(ok);
+
+    const depois = document.createElement('button');
+    depois.type = 'button';
+    depois.className = 'atz-aviso-depois';
+    depois.textContent = 'Depois';
+    depois.addEventListener('click', fecharAviso);
+    bar.appendChild(depois);
+
+    document.body.appendChild(bar);
+  }
+
+  window.addEventListener('concrestats:atualizacao', e => avisoDeAtualizacao(e.detail));
+
   document.addEventListener('DOMContentLoaded', () => setTimeout(buscar, 900));
-  window.ConcreLicenca = { abrir, buscar };
+  window.ConcreLicenca = { abrir, buscar, procurar: procurarAtualizacao };
 })();

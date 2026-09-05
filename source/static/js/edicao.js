@@ -87,6 +87,13 @@
     return fetch('/api/atualizacao')
       .then(function (r) { return r.json(); })
       .then(function (j) {
+        // A mesma busca serve para avisar que saiu versao nova. Uma segunda
+        // chamada so' para isso seria pedir duas vezes a mesma coisa — e a
+        // resposta ja' traz tudo. Quem monta o aviso e' o licenca.js, que e'
+        // dono da tela de Atualizacao.
+        if (j) {
+          window.dispatchEvent(new CustomEvent('concrestats:atualizacao', { detail: j }));
+        }
         if (!j || !j.edicao_aplicada) return null;
         return ambiente();
       })

@@ -1,12 +1,12 @@
 {
-  "versao": "04/09/2026 20:12",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-04-09-2026_20-12.zip",
-  "sha256": "f982e07ef40dd501e7d6039a143b325b9f09e6ab4e9f9ed68e6e83db5aba9d1b",
-  "assinatura": "sHmiO2Vc/Ur7UuG/YcJVJ8Bt82+O5gGOECn+4eB+EfnTF19UfWQKRTA2Y+W1C5XswcmJ65WvNLIC5nS4jYhmBw==",
+  "versao": "04/09/2026 20:25",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-04-09-2026_20-25.zip",
+  "sha256": "d055bb12771d6727bab424511ab6448bf8f8b3a0602aa99b765cbb9ee10830c0",
+  "assinatura": "prllmm+5FDS86AAnGTmu4badO5J0gbGBrX6SriflZ3OAj/vCBn0OCaxUCzLaBE4+E8/qgPoHjkTiLVUfwFWwBQ==",
   "novidades": [
+    "Avisa sozinho quando sai versao nova: nao precisa mais ir procurar",
     "Esta versao abre sem a aba PAINEL",
-    "Quem precisar do PAINEL troca o canal para Teste na tela de Atualizacao",
-    "PAINEL faz o que ANALISE e DASHBOARD fazem: monta sozinho o painel do laboratorio e clicar num grafico filtra o painel inteiro",
+    "PAINEL faz o que ANALISE e DASHBOARD fazem, e clicar num grafico filtra o painel inteiro",
     "Ruptura impossivel (3.554 MPa) nao entra mais na conta: desvio padrao de 55,29 para 13,01 MPa e coeficiente de variacao de 142% para 34,3%"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
@@ -19,5 +19,5 @@
       ]
     }
   },
-  "assinatura_edicoes": "o+Sy6VXlr5FpyZXiiYsbhHcKpygTNhWnFm6trCc8nTyYgI+sWaSsz/5BeXd27I5Uo/ldWsnFO2W8+8fycEQGBw=="
+  "assinatura_edicoes": "5TeynNVKZVsxFddn5pwKc+MJuTe/ClYErQrgtUVGWcwkEfzXtGePm3RhPw186H+3dtS8w61xWz8zH2e0fLFaAQ=="
 }

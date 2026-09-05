@@ -35,6 +35,32 @@ def rodar():
     conf("Sem endereco nenhum, continua sem endereco",
          app._url_do_canal("", "teste") == "")
 
+    # ── quem pode trocar de canal
+    #
+    # O canal de teste nao esconde a aba PAINEL. Enquanto era um seletor na
+    # tela, o cliente desfazia sozinho o que foi combinado com ele — sem saber
+    # o que estava fazendo, so' mexendo num dropdown. Agora e' um arquivo ao
+    # lado do executavel, que so' quem testa tem.
+    canal_txt = os.path.join(app.app_dir(), "canal.txt")
+    havia = os.path.exists(canal_txt)
+    try:
+        if havia:
+            os.remove(canal_txt)
+        conf("Sem canal.txt o cliente fica no estavel",
+             app._canal_atual() == "estavel", app._canal_atual())
+        with open(canal_txt, "w", encoding="utf-8") as fh:
+            fh.write("teste")
+        conf("Com canal.txt=teste, o canal muda", app._canal_atual() == "teste")
+        conf("E so' entao a tela oferece a troca", app._pode_trocar_canal() is True)
+        with open(canal_txt, "w", encoding="utf-8") as fh:
+            fh.write("banana")
+        conf("Canal desconhecido no arquivo cai no estavel",
+             app._canal_atual() == "estavel", app._canal_atual())
+        os.remove(canal_txt)
+    finally:
+        if os.path.exists(canal_txt):
+            os.remove(canal_txt)
+
     # ── a liberacao por instalacao
     EU, OUTRO = "aaa111bbb2", "zzz999yyy8"
 

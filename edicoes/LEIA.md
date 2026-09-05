@@ -24,9 +24,17 @@ O build normal (`source/dist`) não é tocado: sai numa pasta própria.
 ## Como está hoje (04/09/2026)
 
 O canal **estável esconde o PAINEL de todas as cópias** (`--edicao-para "*"`),
-e o canal **teste não esconde nada**. Quem quiser o Painel de volta troca o
-canal na tela de Atualização do próprio programa — sem código, sem arquivo,
-sem download.
+e o canal **teste não esconde nada**.
+
+**O cliente não tem acesso ao canal de teste.** O seletor saiu da tela: o
+canal agora é um arquivo `canal.txt` ao lado do executável, e sem ele a cópia
+fica no estável. Só quem tem o arquivo vê o seletor, e a rota que troca o
+canal recusa quem não tem — esconder o botão não bastaria, bastava chamar a
+rota.
+
+Quem testa liga em dois cliques com `Canal_Teste.bat` (e volta com
+`Canal_Estavel.bat`). Os dois se recusam a rodar fora da pasta do
+`Concrestats.exe`, dizendo qual pasta encontraram.
 
 ## Como ligar sem baixar nada (o jeito automático)
 
