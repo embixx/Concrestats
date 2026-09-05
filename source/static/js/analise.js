@@ -30,6 +30,11 @@
   // Uma serie chamada 'Outros' nunca e' uma categoria da planilha: e' o balde
   // do que sobrou. Recebe o cinza neutro, e nao gasta um dos seis hues — sem
   // isso ela colidiria com a primeira serie assim que houvesse 7 fatias.
+  // Como o resto do programa chama a linha sem valor na coluna de agrupamento.
+  // Tem de ser igual ao SEM_VALOR do painel.js, senao um pinta de cinza e o
+  // outro nao.
+  const SEM_PREENCHER = '(em branco)';
+
   const corDaSerie = (nome, i) =>
     String(nome).toLowerCase() === 'outros' ? COR_OUTROS : COLORS[i % COLORS.length];
   const OPS = ['Soma','Média','Contagem','Mínimo','Máximo'];
@@ -242,7 +247,14 @@
       const y0 = top + plotH * (1 - (Math.max(vv, 0) - min) / (max - min || 1));
       const y1 = top + plotH * (1 - (Math.min(vv, 0) - min) / (max - min || 1));
       const sel = state.fil.cats.has(String(labels[i])) || state.fil.periodo === String(labels[i]);
-      ctx.fillStyle = vv < 0 ? '#b33a2a' : (sel ? '#e8a030' : COLORS[0]);
+      // A barra de "(em branco)" e' cinza, e nao azul como as outras. Na
+      // planilha da usina ela e' a MAIOR do grafico de produto - 826 linhas
+      // sem produto preenchido. Pintada igual as demais, parecia que o que
+      // mais sai da usina e' um produto sem nome; em cinza le'-se como o que
+      // e': falta de preenchimento, e nao um produto.
+      const emBranco = String(labels[i]) === SEM_PREENCHER;
+      ctx.fillStyle = vv < 0 ? '#b33a2a'
+        : (sel ? '#e8a030' : (emBranco ? '#b8b6b0' : COLORS[0]));
       ctx.fillRect(x, y0, bw, Math.max(2, y1 - y0));
       bars.push({ x, w: bw, label: String(labels[i]), v: vv });
     });
@@ -553,17 +565,33 @@
       rows.forEach(r => { const k = parseKey(r[iD]); if (!k) return; const v = num(r[iV]); if (isNaN(v)) return;
         porPer.set(k, (porPer.get(k) || 0) + v); });
       const pers = [...porPer.keys()].sort();
+      // Dois meses seguidos na LISTA nao sao dois meses seguidos no calendario.
+      // A planilha da usina tem um unico registro em dez/2026, 11 meses depois
+      // do resto - digitacao errada de data. O programa comparava com jan/2026
+      // e anunciava "queda de 99,9%", como se a producao tivesse parado.
+      const vizinhos = (a, b) => {
+        const p = String(a).split('-'), q = String(b).split('-');
+        if (p.length < 2 || q.length < 2) return true;
+        return (+q[0] * 12 + +q[1]) - (+p[0] * 12 + +p[1]) === 1;
+      };
       if (pers.length >= 2) {
-        const a = porPer.get(pers[pers.length - 2]), b = porPer.get(pers[pers.length - 1]);
-        if (a) {
+        const kA = pers[pers.length - 2], kB = pers[pers.length - 1];
+        const a = porPer.get(kA), b = porPer.get(kB);
+        if (a && vizinhos(kA, kB)) {
           const d = (b - a) / Math.abs(a) * 100;
           ins.push({ cls: d >= 0 ? 'up' : 'down', ico: d >= 0 ? '▲' : '▼',
-            txt: `${nomeMes(pers[pers.length - 1])} fechou em ${mon(b)} — ${d >= 0 ? 'alta' : 'queda'} de ${fmt(Math.abs(d), 1)}% sobre ${nomeMes(pers[pers.length - 2])}` });
+            txt: `${nomeMes(kB)} fechou em ${mon(b)} — ${d >= 0 ? 'alta' : 'queda'} de ${fmt(Math.abs(d), 1)}% sobre ${nomeMes(kA)}` });
+        } else if (a) {
+          ins.push({ cls: 'warn', ico: '!',
+            txt: `${nomeMes(kB)} tem dado, mas o mês anterior com movimento é ` +
+                 `${nomeMes(kA)} — há meses vazios entre os dois, então não dá ` +
+                 `para comparar um com o outro. Confira se a data está certa.` });
         }
       }
       if (pers.length >= 4) {
         let seq = 0; // >0: subidas consecutivas no fim da série; <0: quedas
         for (let i = pers.length - 1; i > 0; i--) {
+          if (!vizinhos(pers[i - 1], pers[i])) break;   // buraco: a sequencia acabou
           const dif = porPer.get(pers[i]) - porPer.get(pers[i - 1]);
           const dir = dif > 0 ? 1 : dif < 0 ? -1 : 0;
           if (!dir) break;

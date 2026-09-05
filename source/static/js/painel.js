@@ -311,11 +311,23 @@
       if (bt) bt.addEventListener('click', ev => { ev.stopPropagation(); painelAutomatico(); });
     }
 
+    // Duas passadas, e nao uma: PRIMEIRO todos os widgets entram na tela,
+    // DEPOIS eles se desenham.
+    //
+    // Desenhando junto com a criacao, o canvas ainda estava fora da pagina e
+    // medir a largura dele dava zero — caia no tamanho de reserva (700px) e o
+    // CSS esticava para o tamanho de verdade. No "Volume por cliente" eram
+    // 700px esticados para 2280: barra larga e texto borrado. Foi o que o
+    // Naor fotografou.
     let maxB = 0;
+    const criados = [];
     L.forEach(it => {
-      canvas.appendChild(criarWidget(f, it));
+      const el = criarWidget(f, it);
+      canvas.appendChild(el);
+      criados.push([el, it]);
       maxB = Math.max(maxB, (it.y || 0) + (it.h || 240));
     });
+    criados.forEach(([el, it]) => desenharWidget(f, it, el));
     canvas.style.minHeight = Math.max(maxB + GRID * 4, 380) + 'px';
     canvas.addEventListener('contextmenu', e => {
       if (e.target.closest('.pan-widget')) return;
@@ -343,13 +355,6 @@
       esc(it.config.titulo || tituloAuto(it)) + '</span>' +
       '<span class="pan-w-tag">' + esc(rotuloTipo(it)) + '</span></div>' +
       '<div class="pan-w-body"></div><div class="pan-w-resize" title="Redimensionar"></div>';
-    const body = el.querySelector('.pan-w-body');
-    try {
-      desenhar(f, it, body);
-    } catch (err) {
-      body.innerHTML = '<p class="pan-erro">Não foi possível montar este widget.<br><small>' +
-        esc(err.message) + '</small></p>';
-    }
     el.addEventListener('contextmenu', e => {
       e.preventDefault(); e.stopPropagation();
       menuWidget(e.clientX, e.clientY, it);
@@ -357,6 +362,20 @@
     arrastar(el, it);
     redimensionar(el, it);
     return el;
+  }
+
+  // Chamada depois de o widget ja' estar na pagina, para o canvas conseguir
+  // se medir.
+  function desenharWidget(f, it, el) {
+    const body = el.querySelector('.pan-w-body');
+    if (!body) return;
+    body.innerHTML = '';
+    try {
+      desenhar(f, it, body);
+    } catch (err) {
+      body.innerHTML = '<p class="pan-erro">Não foi possível montar este widget.<br><small>' +
+        esc(err.message) + '</small></p>';
+    }
   }
 
   const rotuloTipo = it => it.type === 'grafico' ? (it.config.tipo || 'barra')
