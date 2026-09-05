@@ -174,6 +174,78 @@ def rodar():
     finally:
         shutil.rmtree(base, ignore_errors=True)
 
+    # ── 7. filtro que dá zero linhas exporta zero linhas
+    #
+    # `body.get("filtered_data") or payload["data"]`: lista vazia e' falsa em
+    # Python, entao o filtro era descartado e saia a planilha INTEIRA. Num
+    # laboratorio que atende varios clientes, e' mandar os dados de um para
+    # outro - e a tela mostrava zero linhas, entao ninguem desconfia.
+    cliente = app.app.test_client()
+    sid = "teste-export"
+    app.SESSIONS.pop(sid, None)
+    sess = app._session(sid)
+    sess["sheets"]["Plan1"] = {"headers": ["CLIENTE", "M3"],
+                               "data": [["Alfa", 5], ["Beta", 7], ["Gama", 9]]}
+    sess["active"] = "Plan1"
+
+    r = cliente.post("/api/export", json={"session_id": sid, "sheet_name": "Plan1",
+                                          "format": "csv", "filtered_data": []})
+    corpo = r.get_data(as_text=True)
+    linhas = [x for x in corpo.splitlines() if x.strip()]
+    conf("Filtro com zero linhas exporta zero linhas",
+         r.status_code == 200 and len(linhas) == 1, "%d linha(s): %r" % (len(linhas), linhas[:3]))
+    conf("E nao vaza o cliente que foi filtrado fora", "Beta" not in corpo)
+
+    r = cliente.post("/api/export", json={"session_id": sid, "sheet_name": "Plan1",
+                                          "format": "csv"})
+    conf("Sem filtro nenhum continua exportando tudo",
+         "Alfa" in r.get_data(as_text=True) and "Gama" in r.get_data(as_text=True))
+
+    r = cliente.post("/api/export", json={"session_id": sid, "sheet_name": "Plan1",
+                                          "format": "csv",
+                                          "filtered_data": [["Beta", 7]]})
+    corpo = r.get_data(as_text=True)
+    conf("Filtro com uma linha exporta so' ela",
+         "Beta" in corpo and "Alfa" not in corpo and "Gama" not in corpo)
+    app.SESSIONS.pop(sid, None)
+
+    # ── 8. corpo malformado nao apaga as receitas
+    #
+    # get_json(silent=True) devolve None quando o corpo nao chega inteiro, e o
+    # None virava lista vazia gravada por cima do arquivo. Todas as receitas
+    # apagadas, respondendo sucesso - e receitas.json nao tem copia de
+    # seguranca, diferente das planilhas.
+    guardado = None
+    if os.path.exists(app.RECEITAS_FILE):
+        with open(app.RECEITAS_FILE, encoding="utf-8") as fh:
+            guardado = fh.read()
+    try:
+        with open(app.RECEITAS_FILE, "w", encoding="utf-8") as fh:
+            json.dump([{"nome": "FCK 25", "traco": "1:2:3"}], fh)
+
+        r = cliente.post("/api/receitas", data="isto nao e json",
+                         content_type="application/json")
+        conf("Corpo quebrado nao e' aceito", r.status_code == 400, str(r.status_code))
+        with open(app.RECEITAS_FILE, encoding="utf-8") as fh:
+            sobrou = json.load(fh)
+        conf("E as receitas continuam la'", sobrou and sobrou[0]["nome"] == "FCK 25",
+             str(sobrou))
+
+        r = cliente.post("/api/receitas", json={"nao": "e lista"})
+        conf("Objeto no lugar de lista tambem e' recusado", r.status_code == 400)
+
+        r = cliente.post("/api/receitas", json=[{"nome": "FCK 30"}])
+        conf("Lista de verdade continua gravando", r.status_code == 200)
+        with open(app.RECEITAS_FILE, encoding="utf-8") as fh:
+            conf("E gravou mesmo", json.load(fh)[0]["nome"] == "FCK 30")
+    finally:
+        if guardado is None:
+            if os.path.exists(app.RECEITAS_FILE):
+                os.remove(app.RECEITAS_FILE)
+        else:
+            with open(app.RECEITAS_FILE, "w", encoding="utf-8") as fh:
+                fh.write(guardado)
+
     print()
     if falhas:
         print("FALHARAM: " + ", ".join(falhas))

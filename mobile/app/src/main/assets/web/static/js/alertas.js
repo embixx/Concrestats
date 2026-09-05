@@ -119,10 +119,20 @@
     verificar();
   }
 
+  // Devolve se a regra foi mesmo gravada.
+  //
+  // A regra típica aqui é "avisar quando MPA 28 for menor que o FCK" — o
+  // alerta de concreto reprovado. O erro era engolido e o aviso "Regras
+  // salvas" aparecia sem esperar resposta: as regras seguiam valendo na sessão
+  // e sumiam na próxima abertura. A pessoa fica achando que o alerta está
+  // ligado, e ele não está.
   function salvar() {
     const corpo = {}; corpo[chave()] = regras;
-    fetch('/api/prefs', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(corpo) }).catch(() => {});
+    return fetch('/api/prefs', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo) })
+      .then(r => r.json())
+      .then(j => !(j && j.success === false))
+      .catch(() => false);
   }
 
   /* ── tela ─────────────────────────────────────── */
@@ -180,12 +190,20 @@
     })).filter(r => r.col && r.op);
   }
 
-  function salvarDoModal() {
+  async function salvarDoModal() {
     regras = lerModal();
-    salvar();
+    const gravou = await salvar();
     chaveCarregada = chave();
     verificar();
     closeModal();
+    if (!gravou) {
+      // Não dizer "salvas" quando não foram. Estas regras são o alerta de
+      // concreto abaixo do fck: acreditar que está ligado sem estar é pior do
+      // que não ter o alerta.
+      toast('As regras valem agora, mas NÃO consegui gravá-las — elas somem ' +
+            'quando você fechar o programa', 'error');
+      return;
+    }
     toast(achados.length
       ? `${achados.length} ocorrência(s) encontrada(s)`
       : 'Regras salvas — nada fora do esperado', achados.length ? 'error' : 'success');

@@ -1,13 +1,15 @@
 {
-  "versao": "05/09/2026 00:33",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-09-2026_00-33-teste.zip",
-  "sha256": "0721d9b4fbde750a0173b4117fd7e12b56a6fdfdcc5955166bfd4ad14917317c",
-  "assinatura": "FVN5EIXqKV56AyYWIWGu/pnFAx+Hk+Qj2yAU412rC40QlZpB6vlkdVQcAj3k1H8A4Q+rszj92TF8EDWbDwZFBA==",
+  "versao": "05/09/2026 01:13",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-09-2026_01-13-teste.zip",
+  "sha256": "aef38b9490f2589f371b39aed74efa270392f1d18d244e94c0a295139b6e5527",
+  "assinatura": "X0R7M03qhGRyOWGoJunx5l6SvsltvuwKyRuQ9fPVifWCExQwSa0RnVT6wNQQ3ywWsM9mRjBn7r5jonrABnJeAg==",
   "novidades": [
-    "Correcoes de seguranca: as preferencias do programa (de onde vem a atualizacao, periodo de teste, codigo da instalacao) nao sao mais gravaveis pela tela",
-    "A atualizacao agora protege tambem o codigo do programa: se falhar no meio, volta ao estado anterior inteiro em vez de deixar metade novo e metade velho",
-    "Redirecionamento no download passa pela mesma conferencia de endereco do original",
-    "Pacote de atualizacao e' auditado por dentro antes de ser assinado",
+    "Formula de planilha vinda de fora nao executa mais comando: agora e' so' conta",
+    "Somar dois campos com [colchetes] dava o texto colado (2531 em vez de 56) - corrigido",
+    "Exportar com filtro que da zero linhas nao exporta mais a planilha inteira",
+    "Certificado: campos digitados a mao (CNPJ, obra, contato) nao passam mais de um cliente para outro",
+    "Salvar avisa quando a ultima alteracao nao chegou, em vez de dizer que salvou",
+    "Coluna de data com conteudo estranho nao e' mais interpretada como codigo no Relatorio",
     "Este canal MANTEM a aba PAINEL"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",

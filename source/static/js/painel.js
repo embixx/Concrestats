@@ -49,13 +49,32 @@
   const layout = () => (state.layouts[state.sheet] = state.layouts[state.sheet] || []);
   const genId = () => 'w' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
 
+  // O try/catch só pegava exceção síncrona, que praticamente nunca acontece.
+  // Uma falha de gravação de verdade virava rejeição de promessa sem
+  // tratamento: invisível na tela e no console. O usuário montava o painel
+  // inteiro e só descobria que nada tinha sido salvo na próxima vez que
+  // abrisse o programa, com o layout de volta ao que era antes.
+  let avisouFalhaAoSalvar = false;
   function salvar() {
-    try {
-      fetch('/api/prefs', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ painel_layouts: state.layouts })
+    fetch('/api/prefs', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ painel_layouts: state.layouts })
+    })
+      .then(r => r.json())
+      .then(j => {
+        if (j && j.success === false) throw new Error(j.error || 'recusado');
+        avisouFalhaAoSalvar = false;
+      })
+      .catch(() => {
+        // Uma vez por sequência de falhas: arrastar um widget dispara vários
+        // salvamentos seguidos, e um aviso por arrasto viraria uma parede.
+        if (avisouFalhaAoSalvar) return;
+        avisouFalhaAoSalvar = true;
+        if (window.showToast) {
+          window.showToast('Não consegui salvar o painel — ele volta ao estado ' +
+                           'anterior quando você fechar o programa', 'error');
+        }
       });
-    } catch (_) { /* segue sem persistir */ }
   }
   function carregar() {
     return window.prefsGet().then(p => {

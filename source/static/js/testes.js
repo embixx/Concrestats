@@ -199,6 +199,14 @@
   const G_VIS = 'Análise, gráficos e painel';
   const G_OLHO = 'Precisa do seu olho';
 
+  // Uma edicao pode nao mostrar certas abas (ver edicao.js). Testar o que nao
+  // esta' na tela nao e' falha - e' verificacao que nao se aplica a esta copia.
+  function semAba(mod) {
+    return !document.querySelector('.nav-btn[data-module="' + mod + '"]');
+  }
+  const pular = mod => ({ ok: true, pulou: true,
+                          msg: 'esta edição não mostra a aba ' + mod.toUpperCase() });
+
   const ITENS = [
     /* ── grupo: o arquivo de quem usa ───────────────── */
     {
@@ -445,8 +453,52 @@
       auto: async () => {
         const r = String(evaluateFormula('=[FCK]/0', state.data[0], state.headers));
         const r2 = String(evaluateFormula('=[FCK]*2', state.data[0], state.headers));
-        const ok = r.indexOf('DIV/0') >= 0 && !isNaN(parseFloat(r2));
-        return { ok, msg: ok ? 'divisão por zero vira ' + r : 'retornou ' + r };
+        // Somar dois campos: `[25]+[31]` em JavaScript devolve o TEXTO "2531"
+        // em vez de 56, e o resultado sai na célula com cara de número.
+        const a = parseFloat(state.data[0][state.headers.indexOf('FCK')]);
+        const b = parseFloat(state.data[0][state.headers.indexOf('MPA 28')]);
+        const soma = evaluateFormula('=[FCK]+[MPA 28]', state.data[0], state.headers);
+        const somaOk = Math.abs(parseFloat(soma) - (a + b)) < 1e-9;
+        const ok = r.indexOf('DIV/0') >= 0 && !isNaN(parseFloat(r2)) && somaOk;
+        return { ok, msg: ok ? 'divisão por zero vira ' + r + ', e a soma de dois campos dá ' + soma
+                             : (somaOk ? 'retornou ' + r : 'soma de dois campos deu ' + soma + ', esperado ' + (a + b)) };
+      },
+      ir: () => ConcrestatsOpenModule('spreadsheet'),
+    },
+    {
+      id: 'formula-so-conta',
+      grupo: G_PLAN,
+      titulo: 'Fórmula de planilha de fora não executa comando',
+      olhar: 'Numa célula, escreva =document.title — deve aparecer #ERRO!, e não o ' +
+        'título da janela. Planilha vem de cliente e de e-mail: fórmula é conta, ' +
+        'não comando.',
+      auto: async () => {
+        // O cálculo joga o que sobrou da fórmula num Function(). Sem filtrar,
+        // uma célula de planilha recebida de fora rodava sozinha ao ABRIR o
+        // arquivo — a grade calcula as fórmulas para poder mostrá-las, ninguém
+        // precisa clicar em nada.
+        window.__provaDeFormula = 0;
+        const tentativas = [
+          '=window.__provaDeFormula = 1',
+          '=document.title',
+          '=(()=>{window.__provaDeFormula=3;return 1})()',
+          '=fetch("/api/receitas")',
+        ];
+        const saidas = tentativas.map(f =>
+          String(evaluateFormula(f, state.data[0], state.headers)));
+        const rodou = window.__provaDeFormula !== 0;
+        const barrou = saidas.every(s => s.indexOf('ERRO') >= 0 || s.indexOf('VALOR') >= 0);
+        // e a conta de verdade continua funcionando
+        const conta = String(evaluateFormula('=[FCK]+1', state.data[0], state.headers));
+        const contaOk = !isNaN(parseFloat(conta));
+        delete window.__provaDeFormula;
+        const ok = !rodou && barrou && contaOk;
+        return {
+          ok,
+          msg: ok ? 'as tentativas viraram #ERRO! e a conta normal continua certa'
+            : (rodou ? 'EXECUTOU o comando escrito na célula'
+                     : 'saídas: ' + saidas.join(' | ') + ' | conta: ' + conta)
+        };
       },
       ir: () => ConcrestatsOpenModule('spreadsheet'),
     },
@@ -584,6 +636,7 @@
       titulo: 'Painel monta sozinho a partir dos dados',
       olhar: 'Abra o Painel e clique em Montar: devem aparecer blocos com números e gráficos.',
       auto: async () => {
+        if (semAba('painel')) return pular('painel');
         ConcrestatsOpenModule('painel');
         await ate(() => $('pan-canvas') || document.querySelector('.pan-widget'), 6000);
         if (!document.querySelectorAll('.pan-widget').length) {
@@ -634,6 +687,7 @@
       olhar: 'Compare os números da distribuição no Painel com os da aba Dashboard: ' +
         'corpos de prova, média e desvio padrão têm que ser iguais.',
       auto: async () => {
+        if (semAba('painel')) return pular('painel');
         const leia = raiz => [].slice.call(raiz.querySelectorAll('.dist-num'))
           .map(n => n.querySelector('b').textContent).join(' | ');
         ConcrestatsOpenModule('painel');
@@ -668,6 +722,7 @@
       olhar: 'No Painel, clique numa barra: aparece a faixa "Filtrando por..." no topo ' +
         'e TODOS os blocos passam a mostrar só aquele pedaço. O botão limpar desfaz.',
       auto: async () => {
+        if (semAba('painel')) return pular('painel');
         ConcrestatsOpenModule('painel');
         await ate(() => document.querySelectorAll('.pan-widget').length > 0, 6000);
         const alvo = [].slice.call(document.querySelectorAll('.pan-widget'))
@@ -704,6 +759,9 @@
       titulo: 'Gráfico desenha mesmo (não fica em branco)',
       olhar: 'Nenhum gráfico pode ficar branco, cortado ou com um fantasma no canto.',
       auto: async () => {
+        // Este mede o canvas do PAINEL. Numa edição sem essa aba não há o que
+        // medir — quem cobre o desenho ali é o teste da Análise.
+        if (semAba('painel')) return pular('painel');
         ConcrestatsOpenModule('painel');
         await ate(() => document.querySelector('.pan-widget canvas'), 8000);
         const cv = document.querySelector('.pan-widget canvas');
@@ -725,6 +783,7 @@
       titulo: 'Análise monta a tabela cruzada e os indicadores',
       olhar: 'Na Análise: os cartões do topo, a tabela cruzada e os insights têm que sair com números.',
       auto: async () => {
+        if (semAba('analise')) return pular('analise');
         ConcrestatsOpenModule('analise');
         const sec = () => document.getElementById('module-analise');
         await ate(() => sec() && sec().querySelector('.ana-pivot-wrap table tbody tr'), 8000);
@@ -751,6 +810,7 @@
       titulo: 'Os gráficos da Análise desenham sem fantasma',
       olhar: 'Nenhum gráfico pode ficar branco nem sobrar um pedaço de gráfico no canto.',
       auto: async () => {
+        if (semAba('analise')) return pular('analise');
         ConcrestatsOpenModule('analise');
         await ate(() => document.querySelectorAll('#module-analise canvas').length > 0, 8000);
         const cvs = [].slice.call(document.querySelectorAll('#module-analise canvas'));
@@ -876,6 +936,7 @@
     const r = resultados[it.id];
     if (it.manual) return { txt: '👁', cls: 'olho' };
     if (!r) return { txt: '', cls: 'vazio' };
+    if (r.pulou) return { txt: '–', cls: 'pulou' };
     return r.ok ? { txt: '✓', cls: 'ok' } : { txt: '✕', cls: 'falhou' };
   }
 
@@ -886,8 +947,8 @@
       '<div class="tst-sub ' + (s.ok ? 'ok' : 'falhou') + '">' +
       '<span>' + (s.ok ? '✓' : '✕') + '</span><span>' + esc(s.texto) + '</span></div>').join('') : '';
     return '' +
-      '<div class="tst-item ' + (r && !r.ok ? 'e-falha' : '') + '" data-id="' + it.id + '" data-tipo="' +
-        (it.manual ? 'manual' : (r ? (r.ok ? 'ok' : 'falha') : 'pendente')) + '">' +
+      '<div class="tst-item ' + (r && !r.ok && !r.pulou ? 'e-falha' : '') + '" data-id="' + it.id + '" data-tipo="' +
+        (it.manual ? 'manual' : (r ? (r.pulou ? 'pulou' : (r.ok ? 'ok' : 'falha')) : 'pendente')) + '">' +
         '<div class="tst-status ' + ic.cls + '" id="tst-st-' + it.id + '">' + ic.txt + '</div>' +
         '<div class="tst-txt">' +
           '<b>' + esc(it.titulo) + '</b>' +
@@ -1009,8 +1070,8 @@
 
   function atualizarPlacar() {
     const vals = Object.values(resultados);
-    const ok = vals.filter(r => r.ok).length;
-    const falha = vals.filter(r => !r.ok).length;
+    const ok = vals.filter(r => r.ok && !r.pulou).length;
+    const falha = vals.filter(r => !r.ok && !r.pulou).length;
     if ($('tst-n-ok')) $('tst-n-ok').textContent = ok;
     if ($('tst-n-falha')) $('tst-n-falha').textContent = falha;
     const placar = $('tst-placar');
@@ -1020,9 +1081,14 @@
   function pintar(id, r) {
     const st = $('tst-st-' + id), msg = $('tst-msg-' + id), subs = $('tst-subs-' + id);
     const item = document.querySelector('.tst-item[data-id="' + id + '"]');
-    if (st) { st.textContent = r.ok ? '✓' : '✕'; st.className = 'tst-status ' + (r.ok ? 'ok' : 'falhou'); }
+    const marca = r.pulou ? '–' : (r.ok ? '✓' : '✕');
+    const classe = r.pulou ? 'pulou' : (r.ok ? 'ok' : 'falhou');
+    if (st) { st.textContent = marca; st.className = 'tst-status ' + classe; }
     if (msg) msg.textContent = r.msg || '';
-    if (item) { item.dataset.tipo = r.ok ? 'ok' : 'falha'; item.classList.toggle('e-falha', !r.ok); }
+    if (item) {
+      item.dataset.tipo = r.pulou ? 'pulou' : (r.ok ? 'ok' : 'falha');
+      item.classList.toggle('e-falha', !r.ok && !r.pulou);
+    }
     if (subs) {
       subs.innerHTML = (r.subs || []).map(s =>
         '<div class="tst-sub ' + (s.ok ? 'ok' : 'falhou') + '">' +
@@ -1049,7 +1115,8 @@
     ITENS.forEach(it => {
       if (it.grupo !== grupo) { grupo = it.grupo; linhas.push('', '[' + grupo + ']'); }
       const r = resultados[it.id];
-      const marca = it.manual ? 'OLHAR' : (r ? (r.ok ? 'OK   ' : 'FALHA') : '--   ');
+      const marca = it.manual ? 'OLHAR'
+        : (r ? (r.pulou ? 'PULOU' : (r.ok ? 'OK   ' : 'FALHA')) : '--   ');
       linhas.push(marca + '  ' + it.titulo + (r && r.msg ? '  (' + r.msg + ')' : ''));
       if (r && r.subs) r.subs.forEach(s => linhas.push('        ' + (s.ok ? '-' : 'X') + ' ' + s.texto));
     });
@@ -1084,7 +1151,7 @@
       return;
     }
     const autos = ITENS.filter(i => !i.manual);
-    let feitos = 0, ok = 0, falhou = 0;
+    let feitos = 0, ok = 0, falhou = 0, pulados = 0;
     for (let i = 0; i < autos.length; i++) {
       const it = autos[i];
       marcarRodando(it.id);
@@ -1095,7 +1162,7 @@
       r.ms = Date.now() - ti;
       resultados[it.id] = r;
       pintar(it.id, r);
-      r.ok ? ok++ : falhou++;
+      if (r.pulou) pulados++; else if (r.ok) ok++; else falhou++;
       progresso(++feitos, autos.length);
       await espera(40);
     }
@@ -1111,8 +1178,12 @@
     atualizarPlacar();
     aplicarFiltro();
     if (btn) { btn.disabled = false; btn.textContent = '▶ Rodar de novo'; }
+    // "Pulado" nao e' falha nem acerto: e' verificacao que nao se aplica a esta
+    // copia. Uma edicao que esconde uma aba faria os testes dela falharem em
+    // vermelho, e quem visse pensaria que o programa esta' quebrado.
+    const nota = pulados ? ' (' + pulados + ' não se aplicam a esta edição)' : '';
     toast(falhou ? falhou + ' item(ns) falharam — veja a lista'
-                 : 'Tudo certo: ' + ok + ' verificações passaram',
+                 : 'Tudo certo: ' + ok + ' verificações passaram' + nota,
           falhou ? 'error' : 'success');
   }
 

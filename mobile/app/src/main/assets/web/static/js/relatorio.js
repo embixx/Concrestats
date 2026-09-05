@@ -10,6 +10,7 @@ function aviso(msg, tipo) {
   const $ = id => document.getElementById(id);
   let selectedCols = null;
   let ensaioManual = {};   // edições inline do certificado (durante a sessão)
+  let donoDosManuais = null;  // de quem são essas edições: "planilha || cliente"
   let lastReport = null;   // {headers, data} do último relatório (todas as linhas filtradas, colunas selecionadas) p/ export xlsx
   // Campos fixos: cache em localStorage + persistência real em /api/prefs
   // (prefs.json ao lado do exe) — não somem ao fechar o app.
@@ -131,7 +132,11 @@ function aviso(msg, tipo) {
     const s = String(v).trim();
     const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if(m) return `${m[3]}/${m[2]}/${m[1]}`;
-    return s;
+    // esc() aqui também. O que não é data reconhecida cai neste return e vai
+    // direto para innerHTML — uma coluna de data com lixo colado do Excel
+    // executava o que estivesse escrito nela. fmtNum já escapava o fallback
+    // dele; este ficou de fora.
+    return esc(s);
   }
 
   function smartValue(colKey, value){
@@ -242,6 +247,19 @@ function aviso(msg, tipo) {
     // (localStorage) > valor automático dos dados. Tudo editável na tela.
     const fixos = getFixos();
     const autoVals = { cliente: uniqueVal(rows, idxCliente), produto: uniqueVal(rows, idxProduto), fck: fckLabel, prensa: 'Solotest 100T' };
+
+    // Trocou de cliente ou de planilha? As edições feitas à mão no certificado
+    // anterior NÃO valem para este.
+    //
+    // Cliente e Produto se recalculam sozinhos dos dados, mas CNPJ, obra,
+    // contato e endereço são digitados — e ficavam guardados. Gerar o
+    // certificado do cliente A, editar o CNPJ, filtrar para o cliente B e
+    // gerar de novo produzia um documento com o nome de B e o CNPJ de A. Sai
+    // com a cara de certo, e é laudo com valor legal.
+    const donoAgora = (d.activeSheet || '') + ' || ' + (autoVals.cliente || '');
+    if (donoDosManuais !== null && donoDosManuais !== donoAgora) ensaioManual = {};
+    donoDosManuais = donoAgora;
+
     const campo = f => (ensaioManual[f] != null ? ensaioManual[f] : ((fixos[f] != null && fixos[f] !== '') ? fixos[f] : (autoVals[f] || '')));
     const FIELDS = [['cliente','Cliente'],['obra','Obra'],['contato','Contato'],['email','E-mail'],['cnpj','CNPJ'],['fone','Fone'],['produto','Produto'],['fck','Fck'],['endereco','Endereço'],['cidade','Cidade'],['finalidade','Finalidade'],['dimensao','Dimensão CP']];
     // textarea auto-ajustável: o campo (e o cabeçalho) CRESCE quando o texto é

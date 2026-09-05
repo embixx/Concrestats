@@ -182,12 +182,23 @@ def _limpar_sessoes():
             SESSIONS.pop(chave, None)
 
 
+# Duas requisicoes criando sessao ao mesmo tempo (duas abas, ou varias
+# chamadas de uma recarga antes de a sessao existir) faziam uma limpar o
+# dicionario enquanto a outra o percorria: "dictionary changed size during
+# iteration". O erro subia como um 500 sem relacao nenhuma com o que a pessoa
+# estava fazendo — abrir um arquivo.
+_TRAVA_SESSOES = threading.Lock()
+
+
 def _session(sid):
     sess = SESSIONS.get(sid)
     if sess is None:
-        _limpar_sessoes()
-        sess = SESSIONS[sid] = {"sheets": {}, "active": None, "path": None,
-                                "demo": []}
+        with _TRAVA_SESSOES:
+            sess = SESSIONS.get(sid)      # outra thread pode ter criado
+            if sess is None:
+                _limpar_sessoes()
+                sess = SESSIONS[sid] = {"sheets": {}, "active": None,
+                                        "path": None, "demo": []}
     sess["visto"] = time.time()
     return sess
 
@@ -922,6 +933,13 @@ def _gravar_preservando(path, reais, abas_origem):
                 # usuario nao mexeu, a formula continua viva.
                 if isinstance(atual, str) and atual.startswith("="):
                     ref = valor_calculado(ws.title, i, j)
+                    # Se a segunda leitura do arquivo falhou, nao ha' com o que
+                    # comparar — e sem comparacao a celula caia no "mudou" e a
+                    # formula era trocada por texto fixo. Uma falha pontual do
+                    # openpyxl apagava TODAS as formulas da planilha de uma vez,
+                    # respondendo sucesso. Na duvida, a formula fica.
+                    if caixa["calc"] is None:
+                        continue
                     if _igual_ao_que_o_app_mostra(ref, novo):
                         continue
                 elif _igual_ao_que_o_app_mostra(atual, novo):
@@ -987,7 +1005,13 @@ def api_export():
     name = body.get("sheet_name") or sess["active"]
     fmt = (body.get("format") or "xlsx").lower()
     payload = sess["sheets"].get(name, {"headers": [], "data": []})
-    rows = body.get("filtered_data") or payload["data"]
+    # Lista VAZIA é diferente de "não mandou lista". Com `or`, um filtro que
+    # resulta em zero linhas exportava a planilha INTEIRA, sem filtro nenhum —
+    # e o aviso dizia "Exportado" como se estivesse certo. Num laboratório que
+    # atende vários clientes isso é mandar os dados de um para outro, e não há
+    # como perceber: a tela mostrava zero linhas e o arquivo saiu.
+    filtradas = body.get("filtered_data")
+    rows = payload["data"] if filtradas is None else filtradas
     df = payload_to_df(payload["headers"], rows)
     return _send_dataframe(df, fmt, str(name or "planilha"))
 
@@ -1210,6 +1234,15 @@ URL_ATUALIZACAO_PADRAO = "https://raw.githubusercontent.com/embixx/Concrestats/m
 _LICENCA = {"dados": None, "erro": None, "arquivo": None}
 
 
+# O Flask atende com varias threads. Ler-alterar-gravar o mesmo arquivo sem
+# combinar significa que duas gravacoes ao mesmo tempo se sobrescrevem: as duas
+# leem, as duas alteram a sua copia, e a ultima a gravar apaga o que a outra
+# fez — depois de ja' ter respondido que deu certo. Acontece na pratica porque
+# estado_licenca() grava a cada tela protegida, e o autosave de template do
+# usuario grava junto.
+_TRAVA_PREFS = threading.Lock()
+
+
 def _prefs_cru():
     try:
         with open(PREFS_FILE, "r", encoding="utf-8") as fh:
@@ -1218,14 +1251,30 @@ def _prefs_cru():
         return {}
 
 
+def _gravar_json_atomico(caminho, dados):
+    """Grava inteiro ou nao grava.
+
+    open(..., "w") esvazia o arquivo antes de escrever: fechar o programa no
+    meio do json.dump deixava um prefs.json cortado. E _prefs_cru() engole erro
+    de leitura e devolve {} — entao o arquivo estragado ficava indistinguivel
+    de "nunca configurou nada", e o usuario perdia os templates sem aviso.
+    """
+    temporario = caminho + ".novo"
+    with open(temporario, "w", encoding="utf-8") as fh:
+        json.dump(dados, fh, ensure_ascii=False, indent=2)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(temporario, caminho)
+
+
 def _prefs_grava(campos):
-    atual = _prefs_cru()
-    atual.update(campos)
-    try:
-        with open(PREFS_FILE, "w", encoding="utf-8") as fh:
-            json.dump(atual, fh, ensure_ascii=False, indent=2)
-    except OSError:
-        pass
+    with _TRAVA_PREFS:
+        atual = _prefs_cru()
+        atual.update(campos)
+        try:
+            _gravar_json_atomico(PREFS_FILE, atual)
+        except OSError:
+            pass
 
 
 def _carregar_licenca():
@@ -1636,21 +1685,23 @@ def api_prefs():
                                  + ", ".join(sorted(reservadas))}), 403
 
     try:
-        # Mescla com o que já existe (cada módulo grava só as suas chaves).
-        cur = {}
-        if os.path.exists(PREFS_FILE):
-            try:
-                with open(PREFS_FILE, "r", encoding="utf-8") as fh:
-                    cur = json.load(fh) or {}
-            except Exception:  # noqa: BLE001
-                cur = {}
-        if u == "default":
-            cur.update(body)            # app de mesa: como sempre foi
-        else:
-            users = cur.setdefault("__users__", {})
-            users.setdefault(u, {}).update(body)
-        with open(PREFS_FILE, "w", encoding="utf-8") as fh:
-            json.dump(cur, fh, ensure_ascii=False, indent=2)
+        # A mesma trava do _prefs_grava: sem ela, este merge e o da licença
+        # rodam ao mesmo tempo e o último a gravar apaga o que o outro fez.
+        with _TRAVA_PREFS:
+            # Mescla com o que já existe (cada módulo grava só as suas chaves).
+            cur = {}
+            if os.path.exists(PREFS_FILE):
+                try:
+                    with open(PREFS_FILE, "r", encoding="utf-8") as fh:
+                        cur = json.load(fh) or {}
+                except Exception:  # noqa: BLE001
+                    cur = {}
+            if u == "default":
+                cur.update(body)            # app de mesa: como sempre foi
+            else:
+                users = cur.setdefault("__users__", {})
+                users.setdefault(u, {}).update(body)
+            _gravar_json_atomico(PREFS_FILE, cur)
         return jsonify({"success": True})
     except Exception as e:  # noqa: BLE001
         return jsonify({"success": False, "error": str(e)}), 500
@@ -1668,9 +1719,16 @@ def api_receitas():
                 return jsonify([])
         return jsonify([])
     body = request.get_json(force=True, silent=True)
+    # Corpo que não chegou inteiro virava lista vazia, e o arquivo era
+    # sobrescrito com ela — TODAS as receitas apagadas, respondendo
+    # {"success": true}. Diferente das planilhas, receitas.json não tem cópia
+    # de segurança: era perda definitiva e silenciosa. Basta um POST truncado.
+    if not isinstance(body, list):
+        return jsonify({"success": False,
+                        "error": "esperado uma lista de receitas"}), 400
     try:
         with open(RECEITAS_FILE, "w", encoding="utf-8") as fh:
-            json.dump(body if body is not None else [], fh, ensure_ascii=False, indent=2)
+            json.dump(body, fh, ensure_ascii=False, indent=2)
         return jsonify({"success": True})
     except Exception as e:  # noqa: BLE001
         return jsonify({"success": False, "error": str(e)}), 500

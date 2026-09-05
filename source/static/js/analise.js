@@ -887,6 +887,7 @@
     try { cfg = JSON.parse(await file.text()); } catch (_) { window.showToast?.('Arquivo .concre inválido', 'error'); return; }
     if (cfg.tipo !== 'concrestats-analise') { window.showToast?.('Arquivo .concre inválido', 'error'); return; }
     // Se a análise referencia o arquivo de origem, tenta recarregá-lo do disco.
+    let achouOriginal = true;
     if (cfg.sourcePath) {
       try {
         const r = await fetch('/api/load_path', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -895,8 +896,20 @@
         if (res && res.success && window.loadSheetData) {
           window.loadSheetData(res);
           window.__concreSourcePath = cfg.sourcePath;
+        } else {
+          achouOriginal = false;
         }
-      } catch (_) { /* segue com a planilha atual */ }
+      } catch (_) { achouOriginal = false; }
+    }
+    // O .concre existe para ser mandado a outra pessoa junto com a planilha.
+    // Na máquina dela o caminho salvo quase nunca existe — e a análise era
+    // aplicada em silêncio sobre o que estivesse aberto na tela. Como os nomes
+    // de coluna se repetem entre planilhas deste ramo (MPA 28, FCK, CLIENTE,
+    // DATA), o resultado sai plausível, calculado sobre os dados errados.
+    if (!achouOriginal) {
+      window.showToast?.('Não achei a planilha original desta análise (' +
+        cfg.sourcePath + '). Apliquei sobre a que está aberta — confira se é a certa.',
+        'error');
     }
     aplicarAnalise(cfg);
   }
