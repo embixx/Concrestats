@@ -83,6 +83,10 @@ recebedor.json
 # por causa disso - 97 MB de build compilado num repo publico.
 _entrega_*/
 
+# Pasta de codigo montada para mostrar a alguem (tools/empacotar_fonte.py).
+# E' derivada: sai do proprio repositorio e se refaz com um comando.
+_codigo_fonte/
+
 # Intermediarios da compilacao por edicao (tools/build_edicao.py)
 source/build_edicao/
 
