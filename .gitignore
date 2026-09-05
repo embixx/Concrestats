@@ -78,7 +78,10 @@ recebedor.json
 .ultima_publicacao.json
 
 # pasta montada na hora de entregar; nao entra no repositorio
-_entrega_usinop/
+# QUALQUER pasta de entrega, e nao so' a da Usinop: uma regra com o nome de um
+# cliente so' protege daquele cliente. A entrega do Naor entrou no repositorio
+# por causa disso - 97 MB de build compilado num repo publico.
+_entrega_*/
 
 # Intermediarios da compilacao por edicao (tools/build_edicao.py)
 source/build_edicao/
