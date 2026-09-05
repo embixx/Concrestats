@@ -1,0 +1,36 @@
+(function(){
+'use strict';
+if (window.Chart && window.Chart.__isConcrestatsLite !== true) return;
+class LinearScale{
+  constructor(min,max,a,b){this.min=min;this.max=max;this.a=a;this.b=b;}
+  getPixelForValue(v){const t=(Number(v)-this.min)/(this.max-this.min||1);return this.a+(this.b-this.a)*t;}
+}
+function num(v){const n=Number(v);return isFinite(n)?n:NaN;}
+function color(c,fb){return c||fb||'#2a5298';}
+function getDataset(cfg){return (cfg.data && cfg.data.datasets && cfg.data.datasets[0]) || {data:[]};}
+function getPoints(ds){return (ds.data||[]).map((p,i)=>typeof p==='object'?{x:num(p.x),y:num(p.y),raw:p,i}:{x:i,y:num(p),raw:p,i}).filter(p=>!isNaN(p.y));}
+function niceRange(vals){let min=Math.min(...vals),max=Math.max(...vals); if(!isFinite(min)||!isFinite(max)){min=0;max=1;} if(min===max){min-=1;max+=1;} const pad=(max-min)*.08; return [min-pad,max+pad];}
+class ChartLite{
+  constructor(canvas,cfg){this.canvas=canvas;this.ctx=canvas.getContext('2d');this.config=cfg||{};this.options=this.config.options||{};this.data=this.config.data||{};this.type=this.config.type||'line';this.plugins=this.config.plugins||[];this.__listeners=[];this.update();}
+  update(){this.draw();}
+  destroy(){this.__listeners.forEach(([el,t,fn])=>el.removeEventListener(t,fn));this.__listeners=[];}
+  _size(){const dpr=window.devicePixelRatio||1;const r=this.canvas.getBoundingClientRect();
+    // Usa o tamanho REAL do elemento. O minimo de 280px forcava o canvas do eixo Y
+    // (56px) a desenhar em 280px e o navegador espremia tudo -> "grafico fantasma".
+    let w=Math.floor(r.width||this.canvas.clientWidth||0)||280;
+    let h=Math.floor(r.height||this.canvas.clientHeight||0)||180;
+    // HiDPI (escala do Windows > 100%): backing store em dpr×, desenho em CSS px.
+    this.canvas.width=Math.round(w*dpr);this.canvas.height=Math.round(h*dpr);this.ctx.setTransform(dpr,0,0,dpr,0,0);return {w,h};}
+  draw(){const {w,h}=this._size();const ctx=this.ctx;ctx.clearRect(0,0,w,h);const ds=getDataset(this.config);const pts=getPoints(ds);const xVals=pts.map(p=>p.x), yVals=pts.map(p=>p.y);const [yMin,yMax]=niceRange(yVals);let xMin=this.options.scales?.x?.min;let xMax=this.options.scales?.x?.max;if(xMin===undefined)xMin=Math.min(...xVals,0);if(xMax===undefined)xMax=Math.max(...xVals,1);if(!isFinite(xMin)||!isFinite(xMax)||xMin===xMax){xMin=0;xMax=Math.max(1,pts.length-1);}const showY=this.options.scales?.y?.display!==false;const showX=this.options.scales?.x?.display!==false;const left=showY?46:10, right=12, top=24, bottom=showX?28:10;this.chartArea={left,top,right:w-right,bottom:h-bottom,width:w-left-right,height:h-top-bottom};this.scales={x:new LinearScale(xMin,xMax,left,w-right),y:new LinearScale(yMin,yMax,h-bottom,top)};this.plugins.forEach(p=>{try{p.afterLayout&&p.afterLayout(this)}catch(_){}});this._drawGrid(ctx,w,h,showX,showY);this._drawData(ctx,pts,ds);this.plugins.forEach(p=>{try{p.afterDraw&&p.afterDraw(this)}catch(_){}});this._bindTooltip(pts,ds);}
+  _drawGrid(ctx,w,h,showX,showY){const ca=this.chartArea;ctx.save();ctx.strokeStyle='#e8e6e1';ctx.lineWidth=1;ctx.font='10px IBM Plex Mono, monospace';ctx.fillStyle='#777';if(showY){for(let i=0;i<=4;i++){const v=this.scales.y.min+(this.scales.y.max-this.scales.y.min)*i/4;const y=this.scales.y.getPixelForValue(v);if(ca.right>ca.left){ctx.beginPath();ctx.moveTo(ca.left,y);ctx.lineTo(ca.right,y);ctx.stroke();}ctx.fillText(Number(v).toFixed(1),4,y+3);}}if(showX){const ticks=Math.min(8,Math.max(2,Math.floor(ca.width/80)));for(let i=0;i<=ticks;i++){const v=this.scales.x.min+(this.scales.x.max-this.scales.x.min)*i/ticks;const x=this.scales.x.getPixelForValue(v);ctx.beginPath();ctx.moveTo(x,ca.top);ctx.lineTo(x,ca.bottom);ctx.stroke();ctx.fillText(String(Math.round(v)+1),x-6,ca.bottom+16);}}ctx.restore();}
+  _drawData(ctx,pts,ds){const ca=this.chartArea;
+    // Dataset invisível (borderWidth:0 + pointRadius:0) — usado pelo canvas que
+    // só mostra o eixo Y nos gráficos roláveis. Sem isto, os pontos eram
+    // desenhados comprimidos na faixa do eixo ("gráfico fantasma" à esquerda).
+    const noLine=ds.borderWidth===0, noPts=ds.pointRadius===0;
+    if(noLine&&noPts)return;
+    ctx.save();ctx.beginPath();ctx.rect(ca.left,ca.top,ca.width,ca.height);ctx.clip();const col=color(ds.borderColor||ds.backgroundColor,'#2a5298');ctx.strokeStyle=col;ctx.fillStyle=color(ds.backgroundColor,col);ctx.lineWidth=2;if(this.type==='bar'){const barW=Math.max(2,Math.min(28,ca.width/Math.max(1,pts.length)*.7));pts.forEach(p=>{const x=this.scales.x.getPixelForValue(p.x)-barW/2;const y=this.scales.y.getPixelForValue(p.y);ctx.fillRect(x,y,barW,ca.bottom-y);});}else{const hasCor=pts.some(p=>p.raw&&p.raw.color);if(hasCor){for(let i=1;i<pts.length;i++){const x0=this.scales.x.getPixelForValue(pts[i-1].x),y0=this.scales.y.getPixelForValue(pts[i-1].y),x1=this.scales.x.getPixelForValue(pts[i].x),y1=this.scales.y.getPixelForValue(pts[i].y);ctx.beginPath();ctx.strokeStyle=(pts[i].raw&&pts[i].raw.color)||col;ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();}}else{ctx.beginPath();pts.forEach((p,i)=>{const x=this.scales.x.getPixelForValue(p.x),y=this.scales.y.getPixelForValue(p.y);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();if(ds.fill){ctx.lineTo(this.scales.x.getPixelForValue(pts.at(-1)?.x||0),ca.bottom);ctx.lineTo(this.scales.x.getPixelForValue(pts[0]?.x||0),ca.bottom);ctx.closePath();ctx.globalAlpha=.25;ctx.fill();ctx.globalAlpha=1;}}if(!noPts)pts.forEach(p=>{const x=this.scales.x.getPixelForValue(p.x),y=this.scales.y.getPixelForValue(p.y);ctx.beginPath();ctx.arc(x,y,Math.max(2,ds.pointRadius||2),0,Math.PI*2);ctx.fillStyle=(p.raw&&p.raw.color)||col;ctx.fill();});}ctx.restore();}
+  _bindTooltip(pts,ds){if(this._ttBound)return;this._ttBound=true;const canvas=this.canvas;const tip=document.createElement('div');tip.className='chart-lite-tooltip';tip.style.cssText='position:fixed;z-index:99999;background:#1b1b18;color:#fff;border:1px solid #555;padding:5px 7px;font:11px IBM Plex Mono,monospace;display:none;pointer-events:none;border-radius:3px';document.body.appendChild(tip);const move=e=>{const r=canvas.getBoundingClientRect();const x=e.clientX-r.left,y=e.clientY-r.top;let best=null,bd=18;pts.forEach(p=>{const px=this.scales.x.getPixelForValue(p.x),py=this.scales.y.getPixelForValue(p.y);const d=Math.hypot(px-x,py-y);if(d<bd){bd=d;best=p;}});if(!best){tip.style.display='none';return;}const rw=best.raw||{};const cp=(rw.cp!=null&&String(rw.cp).trim()!=='')?rw.cp:(best.i+1);const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');const fmtD=v=>{const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return m?`${m[3]}/${m[2]}/${m[1]}`:String(v||'');};const linhas=[`CP ${esc(cp)}`];if(rw.receita)linhas.push(`Receita: ${esc(rw.receita)}`);linhas.push(`${esc(ds.label||'Resistência')}: ${esc(best.y)}`);if(rw.data)linhas.push(`Data: ${esc(fmtD(rw.data))}`);tip.innerHTML=linhas.join('<br>');tip.style.left=e.clientX+12+'px';tip.style.top=e.clientY+12+'px';tip.style.display='block';};const leave=()=>tip.style.display='none';canvas.addEventListener('mousemove',move);canvas.addEventListener('mouseleave',leave);this.__listeners.push([canvas,'mousemove',move],[canvas,'mouseleave',leave]);}
+}
+ChartLite.__isConcrestatsLite=true;window.Chart=ChartLite;
+})();

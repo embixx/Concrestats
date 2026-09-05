@@ -1,0 +1,162 @@
+/* mobile.css — ajustes para tablet/celular
+ *
+ * Só vale quando a ponte marca o <body> com .modo-mobile, então o app de
+ * computador continua exatamente como está.
+ *
+ * A regra que guia tudo aqui: dedo não é mouse. Alvo de toque abaixo de ~44px
+ * erra, e numa planilha errar significa editar a célula errada.
+ */
+
+body.modo-mobile {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;              /* sem "puxar para recarregar" */
+}
+
+/* respeita recorte de tela (câmera/entalhe) */
+body.modo-mobile .topbar {
+  padding-top: env(safe-area-inset-top, 0);
+  height: calc(var(--topbar-h) + env(safe-area-inset-top, 0));
+}
+
+/* ── barra de ferramentas: alvos de dedo ─────────────────── */
+/* No tablet ela QUEBRA EM DUAS LINHAS em vez de rolar: botao escondido atras
+   de uma rolagem horizontal e' botao que ninguem acha no dedo. */
+body.modo-mobile .toolbar {
+  height: auto;
+  min-height: 52px;
+  flex-wrap: wrap;
+  align-content: center;
+  padding: 6px 10px;
+  gap: 6px 6px;
+  overflow-x: visible;
+}
+body.modo-mobile .toolbar .toolbar-sep { display: none; }   /* separador atrapalha ao quebrar */
+body.modo-mobile .tool-btn {
+  min-height: 40px;
+  padding: 8px 13px;
+  font-size: 13px;
+  border-color: var(--border-light);
+  background: var(--bg-white);
+}
+body.modo-mobile .tool-btn svg { width: 15px; height: 15px; }
+body.modo-mobile .toolbar-sep { height: 26px; margin: 0 6px; }
+
+/* ── abas do topo ─────────────────────────────────────────── */
+body.modo-mobile .top-nav { overflow-x: auto; scrollbar-width: none; }
+body.modo-mobile .top-nav::-webkit-scrollbar { display: none; }
+body.modo-mobile .nav-btn {
+  min-height: 38px; padding: 8px 14px; font-size: 12.5px;
+}
+
+/* ── grade: linha mais alta, texto maior ─────────────────── */
+body.modo-mobile {
+  --cell-h: 38px;
+  --header-h: 42px;
+  --toolbar-h: 104px;        /* duas linhas de botoes */
+}
+
+/* Barra de navegacao do Android cobria o rodape do app: reserva o espaco dela */
+body.modo-mobile .grid-container,
+body.modo-mobile .dashboard-body,
+body.modo-mobile #pan-body {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+body.modo-mobile #grid-scroll { padding-bottom: env(safe-area-inset-bottom, 0px); }
+body.modo-mobile #data-table td,
+body.modo-mobile #data-table th {
+  font-size: 13px;
+  padding: 0 10px;
+}
+body.modo-mobile #data-table td { height: 38px; }
+body.modo-mobile .sheet-tab { min-height: 36px; padding: 8px 14px; font-size: 12.5px; }
+
+/* ── janelas: ocupam a tela no aparelho ──────────────────── */
+body.modo-mobile .modal-box {
+  max-width: min(92vw, 720px) !important;
+  width: 92vw;
+  max-height: 88vh;
+  display: flex; flex-direction: column;
+}
+body.modo-mobile .modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+body.modo-mobile .modal-body input,
+body.modo-mobile .modal-body select,
+body.modo-mobile .modal-body textarea {
+  min-height: 42px; font-size: 15px;      /* 15px+ evita o zoom automático */
+}
+body.modo-mobile .primary-btn,
+body.modo-mobile .secondary-btn { min-height: 42px; padding: 10px 18px; font-size: 13.5px; }
+
+/* ── painel e gráficos ───────────────────────────────────── */
+body.modo-mobile .pan-graf-scroll { -webkit-overflow-scrolling: touch; }
+body.modo-mobile .pan-w-head { min-height: 34px; }
+
+/* ── celular em pé: a barra vira duas linhas ─────────────── */
+@media (max-width: 640px) {
+  body.modo-mobile .toolbar { flex-wrap: nowrap; }
+  body.modo-mobile .tool-btn { padding: 8px 10px; font-size: 12px; }
+  body.modo-mobile .logo-text { display: none; }   /* sobra espaço para as abas */
+}
+
+/* ── tablet deitado: aproveita a largura ─────────────────── */
+@media (min-width: 900px) {
+  body.modo-mobile .modal-box { max-width: 720px !important; width: auto; }
+}
+
+/* ── ajustes de toque, só no APK ─────────────────────────── */
+
+/* enquanto o dedo segura, a célula/bloco acende: dá a entender que algo vem */
+body.modo-mobile .segurando {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: var(--accent-bg) !important;
+  transition: background .12s;
+}
+
+/* rolagem com inércia na grade e nas listas */
+body.modo-mobile #grid-scroll,
+body.modo-mobile .dashboard-body,
+body.modo-mobile .modal-body,
+body.modo-mobile .tst-lista { -webkit-overflow-scrolling: touch; }
+
+/* número da linha: alvo maior para selecionar a linha com o dedo */
+body.modo-mobile #data-table td.row-num,
+body.modo-mobile #data-table th.row-num { min-width: 46px; font-size: 12px; }
+
+/* abas de planilha maiores e com respiro */
+body.modo-mobile .sheet-tabs { min-height: 44px; padding: 0 6px; }
+body.modo-mobile .sheet-tab { min-height: 38px; }
+
+/* barra de fórmula: mais alta e com botão de confirmar */
+body.modo-mobile .formula-bar { min-height: 46px; }
+body.modo-mobile #formula-input { font-size: 15px; min-height: 40px; }
+body.modo-mobile .toque-ok {
+  flex: none; margin-left: 6px; width: 44px; min-height: 40px;
+  border: 1px solid var(--accent); background: var(--accent); color: #fff;
+  border-radius: 6px; font-size: 17px; line-height: 1; cursor: pointer;
+}
+body.modo-mobile .toque-ok:active { opacity: .8; }
+
+/* aviso flutuante do primeiro toque */
+.toque-dica {
+  position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%) translateY(8px);
+  background: rgba(28,27,24,.92); color: #fff; padding: 8px 14px; border-radius: 999px;
+  font-family: var(--sans); font-size: 12.5px; pointer-events: none;
+  opacity: 0; transition: opacity .18s, transform .18s; z-index: 99999;
+}
+.toque-dica.vendo { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* menu de contexto: itens no tamanho de dedo */
+body.modo-mobile .context-menu div,
+body.modo-mobile .pan-menu button,
+body.modo-mobile .ctx-item { min-height: 44px; display: flex; align-items: center; font-size: 13.5px; }
+
+/* blocos do painel: cabeçalho e alças maiores para arrastar */
+body.modo-mobile .pan-w-head { min-height: 40px; }
+body.modo-mobile .pan-w-resize { width: 26px; height: 26px; }
+
+/* Os botoes vinham agrupados em caixas que NAO quebram, entao um grupo largo
+   estourava a barra em pe'. Com display:contents os botoes viram itens diretos
+   da barra e quebram um a um. */
+body.modo-mobile .toolbar-group { display: contents; }
+body.modo-mobile .tool-label { display: none; }   /* rotulo do grupo perde sentido ao quebrar */

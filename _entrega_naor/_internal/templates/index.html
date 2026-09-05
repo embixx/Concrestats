@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CONCRESTATS · Sistema de Dados</title>
+<link rel="stylesheet" href="/static/css/style.css">
+  <link rel="icon" href="/static/icone.png">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo">
+        <span class="logo-mark"><svg class="logo-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.4" cy="10" r="6.6" stroke="currentColor" stroke-width="2.1"/><rect x="7.2" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><rect x="9.6" y="6.7" width="1.9" height="6.5" rx="0.6" fill="#2f7df0"/><rect x="12.0" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><path d="M15.4 15l4.1 4.1" stroke="#2f7df0" stroke-width="2.5" stroke-linecap="round"/></svg></span>
+        <span class="logo-text">CONCRESTATS</span>
+        <span class="logo-version">alpha</span>
+      </div>
+      <nav class="top-nav">
+        <button class="nav-btn active" data-module="spreadsheet">Planilhas</button>
+        <button class="nav-btn" data-module="receitas">Receitas</button>
+        <button class="nav-btn" data-module="charts">Gráficos</button>
+        <button class="nav-btn" data-module="analise">Análise</button><button class="nav-btn" data-module="painel">Painel</button><button class="nav-btn" data-module="dashboard">Dashboard</button>
+        <button class="nav-btn disabled" data-module="ai" title="Em breve">IA / Otimização</button>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <span class="status-indicator" id="status-dot"></span>
+      <span id="status-text" class="status-text">Pronto</span>
+    </div>
+  </header>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <button class="tool-btn" id="btn-save-file" title="Salvar no arquivo original (Ctrl+S)">
+        <svg viewBox="0 0 16 16"><path d="M2 2h9l3 3v9a1 1 0 01-1 1H2a1 1 0 01-1-1V3a1 1 0 011-1zm7 0v4H4V2m5 8a2 2 0 110 4 2 2 0 010-4z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+        Salvar
+      </button>
+      <button class="tool-btn" id="btn-upload" title="Abrir arquivo (Excel/CSV)">
+        <svg viewBox="0 0 16 16"><path d="M8 1L4 5h3v6h2V5h3L8 1zm-5 11h10v2H3v-2z"/></svg>
+        Abrir
+      </button>
+      <button class="tool-btn" id="btn-recentes" title="Arquivos abertos recentemente">
+        <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+        Recentes
+      </button>
+      <button class="tool-btn" id="btn-copias" title="Voltar o arquivo para uma versão anterior (cópias automáticas feitas antes de cada Salvar)">
+        <svg viewBox="0 0 16 16"><path d="M8 2.5A5.5 5.5 0 102.9 10" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2.2 6.6l.7 3.5 3.4-.9" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 5.2V8l2 1.2" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+        Versões
+      </button>
+      <button class="tool-btn" id="btn-new-sheet" title="Nova planilha">
+        <svg viewBox="0 0 16 16"><path d="M9 1H3a1 1 0 00-1 1v12a1 1 0 001 1h10a1 1 0 001-1V6L9 1zm0 1.5L13.5 6H9V2.5z"/></svg>
+        Nova
+      </button>
+      <button class="tool-btn" id="btn-import-merge" title="Importar e mesclar dados">
+        <svg viewBox="0 0 16 16"><path d="M2 8h5V5l5 3-5 3v-3H2V8zm9-7H5a1 1 0 00-1 1v3h1V3h8v10H5v-2H4v2a1 1 0 001 1h8a1 1 0 001-1V3a1 1 0 00-1-1z"/></svg>
+        Importar
+      </button>
+      <button class="tool-btn" id="btn-add-file" title="Adicionar outro arquivo como novas abas (mantém as planilhas já abertas)">
+        <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+        Adicionar
+      </button>
+      <button class="tool-btn" id="btn-join" title="Traz colunas de outra planilha casando por uma coluna em comum — o PROCV, feito sozinho">⤫ Trazer colunas</button>
+      <button class="tool-btn" id="btn-reload" title="Recarregar do arquivo de origem (atualiza os dados do disco)">⟳ Recarregar</button>
+      <button class="tool-btn" id="btn-databases" title="Compilar uma PASTA inteira de planilhas (Excel/CSV) em um único banco">
+        <svg viewBox="0 0 16 16"><path d="M2 4a1 1 0 011-1h3l1.5 1.5H13a1 1 0 011 1V12a1 1 0 01-1 1H3a1 1 0 01-1-1V4z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+        Databases
+      </button>
+    </div>
+
+    <div class="toolbar-sep"></div>
+
+    <div class="toolbar-group">
+      <button class="tool-btn" id="btn-add-row" title="Adicionar linha">
+        <svg viewBox="0 0 16 16"><path d="M8 3v10m-5-5h10" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        Linha
+      </button>
+      <button class="tool-btn" id="btn-del-row" title="Deletar linha(s) selecionada(s)">
+        <svg viewBox="0 0 16 16"><path d="M3 8h10" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        Linha
+      </button>
+      <button class="tool-btn" id="btn-add-col" title="Adicionar coluna">+ Col</button>
+      <button class="tool-btn" id="btn-del-col" title="Deletar coluna(s) selecionada(s)">- Col</button>
+    </div>
+
+    <div class="toolbar-sep"></div>
+
+    <div class="toolbar-group">
+      <button class="tool-btn" id="btn-filter" title="Gerenciar filtros">
+        <svg viewBox="0 0 16 16"><path d="M1 3h14l-5 5v6l-4-2V8L1 3z"/></svg>
+        Filtros
+      </button>
+      <button class="tool-btn" id="btn-clear-filter" title="Limpar filtros">✕ Filtros</button>
+      <button class="tool-btn" id="btn-cores" title="Pintar células por regra (ex.: MPA 28 abaixo do FCK em vermelho)">
+        <svg viewBox="0 0 16 16"><path d="M8 1.5l4.5 4.5a4.5 4.5 0 11-9 0L8 1.5z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+        Cores
+      </button>
+      <button class="tool-btn" id="btn-congelar" title="Congelar colunas ao rolar para o lado">
+        <svg viewBox="0 0 16 16"><path d="M5.5 2v12M2 2h12v12H2z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+        Congelar
+      </button>
+    </div>
+
+    <div class="toolbar-sep"></div>
+
+    <div class="toolbar-group export-group">
+      <span class="tool-label">Exportar:</span>
+      <button class="tool-btn export-btn" data-fmt="csv">CSV</button>
+      <button class="tool-btn export-btn" data-fmt="xlsx">Excel</button>
+      <button class="tool-btn export-btn" data-fmt="report" title="Abrir relatório técnico">Relatório Técnico</button>
+    </div>
+  </div>
+
+  <!-- SHEET TABS -->
+  <div class="sheet-tabs-container">
+    <div class="sheet-tabs" id="sheet-tabs">
+      <!-- tabs injected here -->
+    </div>
+    <div class="sheet-tabs-actions">
+      <button id="btn-new-sheet-tab" title="Nova planilha">＋</button>
+    </div>
+  </div>
+
+  <!-- FORMULA BAR -->
+  <div class="formula-bar">
+    <span class="cell-ref" id="cell-ref">A1</span>
+    <span class="formula-eq">=</span>
+    <input type="text" id="formula-input" class="formula-input" placeholder="Valor ou fórmula (ex: =SUM(A,B))">
+    <button id="formula-apply" class="formula-apply-btn">↵</button>
+  </div>
+
+  <!-- FILTER PANEL -->
+  <div class="filter-panel" id="filter-panel" style="display:none">
+    <div class="filter-header">
+      <span>Filtros Cumulativos</span>
+      <div class="filter-header-actions">
+        <button id="btn-add-filter-rule">+ Adicionar Regra</button>
+        <button id="btn-apply-filters" class="primary-btn">Aplicar</button>
+        <button id="btn-close-filter">✕</button>
+      </div>
+    </div>
+    <div id="filter-rules"></div>
+  </div>
+
+  <!-- BUSCA (Ctrl+F) -->
+  <div id="find-bar" class="find-bar" style="display:none">
+    <input id="find-input" class="find-input" placeholder="Buscar na planilha… (Enter = próximo)">
+    <span id="find-count" class="find-count">—</span>
+    <button id="find-prev" class="find-btn" title="Anterior (Shift+Enter)">▲</button>
+    <button id="find-next" class="find-btn" title="Próximo (Enter)">▼</button>
+    <button id="find-close" class="find-btn" title="Fechar (Esc)">✕</button>
+  </div>
+
+  <!-- MAIN GRID AREA -->
+  <main class="grid-container">
+    <div id="grid-wrapper">
+      <div id="empty-state" class="empty-state">
+        <div class="empty-icon"><svg class="empty-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.4" cy="10" r="6.6" stroke="currentColor" stroke-width="2.1"/><rect x="7.2" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><rect x="9.6" y="6.7" width="1.9" height="6.5" rx="0.6" fill="#2f7df0"/><rect x="12.0" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><path d="M15.4 15l4.1 4.1" stroke="#2f7df0" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+        <p>Abra um arquivo Excel ou CSV para começar</p>
+        <p class="empty-sub">ou crie uma nova planilha</p>
+        <div class="empty-actions">
+          <button class="primary-btn" id="btn-upload-empty">Abrir Arquivo</button>
+          <button class="secondary-btn" id="btn-new-empty">Nova Planilha</button>
+        </div>
+        <div id="recentes-box" class="recentes-box" style="display:none">
+          <div class="recentes-tit">Abertos recentemente</div>
+          <div id="recentes-lista"></div>
+        </div>
+        <div class="empty-versao" id="empty-versao" hidden
+             title="Clique para copiar. Serve para conferir se voce esta na versao nova."></div>
+      </div>
+      <div id="grid-area" style="display:none">
+        <div id="grid-scroll">
+          <table id="data-table">
+            <thead id="table-head"></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+        <div class="grid-footer">
+          <span id="row-count">0 linhas</span>
+          <span id="filter-count"></span>
+          <span id="selection-info"></span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- CONTEXT MENU -->
+  <div id="context-menu" class="context-menu" style="display:none">
+    <div class="ctx-item" id="ctx-insert-above">Inserir linha acima</div>
+    <div class="ctx-item" id="ctx-insert-below">Inserir linha abaixo</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" id="ctx-delete-row">Deletar linha</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" id="ctx-copy-row">Copiar linha</div>
+    <div class="ctx-item" id="ctx-paste-row">Colar linha</div>
+  </div>
+
+</div>
+
+<!-- MODALS -->
+<div id="modal-overlay" class="modal-overlay" style="display:none">
+  <div id="modal-box" class="modal-box">
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- HIDDEN FILE INPUTS -->
+<input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none">
+<input type="file" id="import-input" accept=".xlsx,.xls,.csv" style="display:none">
+<input type="file" id="folder-input" webkitdirectory directory multiple style="display:none">
+<input type="file" id="concre-input" accept=".concre,.json" style="display:none">
+<input type="file" id="addfile-input" accept=".xlsx,.xls,.csv" style="display:none">
+
+<!-- MÓDULO RECEITAS -->
+<div id="module-receitas">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo">
+        <span class="logo-mark"><svg class="logo-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.4" cy="10" r="6.6" stroke="currentColor" stroke-width="2.1"/><rect x="7.2" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><rect x="9.6" y="6.7" width="1.9" height="6.5" rx="0.6" fill="#2f7df0"/><rect x="12.0" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><path d="M15.4 15l4.1 4.1" stroke="#2f7df0" stroke-width="2.5" stroke-linecap="round"/></svg></span>
+        <span class="logo-text">CONCRESTATS</span>
+        <span class="logo-version">alpha</span>
+      </div>
+      <nav class="top-nav">
+        <button class="nav-btn" data-module="spreadsheet">Planilhas</button>
+        <button class="nav-btn active" data-module="receitas">Receitas</button>
+        <button class="nav-btn" data-module="charts">Gráficos</button>
+        <button class="nav-btn" data-module="analise">Análise</button><button class="nav-btn" data-module="painel">Painel</button><button class="nav-btn" data-module="dashboard">Dashboard</button>
+        <button class="nav-btn disabled" data-module="ai" title="Em breve">IA / Otimização</button>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <span class="status-indicator" id="status-dot"></span>
+      <span id="status-text" class="status-text">Pronto</span>
+    </div>
+  </header>
+
+  <!-- TOOLBAR RECEITAS -->
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <button class="tool-btn" id="rec-btn-nova">
+        <svg viewBox="0 0 16 16"><path d="M8 3v10m-5-5h10" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        Nova Receita
+      </button>
+      <button class="tool-btn" id="rec-btn-importar">
+        <svg viewBox="0 0 16 16"><path d="M2 8h5V5l5 3-5 3v-3H2V8zm9-7H5a1 1 0 00-1 1v3h1V3h8v10H5v-2H4v2a1 1 0 001 1h8a1 1 0 001-1V3a1 1 0 00-1-1z"/></svg>
+        Importar da Planilha
+      </button>
+      <button class="tool-btn" id="rec-btn-salvar" disabled>
+        <svg viewBox="0 0 16 16"><path d="M2 2h9l3 3v9a1 1 0 01-1 1H2a1 1 0 01-1-1V3a1 1 0 011-1zm7 0v4H4V2m5 8a2 2 0 110 4 2 2 0 010-4z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+        Salvar
+      </button>
+    </div>
+    <div class="toolbar-sep"></div>
+    <div class="toolbar-group">
+      <button class="tool-btn danger-btn" id="rec-btn-excluir" disabled>
+        <svg viewBox="0 0 16 16"><path d="M3 4h10M5 4V2h6v2M6 7v5M10 7v5M4 4l1 9h6l1-9" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+        Excluir Receita
+      </button>
+    </div>
+    <div class="toolbar-sep"></div>
+    <div class="toolbar-group" style="margin-left:auto">
+      <input type="text" id="rec-search" class="rec-search-input" placeholder="Buscar receita...">
+    </div>
+  </div>
+
+  <!-- LAYOUT PRINCIPAL -->
+  <div class="rec-layout">
+
+    <!-- LISTA LATERAL -->
+    <aside class="rec-sidebar">
+      <div class="rec-sidebar-header">
+        <span class="rec-sidebar-title">RECEITAS</span>
+        <span class="rec-count" id="rec-count">0</span>
+      </div>
+      <div id="rec-list" class="rec-list">
+        <div class="rec-empty-list">Nenhuma receita cadastrada</div>
+      </div>
+    </aside>
+
+    <!-- FORMULÁRIO -->
+    <main class="rec-form-area" id="rec-form-area">
+      <div class="rec-placeholder" id="rec-placeholder">
+        <div class="empty-icon"><svg class="empty-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.4" cy="10" r="6.6" stroke="currentColor" stroke-width="2.1"/><rect x="7.2" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><rect x="9.6" y="6.7" width="1.9" height="6.5" rx="0.6" fill="#2f7df0"/><rect x="12.0" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><path d="M15.4 15l4.1 4.1" stroke="#2f7df0" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+        <p>Selecione uma receita ou crie uma nova</p>
+      </div>
+
+      <div class="rec-form" id="rec-form" style="display:none">
+
+        <!-- HEADER DO FORM -->
+        <div class="rec-form-header">
+          <div class="rec-form-title-row">
+            <input type="text" id="rec-nome" class="rec-nome-input" placeholder="Nome do Produto">
+            <div class="rec-badges">
+              <select id="rec-status" class="rec-status-select">
+                <option value="ativa">● Ativa</option>
+                <option value="teste">◎ Teste</option>
+                <option value="descontinuada">○ Descontinuada</option>
+              </select>
+            </div>
+          </div>
+          <!-- VERSÕES -->
+          <div class="rec-versoes-bar">
+            <span class="rec-versoes-label">VERSÃO:</span>
+            <div id="rec-versoes-tabs" class="rec-versoes-tabs"></div>
+            <button class="rec-versao-add" id="rec-btn-nova-versao" title="Nova versão">+ Versão</button>
+            <button class="tool-btn rec-btn-duplicar-versao" id="rec-btn-duplicar-versao" title="Duplicar versão atual" disabled>
+              <svg viewBox="0 0 16 16"><path d="M5 4h7a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1zM3 3v9" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+              Duplicar
+            </button>
+            <button class="tool-btn danger-btn rec-btn-excluir-versao" id="rec-btn-excluir-versao" title="Excluir versão atual" disabled>
+              <svg viewBox="0 0 16 16"><path d="M3 4h10M5 4V2h6v2M6 7v5M10 7v5M4 4l1 9h6l1-9" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+              Excluir Versão
+            </button>
+          </div>
+          <div class="rec-form-meta">
+            <span class="rec-meta-item">ID: <strong id="rec-id-display">—</strong></span>
+            <span class="rec-meta-item">Versão criada: <strong id="rec-data-display">—</strong></span>
+            <span class="rec-meta-item">Última edição: <strong id="rec-editada-display">—</strong></span>
+          </div>
+        </div>
+
+        <!-- LISTA ÚNICA DE PROPRIEDADES (padronizado, conforme pedido do Naor) -->
+        <div class="rec-sections">
+
+          <!-- PROPRIEDADES -->
+          <section class="rec-section rec-section-full">
+            <div class="rec-section-title">Propriedades</div>
+            <div id="rec-props-list" class="rec-ingredientes-list"></div>
+            <button class="rec-add-ingrediente" id="rec-add-prop">
+              + Adicionar propriedade
+            </button>
+          </section>
+
+          <!-- OBSERVAÇÕES -->
+          <section class="rec-section rec-section-full">
+            <div class="rec-section-title">Observações</div>
+            <textarea id="rec-obs" class="rec-obs" rows="3" placeholder="Notas, restrições, uso previsto..."></textarea>
+          </section>
+
+        </div><!-- /rec-sections -->
+      </div><!-- /rec-form -->
+    </main>
+
+  </div><!-- /rec-layout -->
+</div><!-- /module-receitas -->
+
+<!-- MÓDULO GRÁFICOS -->
+<div id="module-graficos" style="display:none; flex-direction:column; height:calc(100vh - var(--topbar-h)); overflow:hidden;">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo">
+        <span class="logo-mark"><svg class="logo-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.4" cy="10" r="6.6" stroke="currentColor" stroke-width="2.1"/><rect x="7.2" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><rect x="9.6" y="6.7" width="1.9" height="6.5" rx="0.6" fill="#2f7df0"/><rect x="12.0" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><path d="M15.4 15l4.1 4.1" stroke="#2f7df0" stroke-width="2.5" stroke-linecap="round"/></svg></span>
+        <span class="logo-text">CONCRESTATS</span>
+        <span class="logo-version">alpha</span>
+      </div>
+      <nav class="top-nav">
+        <button class="nav-btn" data-module="spreadsheet">Planilhas</button>
+        <button class="nav-btn" data-module="receitas">Receitas</button>
+        <button class="nav-btn active" data-module="charts">Gráficos</button>
+        <button class="nav-btn" data-module="analise">Análise</button><button class="nav-btn" data-module="painel">Painel</button><button class="nav-btn" data-module="dashboard">Dashboard</button>
+        <button class="nav-btn disabled" data-module="ai" title="Em breve">IA / Otimização</button>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <span class="status-indicator"></span>
+      <span class="status-text">Gráficos</span>
+    </div>
+  </header>
+
+  <!-- TOOLBAR GRÁFICOS -->
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <button class="tool-btn" id="graf-btn-refresh" title="Sincronizar com planilha carregada">
+        <svg viewBox="0 0 16 16"><path d="M13.6 2.4A7 7 0 102 8" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M2 4v4h4" stroke="currentColor" stroke-width="1.3" fill="none"/></svg>
+        Sincronizar
+      </button>
+      <button class="tool-btn" id="graf-btn-versao" title="Separar containers por versão">
+        <svg viewBox="0 0 16 16"><path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" stroke-width="1.3" fill="none"/></svg>
+        Por Versão
+      </button>
+      <button class="tool-btn" id="graf-btn-templates" title="Gerenciar templates de container">
+        <svg viewBox="0 0 16 16"><path d="M2 2h12v3H2zM2 7h12v3H2zM2 12h12v2H2z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+        Templates
+      </button>
+    </div>
+
+    <div class="toolbar-sep"></div>
+
+    <div class="toolbar-group">
+      <label class="tool-label">Receita:</label>
+      <select id="graf-col-receita" class="graf-select-col" title="Coluna que identifica a receita na planilha">
+        <option value="">— coluna —</option>
+      </select>
+      <label class="tool-label" style="margin-left:8px">Versão:</label>
+      <select id="graf-col-versao" class="graf-select-col" title="Coluna de versão (opcional)">
+        <option value="">— nenhuma —</option>
+      </select>
+    </div>
+
+    <div class="toolbar-sep"></div>
+
+    <div class="toolbar-group">
+      <button class="tool-btn" id="graf-btn-filtros" title="Filtros de planilha">
+        <svg viewBox="0 0 16 16"><path d="M1 3h14l-5 5v6l-4-2V8L1 3z"/></svg>
+        Filtros
+      </button>
+    </div>
+
+    <div class="toolbar-sep"></div>
+
+    <div class="toolbar-group" style="margin-left:auto">
+      <input type="text" id="graf-search" class="rec-search-input" placeholder="Buscar receita..." style="width:220px">
+    </div>
+  </div>
+
+  <!-- PAINEL DE FILTROS -->
+  <div id="graf-filtros-panel" style="display:none; background:var(--bg-panel); border-bottom:1px solid var(--border); padding:10px 14px;">
+    <div class="filter-header">
+      <span>Filtros de Planilha</span>
+      <div class="filter-header-actions">
+        <button id="graf-btn-add-filtro">+ Adicionar</button>
+        <button id="graf-btn-aplicar-filtros" class="primary-btn">Aplicar</button>
+        <button id="graf-btn-limpar-filtros">✕ Limpar</button>
+      </div>
+    </div>
+    <div id="graf-filtros-regras"></div>
+  </div>
+
+  <!-- PAINEL DE TEMPLATES -->
+  <div id="graf-templates-panel" style="display:none; background:var(--bg-panel); border-bottom:2px solid var(--accent); padding:12px 18px;">
+    <div class="filter-header" style="margin-bottom:12px">
+      <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;">TEMPLATES DE LAYOUT</span>
+      <button id="graf-btn-fechar-templates" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:14px">✕</button>
+    </div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;">
+      <!-- Coluna esquerda: criar novo template -->
+      <div style="flex:1;min-width:280px;">
+        <p style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Salvar layout como template</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div>
+            <label style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">Receita de origem</label>
+            <select id="graf-tpl-receita-sel" class="graf-select-col" style="width:100%;max-width:100%">
+              <option value="">— selecione —</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">Nome do template</label>
+            <div style="display:flex;gap:6px">
+              <input id="graf-tpl-nome" type="text" class="rec-search-input" placeholder="ex: Padrão FCK 25" style="flex:1">
+              <button id="graf-btn-salvar-template" class="primary-btn">Salvar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Coluna direita: lista de templates salvos -->
+      <div style="flex:2;min-width:280px;">
+        <p style="font-size:11px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Templates salvos</p>
+        <div id="graf-templates-lista" class="graf-tpl-lista"></div>
+        <p style="font-size:11px;color:var(--text-3);margin-top:8px;">Para aplicar um template, clique em <strong>⇓ Template</strong> no header de qualquer receita.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- AVISO SEM PLANILHA -->
+  <div id="graf-aviso-planilha" style="display:none; background:var(--danger-bg); border-bottom:1px solid var(--danger); padding:10px 20px;">
+    <p style="color:var(--danger); font-size:13px;">⚠ Nenhuma planilha carregada. Vá até <strong>Planilhas</strong> e abra um arquivo, depois clique em <strong>Sincronizar</strong>.</p>
+  </div>
+
+  <!-- ÁREA DE CONTAINERS -->
+  <div class="gfilter-bar" style="display:none"></div>
+  <div id="graf-containers-area" class="graf-containers-area">
+    <div class="graf-empty-state">
+      <div class="empty-icon"><svg class="empty-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.4" cy="10" r="6.6" stroke="currentColor" stroke-width="2.1"/><rect x="7.2" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><rect x="9.6" y="6.7" width="1.9" height="6.5" rx="0.6" fill="#2f7df0"/><rect x="12.0" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><path d="M15.4 15l4.1 4.1" stroke="#2f7df0" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+      <p>Carregue uma planilha e clique em Sincronizar</p>
+      <p class="empty-sub">Os containers de receita aparecerão aqui</p>
+    </div>
+  </div>
+
+</div><!-- /module-graficos -->
+
+
+
+<!-- MÓDULO DASHBOARD -->
+<div id="module-dashboard" style="display:none; flex-direction:column; height:calc(100vh - var(--topbar-h)); overflow:hidden;">
+  <header class="topbar">
+    <div class="topbar-left"><div class="logo"><span class="logo-mark"><svg class="logo-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.4" cy="10" r="6.6" stroke="currentColor" stroke-width="2.1"/><rect x="7.2" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><rect x="9.6" y="6.7" width="1.9" height="6.5" rx="0.6" fill="#2f7df0"/><rect x="12.0" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><path d="M15.4 15l4.1 4.1" stroke="#2f7df0" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="logo-text">CONCRESTATS</span><span class="logo-version">dashboard</span></div>
+      <nav class="top-nav">
+        <button class="nav-btn" data-module="spreadsheet">Planilhas</button><button class="nav-btn" data-module="receitas">Receitas</button><button class="nav-btn" data-module="charts">Gráficos</button><button class="nav-btn" data-module="analise">Análise</button><button class="nav-btn" data-module="painel">Painel</button><button class="nav-btn active" data-module="dashboard">Dashboard</button>
+      </nav>
+    </div>
+    <div class="topbar-right"><span class="status-text">Dados consolidados</span></div>
+  </header>
+  <div class="toolbar">
+    <button class="tool-btn" id="dash-refresh">↻ Atualizar</button>
+    <button class="tool-btn" id="dash-reset">Atualizar layout</button>
+    <span class="toolbar-sep"></span><span id="dash-info" class="status-text">Importe uma planilha de rompimentos</span>
+  </div>
+  <div class="gfilter-bar" style="display:none"></div>
+  <div id="dash-body" class="dashboard-body">
+    <div class="graf-empty-state"><div class="empty-icon"><svg class="empty-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.4" cy="10" r="6.6" stroke="currentColor" stroke-width="2.1"/><rect x="7.2" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><rect x="9.6" y="6.7" width="1.9" height="6.5" rx="0.6" fill="#2f7df0"/><rect x="12.0" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><path d="M15.4 15l4.1 4.1" stroke="#2f7df0" stroke-width="2.5" stroke-linecap="round"/></svg></div><p>Importe uma planilha e clique em Atualizar</p></div>
+  </div>
+</div>
+
+<!-- MÓDULO ANÁLISE (BI genérico) -->
+<div id="module-analise" style="display:none; flex-direction:column; height:calc(100vh - var(--topbar-h)); overflow:hidden;">
+  <header class="topbar">
+    <div class="topbar-left"><div class="logo"><span class="logo-mark"><svg class="logo-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.4" cy="10" r="6.6" stroke="currentColor" stroke-width="2.1"/><rect x="7.2" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><rect x="9.6" y="6.7" width="1.9" height="6.5" rx="0.6" fill="#2f7df0"/><rect x="12.0" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><path d="M15.4 15l4.1 4.1" stroke="#2f7df0" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="logo-text">CONCRESTATS</span><span class="logo-version">análise</span></div>
+      <nav class="top-nav">
+        <button class="nav-btn" data-module="spreadsheet">Planilhas</button><button class="nav-btn" data-module="receitas">Receitas</button><button class="nav-btn" data-module="charts">Gráficos</button><button class="nav-btn active" data-module="analise">Análise</button><button class="nav-btn" data-module="painel">Painel</button><button class="nav-btn" data-module="dashboard">Dashboard</button>
+      </nav>
+    </div>
+    <div class="topbar-right"><span class="status-text">Análise de dados</span></div>
+  </header>
+  <div class="toolbar">
+    <button class="tool-btn" id="ana-refresh">↻ Atualizar</button>
+    <button class="tool-btn" id="ana-reload" title="Reler o arquivo de origem do disco e atualizar toda a análise">⟳ Reler arquivo</button>
+    <button class="tool-btn" id="ana-limpar">✕ Limpar filtros</button>
+    <span class="toolbar-sep"></span>
+    <button class="tool-btn" id="ana-save" title="Salvar esta análise (mapeamento, filtros e tabela) como arquivo .concre — envie junto com a planilha para compartilhar">
+      <svg viewBox="0 0 16 16"><path d="M2 2h9l3 3v9a1 1 0 01-1 1H2a1 1 0 01-1-1V3a1 1 0 011-1zm7 0v4H4V2m5 8a2 2 0 110 4 2 2 0 010-4z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+      Salvar análise</button>
+    <button class="tool-btn" id="ana-open" title="Abrir uma análise .concre salva">
+      <svg viewBox="0 0 16 16"><path d="M1.5 4a1 1 0 011-1H6l1.5 1.5H14a1 1 0 011 1V12a1 1 0 01-1 1H2.5a1 1 0 01-1-1V4z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+      Abrir análise</button>
+    <span class="toolbar-sep"></span>
+    <button class="tool-btn" id="ana-img" title="Exportar a análise como imagem PNG">
+      <svg viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="5.2" cy="6" r="1.2" fill="currentColor"/><path d="M2.5 12l3.5-3.5 2.5 2.5 3-3.5 2 2.3" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+      Imagem</button>
+    <button class="tool-btn" id="ana-pdf" title="Imprimir / salvar como PDF">
+      <svg viewBox="0 0 16 16"><path d="M4 6V2h8v4M4 11H2V6h12v5h-2m-8-1h8v5H4v-5z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+      PDF</button>
+    <button class="tool-btn" id="ana-present" title="Modo apresentação: tela cheia, sem barras (Esc para sair)">
+      <svg viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M6 13.5h4M8 11v2.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+      Apresentar</button>
+    <span class="toolbar-sep"></span><span id="ana-info" class="status-text">Funciona com qualquer planilha</span>
+  </div>
+  <div class="gfilter-bar" style="display:none"></div>
+  <div id="ana-body" class="dashboard-body">
+    <div class="graf-empty-state"><div class="empty-icon"><svg class="empty-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.4" cy="10" r="6.6" stroke="currentColor" stroke-width="2.1"/><rect x="7.2" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><rect x="9.6" y="6.7" width="1.9" height="6.5" rx="0.6" fill="#2f7df0"/><rect x="12.0" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><path d="M15.4 15l4.1 4.1" stroke="#2f7df0" stroke-width="2.5" stroke-linecap="round"/></svg></div><p>Abra uma planilha para analisar</p></div>
+  </div>
+</div>
+
+<!-- MÓDULO PAINEL (canvas livre) -->
+<div id="module-painel" style="display:none; flex-direction:column; height:calc(100vh - var(--topbar-h)); overflow:hidden;">
+  <header class="topbar">
+    <div class="topbar-left"><div class="logo"><span class="logo-mark"><svg class="logo-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.4" cy="10" r="6.6" stroke="currentColor" stroke-width="2.1"/><rect x="7.2" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><rect x="9.6" y="6.7" width="1.9" height="6.5" rx="0.6" fill="#2f7df0"/><rect x="12.0" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><path d="M15.4 15l4.1 4.1" stroke="#2f7df0" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="logo-text">CONCRESTATS</span><span class="logo-version">painel</span></div>
+      <nav class="top-nav">
+        <button class="nav-btn" data-module="spreadsheet">Planilhas</button><button class="nav-btn" data-module="receitas">Receitas</button><button class="nav-btn" data-module="charts">Gráficos</button><button class="nav-btn" data-module="analise">Análise</button><button class="nav-btn active" data-module="painel">Painel</button><button class="nav-btn" data-module="dashboard">Dashboard</button>
+      </nav>
+    </div>
+    <div class="topbar-right"><span class="status-text">Painel livre</span></div>
+  </header>
+  <div class="toolbar">
+    <button class="tool-btn" id="pan-refresh">↻ Atualizar</button>
+    <button class="tool-btn" id="pan-auto" title="Monta um painel completo automaticamente a partir das colunas detectadas">✦ Painel automático</button>
+    <button class="tool-btn" id="pan-present" title="Modo apresentação (Esc para sair)">
+      <svg viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M6 13.5h4M8 11v2.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+      Apresentar</button>
+    <span class="toolbar-sep"></span><span id="pan-info" class="status-text">Clique com o botão direito no fundo para adicionar widgets</span>
+  </div>
+  <div class="gfilter-bar" style="display:none"></div>
+  <div id="pan-body" class="dashboard-body"></div>
+</div>
+
+<!-- MÓDULO RELATÓRIO -->
+<div id="module-relatorio" style="display:none; flex-direction:column; height:calc(100vh - var(--topbar-h)); overflow:hidden;">
+  <header class="topbar">
+    <div class="topbar-left"><div class="logo"><span class="logo-mark"><svg class="logo-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.4" cy="10" r="6.6" stroke="currentColor" stroke-width="2.1"/><rect x="7.2" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><rect x="9.6" y="6.7" width="1.9" height="6.5" rx="0.6" fill="#2f7df0"/><rect x="12.0" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><path d="M15.4 15l4.1 4.1" stroke="#2f7df0" stroke-width="2.5" stroke-linecap="round"/></svg></span><span class="logo-text">CONCRESTATS</span><span class="logo-version">relatório</span></div>
+      <nav class="top-nav">
+        <button class="nav-btn" data-module="spreadsheet">Planilhas</button><button class="nav-btn" data-module="receitas">Receitas</button><button class="nav-btn" data-module="charts">Gráficos</button><button class="nav-btn" data-module="analise">Análise</button><button class="nav-btn" data-module="painel">Painel</button><button class="nav-btn" data-module="dashboard">Dashboard</button>
+      </nav>
+    </div>
+    <div class="topbar-right"><span class="status-text">Relatório técnico</span></div>
+  </header>
+  <div class="toolbar">
+    <button class="tool-btn" id="rep-refresh">↻ Atualizar</button>
+    <button class="tool-btn" id="rep-cols">Selecionar colunas</button>
+    <button class="tool-btn" id="rep-fixos" title="Programar campos fixos (e-mail, CNPJ, endereço, responsável...)">Campos fixos</button>
+    <button class="tool-btn" id="rep-export-html">Exportar HTML</button>
+    <button class="tool-btn" id="rep-export-xlsx">Exportar Excel</button>
+    <input id="rep-filter" class="rec-search-input" placeholder="Filtrar cliente, produto, receita, NF ou CP..." style="width:330px;margin-left:auto">
+  </div>
+  <div class="gfilter-bar" style="display:none"></div>
+  <div id="rep-body" class="report-body">
+    <div class="graf-empty-state"><div class="empty-icon"><svg class="empty-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.4" cy="10" r="6.6" stroke="currentColor" stroke-width="2.1"/><rect x="7.2" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><rect x="9.6" y="6.7" width="1.9" height="6.5" rx="0.6" fill="#2f7df0"/><rect x="12.0" y="9.6" width="1.9" height="3.6" rx="0.6" fill="currentColor" opacity=".72"/><path d="M15.4 15l4.1 4.1" stroke="#2f7df0" stroke-width="2.5" stroke-linecap="round"/></svg></div><p>Importe uma planilha para gerar relatório</p></div>
+  </div>
+</div>
+
+<script src="/static/js/xlsx.full.min.js"></script>
+<script src="/static/js/app.js"></script>
+<script src="/static/js/receitas.js"></script>
+<script src="/static/js/chart-lite.js"></script>
+<script src="/static/js/graficos.js"></script>
+<script src="/static/js/dashboard.js"></script>
+<script src="/static/js/analise.js"></script>
+<script src="/static/js/painel.js"></script>
+<script src="/static/js/relatorio.js"></script>
+<script src="/static/js/alertas.js"></script>
+<script src="/static/js/licenca.js"></script>
+    <script src="/static/js/carimbo-versao.js"></script>
+    <script src="/static/js/edicao.js"></script>
+<script>
+// O Modo Teste e' ferramenta de desenvolvimento e NAO vai no app entregue.
+// Para usar aqui: definir CONCRE_DEV=1 antes de abrir o programa.
+fetch('/api/ambiente').then(r => r.json()).then(a => {
+  if (!a || !a.dev) return;
+  var s = document.createElement('script');
+  s.src = '/static/js/testes.js';
+  document.body.appendChild(s);
+}).catch(function () {});
+</script>
+</body>
+</html>

@@ -21,7 +21,26 @@ não for o esperado, ela falha e não entrega a pasta.
 
 O build normal (`source/dist`) não é tocado: sai numa pasta própria.
 
-## Como está hoje (04/09/2026)
+## Como está entregue hoje (04/09/2026)
+
+Duas pastas prontas, cada uma com a edição **compilada dentro**. A pessoa
+baixa, extrai e abre — não há arquivo para colocar, canal para escolher nem
+código para mandar de volta.
+
+```
+python tools/build_edicao.py completa --saida _entrega_naor
+python tools/build_edicao.py usinop
+
+python tools/publicar_entrega.py _entrega_naor   --cartao "BAIXAR — versao completa (a sua)"
+python tools/publicar_entrega.py _entrega_usinop --cartao "BAIXAR — versao da Usinop (sem o PAINEL)"
+```
+
+`completa.json` (`ocultar: []`) existe por um motivo que não é óbvio: o
+manifesto do canal estável manda esconder o Painel de **todas** as cópias, e
+a edição compilada vence a que vem pela rede. Sem ela, a cópia do Naor
+perderia o Painel junto com a do cliente.
+
+## O maquinário por trás (não precisa dele para entregar)
 
 O canal **estável esconde o PAINEL de todas as cópias** (`--edicao-para "*"`),
 e o canal **teste não esconde nada**.
