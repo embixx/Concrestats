@@ -30,7 +30,10 @@ import zipfile
 
 import assinatura
 
-PASTAS_PERMITIDAS = ("static/", "templates/")
+# codigo/ entra aqui: e' o que permite corrigir o PROGRAMA, e nao so' as
+# telas, sem a pessoa ter que baixar nada. Ver principal.py, que carrega de la'
+# e sabe voltar para o embutido se o que chegou nao abrir.
+PASTAS_PERMITIDAS = ("static/", "templates/", "codigo/")
 TAMANHO_MAXIMO = 40 * 1024 * 1024        # 40 MB: pacote de tela não passa disso
 
 

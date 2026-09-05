@@ -1,13 +1,14 @@
 {
-  "versao": "04/09/2026 20:25",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-04-09-2026_20-25-teste.zip",
-  "sha256": "74d442486ee976acda651966faf4235deaf489bc2aa5d37c82b8e1f4a32c0d62",
-  "assinatura": "k97FAfB3OEX5PIM3gSlP0BM4zpsAnUNRuEBypf2T3E4Lc4eueWqe+HxWoXqwAkNBu329hjt+H4WCYbGtXjsXBg==",
+  "versao": "04/09/2026 21:07",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-04-09-2026_21-07-teste.zip",
+  "sha256": "504662c829d59b4674d6d29ce303ab7950f934eae2aace57b2b5161eae8c8c74",
+  "assinatura": "xAMwkoNigvFUGkprk/5WqpNHOFWEvGspkWmV1fYOcWmV+PopBSc8/ZaS8vMifCKTw9biQuxKMMLVgjSh6qzpAg==",
   "novidades": [
-    "Avisa sozinho quando sai versao nova: nao precisa mais ir procurar",
+    "A partir desta versao o programa se corrige sozinho por inteiro: antes so as telas chegavam pela atualizacao, agora o programa todo",
+    "Avisa sozinho quando sai versao nova",
     "PAINEL faz o que ANALISE e DASHBOARD fazem, e clicar num grafico filtra o painel inteiro",
-    "Ruptura impossivel (3.554 MPa) nao entra mais na conta: desvio padrao de 55,29 para 13,01 MPa e coeficiente de variacao de 142% para 34,3%",
-    "Este canal MANTEM a aba PAINEL, para voce decidir o que fazer com ela"
+    "Ruptura impossivel (3.554 MPa) nao entra mais na conta: desvio padrao de 55,29 para 13,01 MPa",
+    "Este canal MANTEM a aba PAINEL"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "teste"

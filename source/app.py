@@ -1675,6 +1675,18 @@ if __name__ == "__main__":
     MODO_WEB = False
     # Flask sobe numa thread em segundo plano.
     threading.Thread(target=_run_server, daemon=True).start()
+
+    # Sem janela: serve para conferir uma versão sem uma tela abrir na cara de
+    # quem está usando o computador. É o que permite testar de verdade que o
+    # programa SOBE pelo código atualizado — e não só que os arquivos chegaram.
+    if os.environ.get("CONCRE_NO_WINDOW") == "1":
+        print("Concrestats no ar em http://127.0.0.1:5000 (sem janela)")
+        try:
+            while True:
+                time.sleep(3600)
+        except KeyboardInterrupt:
+            raise SystemExit(0)
+
     # App NATIVO do Windows: abre numa JANELA PRÓPRIA (WebView2), como Spotify —
     # nada de navegador. Se o pywebview não estiver presente, cai pro navegador.
     try:

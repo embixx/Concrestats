@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.join(RAIZ, "source"))
 import assinatura  # noqa: E402
 
 DIST = os.path.join(RAIZ, "source", "dist", "Concrestats", "_internal")
+FONTE_PY = os.path.join(RAIZ, "source")
 SAIDA = os.path.join(RAIZ, "atualizacao")
 USUARIO_GITHUB = "embixx"
 REPO_GITHUB = "Concrestats"
@@ -207,6 +208,20 @@ def empacotar(versao, novidades=None, canal="estavel"):
                 inteiro = os.path.join(raiz, a)
                 dentro = os.path.relpath(inteiro, DIST).replace(os.sep, "/")
                 itens.append((dentro, inteiro))
+
+    # O backend vai junto, em codigo/. Sem isto, corrigir qualquer coisa fora
+    # das telas obrigava a pessoa a baixar o programa inteiro de novo, a mao,
+    # por um anexo - e uma correcao publicada nao chegava a ninguem ate' alguem
+    # lembrar de avisar.
+    #
+    # principal.py fica de fora de proposito: e' ele que carrega esta pasta e
+    # que sabe voltar para o embutido quando o que chegou nao abre. Se pudesse
+    # ser substituido, um pacote ruim levaria junto a recuperacao.
+    for a in sorted(os.listdir(FONTE_PY)):
+        if not a.endswith(".py") or a in ("principal.py", "verify_backend.py"):
+            continue
+        itens.append(("codigo/" + a, os.path.join(FONTE_PY, a)))
+
     itens.sort()
 
     with zipfile.ZipFile(caminho, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:

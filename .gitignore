@@ -82,3 +82,7 @@ _entrega_usinop/
 
 # Intermediarios da compilacao por edicao (tools/build_edicao.py)
 source/build_edicao/
+
+# Codigo atualizavel em tempo de execucao (chega pelo pacote de atualizacao)
+source/codigo/
+source/codigo.quebrado/

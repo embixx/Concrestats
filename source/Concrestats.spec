@@ -6,9 +6,13 @@
 from PyInstaller.utils.hooks import (collect_submodules, collect_data_files,
                                      collect_dynamic_libs)
 
+# O backend vai embutido como reserva: o programa roda pela pasta codigo/,
+# que a atualizacao substitui, e volta para estes modulos se ela nao abrir.
+BACKEND = ['app', 'assinatura', 'atualizador', 'licenca', 'pagamento']
+
 hidden = (collect_submodules('openpyxl') + ['numpy', 'pandas', 'pandas._libs.tslibs.timedeltas']
           + collect_submodules('webview') + ['clr', 'webview.platforms.winforms']
-          + collect_submodules('qrcode'))
+          + collect_submodules('qrcode') + BACKEND)
 
 # pywebview (WebView2/WinForms) + pythonnet trazem DLLs/dados que o
 # collect_submodules NÃO pega — coletadas explicitamente p/ o app nativo funcionar.
@@ -28,7 +32,7 @@ import os as _os
 _edicao = [('edicao_embutida.json', '.')] if _os.path.exists('edicao_embutida.json') else []
 
 a = Analysis(
-    ['app.py'],
+    ['principal.py'],
     pathex=[],
     binaries=extra_bins,
     datas=[
