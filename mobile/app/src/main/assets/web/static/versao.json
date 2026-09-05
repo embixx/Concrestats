@@ -1,7 +1,11 @@
 {
-  "versao": "04/09/2026 11:56",
+  "versao": "04/09/2026 21:07",
   "novidades": [
-    "Edicao por cliente: da para entregar o app sem certas abas",
-    "Linha sem valor aparece como '(em branco)', nao como um traco"
+    "ESTE E O ULTIMO DOWNLOAD MANUAL. Dagora em diante o programa se corrige sozinho por inteiro - antes so as telas chegavam pela atualizacao, o resto exigia baixar tudo de novo",
+    "Avisa sozinho quando sai versao nova: aparece um aviso ao abrir, com um botao que ja leva para atualizar",
+    "Esta versao abre sem a aba PAINEL, como voce pediu para a Usinop. Vale para todas as copias",
+    "Para voce continuar mexendo no PAINEL: use o Canal_Teste.bat que mando junto",
+    "PAINEL faz o que ANALISE e DASHBOARD fazem: monta sozinho o painel do laboratorio e clicar num grafico filtra o painel inteiro",
+    "Ruptura impossivel (3.554 MPa) nao entra mais na conta: desvio padrao de 55,29 para 13,01 MPa e coeficiente de variacao de 142% para 34,3%"
   ]
 }

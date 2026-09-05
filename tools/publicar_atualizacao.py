@@ -114,6 +114,33 @@ def _auditar_envio(raiz):
     return achados
 
 
+def _auditar_pacote(caminho_zip):
+    """Le' o conteudo DO PACOTE, que e' o que chega na maquina das pessoas.
+
+    A auditoria de cima olha os arquivos do git. Nao servia para isto por dois
+    motivos: ela so' roda no caminho --enviar, que esta' desligado, e nunca
+    olhou DENTRO do zip. Enquanto o pacote levava so' telas isso era pouco;
+    agora ele leva os .py que vao rodar la'.
+    """
+    achados = []
+    with zipfile.ZipFile(caminho_zip) as z:
+        for nome in z.namelist():
+            if nome.endswith("/"):
+                continue
+            info = z.getinfo(nome)
+            if info.file_size > 4 * 1024 * 1024:
+                continue
+            try:
+                bruto = z.read(nome).decode("utf-8", "ignore")
+            except Exception:  # noqa: BLE001
+                continue
+            for padrao, oque in PADROES:
+                if padrao.search(bruto):
+                    achados.append("%s dentro de %s" % (oque, nome))
+                    break
+    return achados
+
+
 def enviar(raiz, versao, canal):
     """Registra e publica o pacote. Devolve (ok, mensagem)."""
     import subprocess
@@ -366,6 +393,18 @@ def main():
         return 1
 
     caminho, nome_zip, quantos = empacotar(a.versao, a.novidades, a.canal)
+
+    # Antes de assinar. Assinar e' o que transforma um arquivo qualquer em algo
+    # que a maquina das pessoas aceita e executa - se ha' segredo la' dentro,
+    # a assinatura so' garante que o vazamento e' autentico.
+    achados = _auditar_pacote(caminho)
+    if achados:
+        print("PAREI. Ha' coisa que nao pode sair no pacote:")
+        for x in achados:
+            print("   " + x)
+        os.remove(caminho)
+        return 1
+
     with open(caminho, "rb") as fh:
         dados = fh.read()
     sha = hashlib.sha256(dados).hexdigest()

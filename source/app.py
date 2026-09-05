@@ -1577,7 +1577,11 @@ def api_atualizar():
     if erro:
         return jsonify({"success": False, "error": f"endereço do pacote recusado: {erro}"}), 400
     try:
-        pacote = atualizador.baixar(arquivo)
+        # A validacao vai junto: ela precisa ser refeita a cada
+        # redirecionamento, senao conferir so' o primeiro endereco nao vale
+        # nada — ele redireciona para onde quiser depois de passar.
+        pacote = atualizador.baixar(
+            arquivo, conferir_endereco=_url_de_atualizacao_segura)
     except Exception as e:  # noqa: BLE001
         return jsonify({"success": False, "error": f"falhou ao baixar ({e})"}), 502
 
@@ -1613,6 +1617,24 @@ def api_prefs():
     body = request.get_json(force=True, silent=True)
     if not isinstance(body, dict):
         return jsonify({"success": False, "error": "esperado objeto JSON"}), 400
+
+    # Estas chaves são do SERVIDOR e não da tela. No app de mesa a gravação
+    # caía direto na raiz das preferências, sem filtro nenhum: qualquer coisa
+    # capaz de fazer um POST em 127.0.0.1 podia mandar
+    # {"__url_atualizacao": "..."} e passar a decidir de onde vêm as
+    # atualizações — ou zerar o período de teste, ou esconder abas.
+    #
+    # Não é buraco de execução: o pacote continua conferido pela assinatura, e
+    # sem a chave privada ninguém instala nada. Mas o endereço de onde o
+    # programa se atualiza não é assunto de página nenhuma.
+    reservadas = [k for k in body if k in (
+        "__url_atualizacao", "__canal_atualizacao", "__edicao_remota",
+        "__instalacao", "__relogio", "__teste_desde", "__users__")]
+    if reservadas:
+        return jsonify({"success": False,
+                        "error": "estas preferências são do programa, não da tela: "
+                                 + ", ".join(sorted(reservadas))}), 403
+
     try:
         # Mescla com o que já existe (cada módulo grava só as suas chaves).
         cur = {}

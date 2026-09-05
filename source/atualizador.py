@@ -153,9 +153,30 @@ def conferir_pacote(bytes_do_zip, manifesto, chave_publica):
     return None
 
 
+# Quanto o pacote pode ocupar depois de aberto. O zip e' assinado, entao um
+# pacote gigante so' sai daqui — mas um erro meu enchendo o disco de quem usa
+# e' tao ruim quanto um ataque, e o limite custa uma linha.
+DESCOMPACTADO_MAXIMO = 200 * 1024 * 1024
+
+
+# As pastas que o pacote pode trocar sao as mesmas que precisam de copia de
+# seguranca. Manter as duas listas separadas foi o que deixou codigo/ sem
+# protecao quando ele entrou: a atualizacao podia falhar no meio e a pasta
+# ficava com metade dos .py novos e metade velhos.
+PASTAS_TROCADAS = tuple(p.rstrip("/") for p in PASTAS_PERMITIDAS)
+
+
 def aplicar(bytes_do_zip, pasta_do_app):
-    """Troca static/ e templates/ pelo conteúdo do pacote. Devolve (ok, mensagem)."""
+    """Troca as pastas do pacote pelo conteúdo dele. Devolve (ok, mensagem)."""
     backup = os.path.join(pasta_do_app, "_antes_da_atualizacao")
+
+    def restaurar():
+        for pasta in PASTAS_TROCADAS:
+            guardado = os.path.join(backup, pasta)
+            if os.path.isdir(guardado):
+                shutil.rmtree(os.path.join(pasta_do_app, pasta), ignore_errors=True)
+                shutil.copytree(guardado, os.path.join(pasta_do_app, pasta))
+
     try:
         with zipfile.ZipFile(io.BytesIO(bytes_do_zip)) as z:
             itens = [n for n in z.namelist() if not n.endswith("/")]
@@ -164,40 +185,73 @@ def aplicar(bytes_do_zip, pasta_do_app):
             fora = [n for n in itens if not _seguro(n)]
             if fora:
                 return False, f"pacote tenta escrever fora do lugar ({fora[0]})"
+            total = sum(z.getinfo(n).file_size for n in itens)
+            if total > DESCOMPACTADO_MAXIMO:
+                return False, "pacote grande demais depois de aberto"
 
             # guarda o que existe hoje
             shutil.rmtree(backup, ignore_errors=True)
             os.makedirs(backup, exist_ok=True)
-            for pasta in ("static", "templates"):
+            for pasta in PASTAS_TROCADAS:
                 origem = os.path.join(pasta_do_app, pasta)
                 if os.path.isdir(origem):
                     shutil.copytree(origem, os.path.join(backup, pasta))
 
             try:
+                # codigo/ e' apagado antes de receber o novo. Sem isso, um
+                # modulo removido numa versao continuaria em disco e o import
+                # acharia ele — codigo que eu apaguei voltando a rodar.
+                if any(n.startswith("codigo/") for n in itens):
+                    shutil.rmtree(os.path.join(pasta_do_app, "codigo"), ignore_errors=True)
                 for nome in itens:
                     destino = os.path.join(pasta_do_app, nome.replace("/", os.sep))
                     os.makedirs(os.path.dirname(destino), exist_ok=True)
                     with z.open(nome) as entrada, open(destino, "wb") as saida:
                         shutil.copyfileobj(entrada, saida, 1024 * 64)
             except Exception as e:  # noqa: BLE001 -- desfaz e devolve o motivo
-                for pasta in ("static", "templates"):
-                    guardado = os.path.join(backup, pasta)
-                    if os.path.isdir(guardado):
-                        shutil.rmtree(os.path.join(pasta_do_app, pasta), ignore_errors=True)
-                        shutil.copytree(guardado, os.path.join(pasta_do_app, pasta))
+                restaurar()
                 return False, f"falhou no meio e voltei ao estado anterior ({e})"
+
+        # A copia de seguranca FICA, de proposito. Ela e' a unica volta atras
+        # possivel quando a versao nova abre mas esta' ruim — a quarentena do
+        # principal.py so' pega o que nao abre. Custa alguns megabytes e a
+        # proxima atualizacao substitui.
         return True, f"{len(itens)} arquivo(s) atualizados"
     except zipfile.BadZipFile:
         return False, "o arquivo baixado está corrompido"
     except OSError as e:
+        # NAO restaura aqui. Este ramo pega falhas de ANTES da gravacao começar
+        # — inclusive ao montar a propria copia de seguranca. Restaurar de uma
+        # copia pela metade seria copiar o incompleto por cima do que ainda
+        # está inteiro. Quem escreve é o bloco de dentro, e é lá que se desfaz.
         return False, f"não consegui gravar ({e})"
 
 
-def baixar(url, limite=TAMANHO_MAXIMO, tempo=30):
-    """Baixa o pacote. Quem chama já validou o endereço."""
+def baixar(url, limite=TAMANHO_MAXIMO, tempo=30, conferir_endereco=None):
+    """Baixa o pacote.
+
+    `conferir_endereco` e' a mesma validacao que quem chama fez no endereco
+    inicial, e ela e' refeita a CADA redirecionamento. Sem isso a validacao era
+    contornavel: o endereco de fora passava na conferencia e mandava o programa
+    para um endereco interno da rede logo em seguida.
+    """
     import urllib.request
+
+    if conferir_endereco:
+        erro = conferir_endereco(url)
+        if erro:
+            raise ValueError(erro)
+
+    class SoEnderecosConferidos(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            erro = conferir_endereco(newurl) if conferir_endereco else None
+            if erro:
+                raise ValueError(f"redirecionamento recusado: {erro}")
+            return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+    abridor = urllib.request.build_opener(SoEnderecosConferidos)
     pedido = urllib.request.Request(url, headers={"User-Agent": "Concrestats"})
-    with urllib.request.urlopen(pedido, timeout=tempo) as r:
+    with abridor.open(pedido, timeout=tempo) as r:
         dados = r.read(limite + 1)
     if len(dados) > limite:
         raise ValueError("pacote grande demais")

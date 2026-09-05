@@ -33,6 +33,51 @@ def _python():
     return venv if os.path.isfile(venv) else sys.executable
 
 
+# O que NAO pode viajar junto com a entrega.
+#
+# Nao e' zelo: rodar o exe uma vez para conferir ja' escreve prefs.json ao lado
+# dele, e foi assim que a entrega da Usinop saiu com "__teste_desde" da MINHA
+# maquina. Sao 15 dias de teste comecando na data em que eu compilei, e nao na
+# que o cliente instalar. Se demorasse duas semanas para chegar la', o cliente
+# abriria o programa pela primeira vez ja' sem poder salvar nem exportar - e o
+# que ele veria e' um produto quebrado.
+#
+# Junto vinham o codigo da instalacao (que deveria nascer na maquina dele) e a
+# edicao aprendida aqui.
+PASTAS_QUE_NAO_VAO = ("webview_data", "copias", "codigo", "codigo.quebrado",
+                      "_antes_da_atualizacao")
+ARQUIVOS_QUE_NAO_VAO = ("prefs.json", "edicao.json", "canal.txt",
+                        "licenca.key", "recebedor.json")
+PASTAS_QUE_VAO_VAZIAS = ("uploads", "exports")
+
+
+def limpar_entrega(pasta):
+    """Tira da entrega tudo que e' estado desta maquina. Devolve o que tirou."""
+    tirados = []
+    for nome in PASTAS_QUE_NAO_VAO:
+        alvo = os.path.join(pasta, nome)
+        if os.path.isdir(alvo):
+            shutil.rmtree(alvo, ignore_errors=True)
+            tirados.append(nome + "/")
+    for nome in ARQUIVOS_QUE_NAO_VAO:
+        alvo = os.path.join(pasta, nome)
+        if os.path.exists(alvo):
+            os.remove(alvo)
+            tirados.append(nome)
+    for nome in PASTAS_QUE_VAO_VAZIAS:
+        alvo = os.path.join(pasta, nome)
+        if not os.path.isdir(alvo):
+            continue
+        for a in os.listdir(alvo):
+            caminho = os.path.join(alvo, a)
+            if os.path.isdir(caminho):
+                shutil.rmtree(caminho, ignore_errors=True)
+            else:
+                os.remove(caminho)
+            tirados.append(nome + "/" + a)
+    return tirados
+
+
 def conferir(pasta, esperado):
     """Abre a edicao pela MESMA funcao que o programa usa.
 
@@ -125,15 +170,7 @@ def main():
     if os.path.exists(saida):
         shutil.rmtree(saida)
     shutil.move(pronto, saida)
-    for lixo in ("webview_data", "copias"):
-        alvo = os.path.join(saida, lixo)
-        if os.path.isdir(alvo):
-            shutil.rmtree(alvo)
-    # Um edicao.json solto aqui venceria a embutida e daria a impressao de que
-    # ela nao funciona. A entrega tem de provar o caminho embutido.
-    solto = os.path.join(saida, "edicao.json")
-    if os.path.exists(solto):
-        os.remove(solto)
+    limpar_entrega(saida)
 
     n = sum(len(f) for _, _, f in os.walk(saida))
     mb = sum(os.path.getsize(os.path.join(r, f))

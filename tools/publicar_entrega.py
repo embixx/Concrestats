@@ -24,6 +24,7 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, AQUI)
 
+from build_edicao import limpar_entrega  # noqa: E402
 from publicar_build import (achar_rar, chamar, credenciais,  # noqa: E402
                             enviar_anexo)
 
@@ -59,6 +60,14 @@ def main():
         sys.exit("Nao achei a pasta " + pasta)
     if not os.path.isfile(os.path.join(pasta, "Concrestats.exe")):
         sys.exit("Isso nao parece uma entrega: nao ha' Concrestats.exe em " + pasta)
+
+    # Ultima parada antes de sair da maquina. Conferir o exe uma vez ja' cria
+    # prefs.json ao lado dele, com o codigo da instalacao e a data de inicio do
+    # periodo de teste - foi assim que a entrega da Usinop saiu com 15 dias
+    # correndo desde a data em que eu compilei.
+    tirados = limpar_entrega(pasta)
+    if tirados:
+        print("Tirei o que era desta maquina: " + ", ".join(tirados))
 
     rar = achar_rar()
     if not rar:

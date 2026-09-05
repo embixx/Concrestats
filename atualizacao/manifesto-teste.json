@@ -1,13 +1,13 @@
 {
-  "versao": "04/09/2026 21:07",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-04-09-2026_21-07-teste.zip",
-  "sha256": "504662c829d59b4674d6d29ce303ab7950f934eae2aace57b2b5161eae8c8c74",
-  "assinatura": "xAMwkoNigvFUGkprk/5WqpNHOFWEvGspkWmV1fYOcWmV+PopBSc8/ZaS8vMifCKTw9biQuxKMMLVgjSh6qzpAg==",
+  "versao": "05/09/2026 00:33",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-09-2026_00-33-teste.zip",
+  "sha256": "0721d9b4fbde750a0173b4117fd7e12b56a6fdfdcc5955166bfd4ad14917317c",
+  "assinatura": "FVN5EIXqKV56AyYWIWGu/pnFAx+Hk+Qj2yAU412rC40QlZpB6vlkdVQcAj3k1H8A4Q+rszj92TF8EDWbDwZFBA==",
   "novidades": [
-    "A partir desta versao o programa se corrige sozinho por inteiro: antes so as telas chegavam pela atualizacao, agora o programa todo",
-    "Avisa sozinho quando sai versao nova",
-    "PAINEL faz o que ANALISE e DASHBOARD fazem, e clicar num grafico filtra o painel inteiro",
-    "Ruptura impossivel (3.554 MPa) nao entra mais na conta: desvio padrao de 55,29 para 13,01 MPa",
+    "Correcoes de seguranca: as preferencias do programa (de onde vem a atualizacao, periodo de teste, codigo da instalacao) nao sao mais gravaveis pela tela",
+    "A atualizacao agora protege tambem o codigo do programa: se falhar no meio, volta ao estado anterior inteiro em vez de deixar metade novo e metade velho",
+    "Redirecionamento no download passa pela mesma conferencia de endereco do original",
+    "Pacote de atualizacao e' auditado por dentro antes de ser assinado",
     "Este canal MANTEM a aba PAINEL"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
