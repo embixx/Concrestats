@@ -34,15 +34,14 @@ def rodar():
     EU, OUTRO = "aaa111bbb2", "zzz999yyy8"
     USINOP = {"nome": "Usinop", "ocultar": ["painel"]}
 
-    # ── compatibilidade: manifesto sem edicao assina igual ao de antes
+    # ── o corpo do PACOTE nao pode mudar nunca: quem confere e' a copia
+    # instalada, que e' antiga por definicao.
     antes = json.dumps({"versao": "1", "sha256": "ab"},
                        sort_keys=True, separators=(",", ":")).encode("utf-8")
-    conf("Manifesto sem edicao assina como sempre assinou",
+    conf("Corpo do pacote e' o mesmo de sempre",
          atualizador.corpo_assinado("1", "ab") == antes)
-    conf("Edicao vazia nao muda a assinatura",
-         atualizador.corpo_assinado("1", "ab", None, {}) == antes)
-    conf("Edicao presente MUDA a assinatura",
-         atualizador.corpo_assinado("1", "ab", None, {EU: USINOP}) != antes)
+    conf("Edicoes tem corpo PROPRIO, separado do pacote",
+         atualizador.corpo_das_edicoes("1", "ab", {EU: USINOP}) != antes)
 
     # ── assinatura de verdade, com um par de chaves de teste
     semente = b"\x11" * 32
@@ -50,10 +49,13 @@ def rodar():
 
     def manifesto(edicoes, adulterar=None):
         m = {"versao": "04/09/2026 15:11", "sha256": "cafe"}
-        corpo = atualizador.corpo_assinado(m["versao"], m["sha256"], None, edicoes)
+        corpo = atualizador.corpo_assinado(m["versao"], m["sha256"], None)
         m["assinatura"] = base64.b64encode(assinatura.assinar(corpo, semente)).decode()
         if edicoes:
             m["edicoes"] = edicoes
+            m["assinatura_edicoes"] = base64.b64encode(assinatura.assinar(
+                atualizador.corpo_das_edicoes(m["versao"], m["sha256"], edicoes),
+                semente)).decode()
         if adulterar:
             m["edicoes"] = adulterar          # trocado DEPOIS de assinar
         return m
@@ -74,6 +76,32 @@ def rodar():
     conf("Chave de tamanho errado nao passa como valida",
          atualizador.conferir_manifesto(bom, b"curta") is not None)
 
+    # O PACOTE tambem precisa aceitar um manifesto com edicoes. As duas
+    # conferencias montam o mesmo corpo; esquecer as edicoes numa delas faz o
+    # pacote ser recusado como se fosse forjado - a atualizacao para para todo
+    # mundo, com uma mensagem que faz pensar em invasao, nao em erro nosso.
+    # Aconteceu de verdade em 04/09/2026, pego antes de publicar.
+    import hashlib
+    pacote = b"conteudo do pacote"
+    sha_pacote = hashlib.sha256(pacote).hexdigest()
+    m = {"versao": "04/09/2026 20:09", "sha256": sha_pacote}
+    m["assinatura"] = base64.b64encode(assinatura.assinar(
+        atualizador.corpo_assinado(m["versao"], m["sha256"], None), semente)).decode()
+    conf("Pacote sem edicoes e' aceito", atualizador.conferir_pacote(pacote, m, publica) is None)
+
+    # ESTE e' o teste que importa: uma copia ANTIGA nao sabe que edicao existe.
+    # Se as edicoes mexessem no corpo do pacote, ela montaria o corpo sem elas
+    # e recusaria a atualizacao como forjada - travada para sempre, porque para
+    # sair do buraco precisaria justamente atualizar.
+    com_edicoes = dict(m)
+    com_edicoes["edicoes"] = {"*": USINOP}
+    com_edicoes["assinatura_edicoes"] = base64.b64encode(assinatura.assinar(
+        atualizador.corpo_das_edicoes(m["versao"], m["sha256"], com_edicoes["edicoes"]),
+        semente)).decode()
+    conf("Copia antiga continua aceitando o pacote de um manifesto COM edicoes",
+         atualizador.conferir_pacote(pacote, com_edicoes, publica) is None,
+         str(atualizador.conferir_pacote(pacote, com_edicoes, publica)))
+
     # ── para quem vale
     conf("A instalacao listada recebe a edicao",
          atualizador.edicao_do_manifesto(bom, EU) == USINOP)
@@ -88,8 +116,13 @@ def rodar():
     conf("O codigo da instalacao vence o *",
          atualizador.edicao_do_manifesto(misto, EU) == {"nome": "", "ocultar": []})
 
-    conf("Manifesto sem edicoes nao mexe em nada",
+    # Manifesto sem edicoes DESLIGA a edicao remota. E' assim que se volta
+    # atras trocando de canal: o canal que nao esconde nada devolve as abas.
+    conf("Manifesto sem edicoes devolve as abas (nao e' 'ignore')",
          atualizador.edicao_do_manifesto(manifesto(None), EU) is None)
+    vazio = manifesto({EU: {"nome": "", "ocultar": []}})
+    conf("Edicao vazia apontada para mim tambem devolve as abas",
+         atualizador.edicao_do_manifesto(vazio, EU) == {"nome": "", "ocultar": []})
     conf("Edicoes com formato errado nao quebram",
          atualizador.edicao_do_manifesto({"edicoes": "nao e' mapa"}, EU) is None)
     conf("Ocultar com formato errado vira lista vazia",

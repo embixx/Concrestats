@@ -168,7 +168,7 @@ def conferir_no_ar(usuario, repo, canal, versao):
     return True, "conferido no ar: %s, pacote de %.0f KB" % (m["versao"], len(dados) / 1024)
 
 
-def empacotar(versao, novidades=None):
+def empacotar(versao, novidades=None, canal="estavel"):
     """Monta o pacote de atualizacao. O MESMO conteudo tem de dar o MESMO
     arquivo, byte a byte.
 
@@ -183,7 +183,13 @@ def empacotar(versao, novidades=None):
     ser funcao do conteudo, e nao de quando foi gerado.
     """
     os.makedirs(SAIDA, exist_ok=True)
-    nome_zip = "patch-%s.zip" % versao.replace("/", "-").replace(" ", "_").replace(":", "-")
+    # Cada canal tem o seu arquivo. As novidades vao DENTRO do pacote, entao
+    # dois canais com textos diferentes geram conteudos diferentes - e dividir
+    # o mesmo nome fazia o segundo sobrescrever o primeiro, deixando um
+    # manifesto apontando um sha256 que nao existia mais.
+    nome_zip = "patch-%s%s.zip" % (
+        versao.replace("/", "-").replace(" ", "_").replace(":", "-"),
+        "" if canal == "estavel" else "-" + canal)
     caminho = os.path.join(SAIDA, nome_zip)
 
     # 1980-01-01: o menor carimbo que o formato zip aceita. O valor nao importa,
@@ -344,7 +350,7 @@ def main():
         print("--edicao-para sem --edicao nao faz nada")
         return 1
 
-    caminho, nome_zip, quantos = empacotar(a.versao, a.novidades)
+    caminho, nome_zip, quantos = empacotar(a.versao, a.novidades, a.canal)
     with open(caminho, "rb") as fh:
         dados = fh.read()
     sha = hashlib.sha256(dados).hexdigest()
@@ -352,8 +358,14 @@ def main():
     with open(ARQUIVO_PRIVADA, encoding="utf-8") as fh:
         semente = base64.b64decode(fh.read().strip())
     import atualizador
-    corpo = atualizador.corpo_assinado(a.versao, sha, a.somente, edicoes)
+    corpo = atualizador.corpo_assinado(a.versao, sha, a.somente)
     firma = base64.b64encode(assinatura.assinar(corpo, semente)).decode()
+    # As edicoes vao com assinatura PROPRIA, para nao mexer no corpo que as
+    # copias ja' instaladas conferem. Ver corpo_das_edicoes().
+    firma_edicoes = None
+    if edicoes:
+        firma_edicoes = base64.b64encode(assinatura.assinar(
+            atualizador.corpo_das_edicoes(a.versao, sha, edicoes), semente)).decode()
 
     base_raw = (f"https://raw.githubusercontent.com/{USUARIO_GITHUB}/"
                 f"{REPO_GITHUB}/main/atualizacao")
@@ -370,6 +382,7 @@ def main():
         manifesto["liberado_para"] = sorted(x.strip() for x in a.somente)
     if edicoes:
         manifesto["edicoes"] = edicoes
+        manifesto["assinatura_edicoes"] = firma_edicoes
 
     # Cada canal e' um arquivo. Quem esta' no canal estavel nunca chega a ler o
     # manifesto de teste, entao publicar um nao mexe no outro.
@@ -383,6 +396,17 @@ def main():
     # (Manifesto SEM edicao nenhuma nao mexe em nada: quem ja' aprendeu a sua
     # continua com ela. O risco e' so' quando ha' edicoes e falta alguem.)
     anterior = os.path.join(SAIDA, nome_manifesto)
+    if not edicoes and os.path.exists(anterior):
+        try:
+            with open(anterior, encoding="utf-8") as fh:
+                antigas = (json.load(fh) or {}).get("edicoes") or {}
+        except Exception:  # noqa: BLE001
+            antigas = {}
+        if antigas:
+            print("ATENCAO: o manifesto anterior deste canal escondia abas para " +
+                  ", ".join(sorted(antigas)) + ".")
+            print("         Publicar sem --edicao DEVOLVE todas as abas para essas "
+                  "instalacoes.")
     if edicoes and os.path.exists(anterior):
         try:
             with open(anterior, encoding="utf-8") as fh:

@@ -21,6 +21,13 @@ não for o esperado, ela falha e não entrega a pasta.
 
 O build normal (`source/dist`) não é tocado: sai numa pasta própria.
 
+## Como está hoje (04/09/2026)
+
+O canal **estável esconde o PAINEL de todas as cópias** (`--edicao-para "*"`),
+e o canal **teste não esconde nada**. Quem quiser o Painel de volta troca o
+canal na tela de Atualização do próprio programa — sem código, sem arquivo,
+sem download.
+
 ## Como ligar sem baixar nada (o jeito automático)
 
 A edição pode viajar dentro da própria atualização. A instalação pergunta se
@@ -56,6 +63,14 @@ vazia para o mesmo código.
 assinatura, quem trocasse o manifesto no caminho mandaria esconder abas na
 máquina de outra pessoa. O teste `test_edicoes.py` tenta exatamente isso — a
 edição é trocada depois de assinada — e o programa recusa.
+
+**Por que a assinatura é um campo separado** (`assinatura_edicoes`, e não
+junto do corpo do pacote): quem confere o pacote é a cópia **instalada**, que
+é antiga por definição. Uma cópia que não conhecesse o campo novo montaria o
+corpo sem ele e recusaria a atualização como forjada — travada para sempre,
+porque para sair do buraco precisaria justamente atualizar. Assinadas à
+parte, as cópias antigas ignoram o campo que não entendem e continuam
+atualizando. Há teste para isso.
 
 ## Como converter uma instalação que já existe
 

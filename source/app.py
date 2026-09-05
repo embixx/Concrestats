@@ -1480,12 +1480,22 @@ def api_atualizacao():
         # pede download nenhum. Guardada so' depois de conferida a assinatura:
         # sem isso, quem trocasse o manifesto no caminho mandaria esconder abas
         # na maquina dos outros.
+        # O manifesto do canal MANDA na edicao remota, inclusive para
+        # desliga-la: manifesto sem edicao nenhuma devolve todas as abas.
+        #
+        # Antes so' ligava. Quem estivesse com o Painel escondido e trocasse
+        # para um canal que nao esconde nada ficaria escondido para sempre —
+        # e trocar de canal e' justamente como se volta atras sem eu precisar
+        # do codigo da maquina.
+        #
+        # A assinatura e' conferida ANTES, e nada e' gravado se ela nao bater:
+        # senao um manifesto forjado tanto esconderia abas quanto desfaria uma
+        # edicao legitima.
         edicao_nova = None
-        if info.get("edicoes"):
-            if atualizador.conferir_manifesto(info, licenca.CHAVE_PUBLICA) is None:
-                edicao_nova = atualizador.edicao_do_manifesto(info, ident)
-                if edicao_nova != _prefs_cru().get("__edicao_remota"):
-                    _prefs_grava({"__edicao_remota": edicao_nova})
+        if atualizador.conferir_manifesto(info, licenca.CHAVE_PUBLICA) is None:
+            edicao_nova = atualizador.edicao_do_manifesto(info, ident)
+            if edicao_nova != _prefs_cru().get("__edicao_remota"):
+                _prefs_grava({"__edicao_remota": edicao_nova})
         return jsonify(dict(comum, verificou=True, versao_nova=nova,
                             edicao_aplicada=bool(edicao_nova),
                             tem_nova=bool(nova) and _mais_nova(nova, atual)

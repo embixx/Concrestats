@@ -42,7 +42,7 @@ def _seguro(nome):
     return any(n.startswith(p) for p in PASTAS_PERMITIDAS)
 
 
-def corpo_assinado(versao, sha256, liberado_para=None, edicoes=None):
+def corpo_assinado(versao, sha256, liberado_para=None):
     """O texto exato que e' assinado. Quem publica e quem confere tem que montar
     igual, byte a byte — por isso mora aqui, num lugar so'.
 
@@ -55,14 +55,26 @@ def corpo_assinado(versao, sha256, liberado_para=None, edicoes=None):
     if liberado_para:
         # ordenada: a mesma lista em outra ordem tem que dar a mesma assinatura
         corpo["liberado_para"] = sorted(str(x).strip() for x in liberado_para)
-    if edicoes:
-        # As edicoes dizem quais abas cada instalacao ve'. Se ficassem fora da
-        # assinatura, quem conseguisse trocar o manifesto no caminho poderia
-        # esconder abas do programa de outra pessoa. Nao e' o fim do mundo, mas
-        # e' mudanca de comportamento vinda de fora - entra assinada.
-        corpo["edicoes"] = edicoes
-    # Manifesto sem edicoes gera o MESMO corpo de antes: os ja' publicados
-    # continuam conferindo.
+    return json.dumps(corpo, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def corpo_das_edicoes(versao, sha256, edicoes):
+    """As edicoes tem assinatura PROPRIA, num campo proprio.
+
+    A tentacao era junta-las ao corpo do pacote, que ja' e' assinado. Mas a
+    conferencia do pacote roda na COPIA INSTALADA, que e' antiga por
+    definicao: uma copia que nao conhece o campo novo montaria o corpo sem ele
+    e recusaria o pacote como forjado. A atualizacao pararia justamente para
+    quem mais precisa dela, com uma mensagem que faz pensar em invasao e nao
+    em erro nosso. E para sair do buraco seria preciso... atualizar.
+
+    Assinadas a parte, as copias antigas simplesmente ignoram o campo que nao
+    entendem e continuam atualizando como sempre.
+
+    Vai amarrado a versao e ao sha do pacote para que a assinatura de um
+    manifesto nao possa ser colada em outro.
+    """
+    corpo = {"versao": versao, "sha256": sha256, "edicoes": edicoes}
     return json.dumps(corpo, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
@@ -73,19 +85,20 @@ def conferir_manifesto(manifesto, chave_publica):
     decidir se da' para acreditar no que o manifesto diz sobre a edicao. Esta
     aqui roda na verificacao, que e' quando a edicao chega.
     """
+    if not manifesto.get("edicoes"):
+        return None                      # nada a conferir: nao ha' edicao
     if len(chave_publica) != 32:
         return "atualização automática não está configurada nesta cópia"
-    sha = str(manifesto.get("sha256") or "").lower()
-    corpo = corpo_assinado(manifesto.get("versao", ""), sha,
-                           manifesto.get("liberado_para"),
-                           manifesto.get("edicoes"))
+    corpo = corpo_das_edicoes(manifesto.get("versao", ""),
+                              str(manifesto.get("sha256") or "").lower(),
+                              manifesto.get("edicoes"))
     try:
         import base64
-        firma = base64.b64decode(manifesto.get("assinatura", ""))
+        firma = base64.b64decode(manifesto.get("assinatura_edicoes", ""))
     except Exception:  # noqa: BLE001
-        return "assinatura ilegível"
+        return "assinatura das edições ilegível"
     if not assinatura.conferir(corpo, firma, chave_publica):
-        return "este manifesto não foi publicado por nós (assinatura não confere)"
+        return "as edições deste manifesto não foram publicadas por nós"
     return None
 
 
@@ -122,6 +135,9 @@ def conferir_pacote(bytes_do_zip, manifesto, chave_publica):
         return "o arquivo baixado não confere com o anunciado"
     if len(chave_publica) != 32:
         return "atualização automática não está configurada nesta cópia"
+    # As edicoes NAO entram aqui: elas tem assinatura propria (ver
+    # corpo_das_edicoes). Assim uma copia antiga, que nem sabe que edicao
+    # existe, continua conferindo o pacote exatamente como sempre conferiu.
     corpo = corpo_assinado(manifesto.get("versao", ""), sha,
                            manifesto.get("liberado_para"))
     try:
