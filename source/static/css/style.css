@@ -2483,6 +2483,15 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   font-family: var(--mono); font-size: 9.5px; font-weight: 600;
 }
 #btn-alertas.tem-alerta { border-color: var(--danger); color: var(--danger); }
+/* Quantos filtros estão valendo nos Gráficos. Depois que o painel fecha, era
+   a única coisa que diria à pessoa por que os números encolheram. */
+#graf-btn-filtros .graf-filtros-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; padding: 0 4px; margin-left: 5px;
+  background: var(--accent); color: #fff; border-radius: 999px;
+  font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+}
+#graf-btn-filtros.ativo { border-color: var(--accent); color: var(--accent); }
 .modal-box.modal-alertas { max-width: 660px; width: min(660px, 94vw); max-height: 88vh;
   display: flex; flex-direction: column; }
 .modal-box.modal-alertas .modal-body { overflow-y: auto; }

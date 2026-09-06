@@ -285,7 +285,9 @@
     v.editadaEm    = hoje();
     v.propriedades = coletarIngredientes('rec-props-list');
     // FCK derivado da 1ª propriedade de resistência — usado na lista lateral.
-    const fckProp = v.propriedades.find(p => /fck|resist/i.test(p.nome) || /resist/i.test(p.tipo));
+    // O tipo "Resistencia" virou a classe "Propriedade"; quem diz que a linha
+    // e' o fck agora e' o NOME, que e' o sinal confiavel de qualquer forma.
+    const fckProp = v.propriedades.find(p => /fck|resist/i.test(p.nome));
     v.fck = fckProp ? fckProp.consumo : null;
     return r;
   }
@@ -306,13 +308,58 @@
   const TIPOS_ADITIVO  = ['Plastificante','Superplastificante','Polifuncional','Retardador','Acelerador','Incorporador de ar','Sílica ativa','Cinza volante','Escória','Outro'];
   const UNIDADES       = ['kg/m³','L/m³','%','MPa','mm','% cim','g/m³','un'];
   // Lista única de propriedades (Naor): tipos genéricos + alguns pré-preenchidos.
-  const PROP_TIPOS = ['Cimento','Areia','Brita','Pedrisco','Pó de pedra','Água','Aditivo','Adição','Resistência','Outro'];
+  // O TIPO e' a classe do material; o NOME e' o material. Antes o tipo repetia
+  // o nome ("Areia" era tipo E nome), misturando as duas coisas - o Naor
+  // apontou: areia nao e' tipo, e' agregado miudo.
+  //
+  // A divisao segue a norma: o que passa na peneira de 4,75 mm e' agregado
+  // MIUDO (areia, po de pedra), o que fica retido e' GRAUDO (brita, pedrisco,
+  // seixo). Cimento e cal sao aglomerantes. Aditivo muda o comportamento em
+  // pequena dose; adicao entra em quantidade e vira parte do material.
+  const PROP_TIPOS = ['Aglomerante', 'Agregado miúdo', 'Agregado graúdo',
+                      'Água', 'Aditivo', 'Adição', 'Propriedade', 'Outro'];
+
+  // O que sugerir no nome, depois de escolhido o tipo.
+  const SUGESTOES_POR_TIPO = {
+    'Aglomerante':     ['CP II-E-32', 'CP II-F-32', 'CP II-Z-32', 'CP III-40 RS',
+                        'CP IV-32', 'CP V-ARI', 'CP V-ARI RS', 'Cal hidratada'],
+    'Agregado miúdo':  ['Areia fina', 'Areia média', 'Areia grossa',
+                        'Areia natural', 'Areia de britagem', 'Pó de pedra'],
+    'Agregado graúdo': ['Brita 0', 'Brita 1', 'Brita 2', 'Pedrisco',
+                        'Seixo rolado'],
+    'Água':            ['Água', 'Água de amassamento', 'Água reciclada'],
+    'Aditivo':         ['Plastificante', 'Superplastificante', 'Polifuncional',
+                        'Retardador de pega', 'Acelerador de pega',
+                        'Incorporador de ar', 'Impermeabilizante'],
+    'Adição':          ['Sílica ativa', 'Metacaulim', 'Cinza volante',
+                        'Escória de alto-forno', 'Fíler calcário'],
+    'Propriedade':     ['fck', 'Slump', 'Relação a/c', '% argamassa',
+                        'Teor de ar', 'Massa específica'],
+  };
+
+  // De onde os tipos antigos vieram, para o que ja' esta' salvo nao virar "—".
+  const TIPO_ANTIGO = {
+    'Cimento': 'Aglomerante',
+    'Areia': 'Agregado miúdo', 'Areia fina': 'Agregado miúdo',
+    'Areia média': 'Agregado miúdo', 'Areia grossa': 'Agregado miúdo',
+    'Pó de pedra': 'Agregado miúdo',
+    'Brita': 'Agregado graúdo', 'Brita 0': 'Agregado graúdo',
+    'Brita 1': 'Agregado graúdo', 'Brita 2': 'Agregado graúdo',
+    'Pedrisco': 'Agregado graúdo',
+    'Resistência': 'Propriedade',
+    'Sílica ativa': 'Adição', 'Cinza volante': 'Adição', 'Escória': 'Adição',
+    'Plastificante': 'Aditivo', 'Superplastificante': 'Aditivo',
+    'Polifuncional': 'Aditivo', 'Retardador': 'Aditivo',
+    'Acelerador': 'Aditivo', 'Incorporador de ar': 'Aditivo',
+  };
+  const tipoAtualizado = t => TIPO_ANTIGO[t] || t || '';
+
   function propsPadrao() {
     return [
-      { nome:'Cimento', tipo:'Cimento', consumo:null, unidade:'kg/m³' },
-      { nome:'Areia',   tipo:'Areia',   consumo:null, unidade:'kg/m³' },
-      { nome:'Brita',   tipo:'Brita',   consumo:null, unidade:'kg/m³' },
-      { nome:'Água',    tipo:'Água',    consumo:null, unidade:'L/m³' },
+      { nome:'Cimento',  tipo:'Aglomerante',     consumo:null, unidade:'kg/m³' },
+      { nome:'Areia',    tipo:'Agregado miúdo',  consumo:null, unidade:'kg/m³' },
+      { nome:'Brita',    tipo:'Agregado graúdo', consumo:null, unidade:'kg/m³' },
+      { nome:'Água',     tipo:'Água',            consumo:null, unidade:'L/m³' },
     ];
   }
   // Migra versões antigas (campos estruturados) → lista de propriedades, sem
@@ -336,15 +383,25 @@
   }
 
   function cabecalhoIngredientes() {
-    return `<div class="rec-ingrediente-header"><span>Nome</span><span>Tipo</span><span>Valor</span><span>Unidade</span><span></span></div>`;
+    // Tipo antes do nome: primeiro se escolhe a classe, e ai' o nome ja' vem
+    // com as sugestoes daquela classe. Pedido do Naor.
+    return `<div class="rec-ingrediente-header"><span>Tipo</span><span>Nome</span><span>Valor</span><span>Unidade</span><span></span></div>`;
   }
+  let seqSugestao = 0;
   function htmlIngrediente(ing, tipos) {
-    const listaTipos = (ing.tipo && !tipos.includes(ing.tipo)) ? [ing.tipo, ...tipos] : tipos;
-    const tOpts = listaTipos.map(t => `<option ${ing.tipo===t?'selected':''}>${t}</option>`).join('');
+    const tipo = tipoAtualizado(ing.tipo);
+    const listaTipos = (tipo && !tipos.includes(tipo)) ? [tipo, ...tipos] : tipos;
+    const tOpts = listaTipos.map(t => `<option ${tipo===t?'selected':''}>${t}</option>`).join('');
     const uOpts = UNIDADES.map(u => `<option ${(ing.unidade||'kg/m³')===u?'selected':''}>${u}</option>`).join('');
+    // Lista de sugestoes ao digitar o nome (pedido do Naor). datalist e' do
+    // proprio navegador: sugere sem impedir de escrever outra coisa.
+    const idLista = 'sug-' + (++seqSugestao);
+    const sugestoes = (SUGESTOES_POR_TIPO[tipo] || [])
+      .map(x => `<option value="${x}"></option>`).join('');
     return `<div class="rec-ingrediente-row">
-      <input class="ing-nome" type="text" value="${ing.nome||''}" placeholder="Nome">
       <select class="ing-tipo"><option value="">—</option>${tOpts}</select>
+      <input class="ing-nome" type="text" value="${ing.nome||''}" placeholder="Nome do material" list="${idLista}">
+      <datalist id="${idLista}">${sugestoes}</datalist>
       <input class="ing-consumo" type="number" step="0.01" min="0" value="${ing.consumo??''}" placeholder="ex: 800">
       <select class="ing-unidade">${uOpts}</select>
       <button class="rec-btn-remove" title="Remover">×</button>
@@ -372,6 +429,22 @@
   function bindIngredienteChange(container) {
     container.querySelectorAll('input, select').forEach(el => {
       el.addEventListener('input', marcarUnsaved); el.addEventListener('change', marcarUnsaved);
+    });
+    // Trocou o tipo? As sugestoes do nome acompanham. Sem isto, escolher
+    // "Agregado graudo" continuaria sugerindo areia.
+    container.querySelectorAll('.ing-tipo').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const linha = sel.closest('.rec-ingrediente-row');
+        const lista = linha && linha.querySelector('datalist');
+        if (!lista) return;
+        lista.innerHTML = (SUGESTOES_POR_TIPO[sel.value] || [])
+          .map(x => `<option value="${x}"></option>`).join('');
+        // Nome ainda vazio: ja' oferece o primeiro da classe, que e' o caso
+        // comum (uma areia media, uma brita 1).
+        const nome = linha.querySelector('.ing-nome');
+        if (nome && !nome.value.trim()) nome.placeholder =
+          'ex.: ' + ((SUGESTOES_POR_TIPO[sel.value] || ['Nome do material'])[0]);
+      });
     });
   }
   function adicionarIngrediente(listId, tipos) {

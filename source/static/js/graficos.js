@@ -1222,13 +1222,39 @@
       if(col)grafState.filtros.push({col,op,val});
     });
     renderTodosContainers();
+    // O painel fica ABERTO depois de aplicar, tapando os graficos que a pessoa
+    // acabou de filtrar. Fecha; para mexer de novo, o botao esta' ali.
+    const p = document.getElementById('graf-filtros-panel');
+    if (p) p.style.display = 'none';
+    marcarBotaoDeFiltros();
     showT(`${grafState.filtros.length} filtro(s) aplicado(s)`,'success');
   }
 
   function limparFiltros(){
     grafState.filtros=[];
     document.getElementById('graf-filtros-regras').innerHTML='';
-    renderTodosContainers(); showT('Filtros removidos');
+    renderTodosContainers();
+    marcarBotaoDeFiltros();
+    showT('Filtros removidos');
+  }
+
+  // Filtro aplicado nao aparecia em lugar nenhum depois que o painel fechava:
+  // a pessoa voltava para a aba dias depois, via numeros menores e nao sabia
+  // por que. Agora o proprio botao diz quantos estao valendo.
+  function marcarBotaoDeFiltros(){
+    const b = document.getElementById('graf-btn-filtros');
+    if (!b) return;
+    const n = grafState.filtros.length;
+    b.classList.toggle('ativo', n > 0);
+    let marca = b.querySelector('.graf-filtros-n');
+    if (!n) { if (marca) marca.remove(); b.title = 'Filtros de planilha'; return; }
+    if (!marca) {
+      marca = document.createElement('span');
+      marca.className = 'graf-filtros-n';
+      b.appendChild(marca);
+    }
+    marca.textContent = n;
+    b.title = n + ' filtro(s) valendo nestes graficos — clique para ver';
   }
 
   function filtrarContainers(){
