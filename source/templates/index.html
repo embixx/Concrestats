@@ -44,14 +44,6 @@
         <svg viewBox="0 0 16 16"><path d="M8 1L4 5h3v6h2V5h3L8 1zm-5 11h10v2H3v-2z"/></svg>
         Abrir
       </button>
-      <button class="tool-btn" id="btn-recentes" title="Arquivos abertos recentemente">
-        <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
-        Recentes
-      </button>
-      <button class="tool-btn" id="btn-copias" title="Voltar o arquivo para uma versão anterior (cópias automáticas feitas antes de cada Salvar)">
-        <svg viewBox="0 0 16 16"><path d="M8 2.5A5.5 5.5 0 102.9 10" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2.2 6.6l.7 3.5 3.4-.9" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 5.2V8l2 1.2" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
-        Versões
-      </button>
       <button class="tool-btn" id="btn-new-sheet" title="Nova planilha">
         <svg viewBox="0 0 16 16"><path d="M9 1H3a1 1 0 00-1 1v12a1 1 0 001 1h10a1 1 0 001-1V6L9 1zm0 1.5L13.5 6H9V2.5z"/></svg>
         Nova
@@ -69,6 +61,21 @@
       <button class="tool-btn" id="btn-databases" title="Compilar uma PASTA inteira de planilhas (Excel/CSV) em um único banco">
         <svg viewBox="0 0 16 16"><path d="M2 4a1 1 0 011-1h3l1.5 1.5H13a1 1 0 011 1V12a1 1 0 01-1 1H3a1 1 0 01-1-1V4z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
         Databases
+      </button>
+    </div>
+
+    <div class="toolbar-sep"></div>
+
+    <!-- Recentes e Versoes ficam no FIM: sao para voltar a algo, nao para
+         comecar. No inicio disputavam espaco com Salvar e Abrir. -->
+    <div class="toolbar-group">
+      <button class="tool-btn" id="btn-recentes" title="Arquivos abertos recentemente">
+        <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+        Recentes
+      </button>
+      <button class="tool-btn" id="btn-copias" title="Voltar o arquivo para uma versão anterior (cópias automáticas feitas antes de cada Salvar)">
+        <svg viewBox="0 0 16 16"><path d="M8 2.5A5.5 5.5 0 102.9 10" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2.2 6.6l.7 3.5 3.4-.9" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 5.2V8l2 1.2" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+        Versões
       </button>
     </div>
 

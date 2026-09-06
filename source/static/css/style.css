@@ -115,7 +115,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   gap: 0;
   overflow: hidden;
 }
-.sheet-tabs { display: flex; align-items: flex-end; gap: 2px; flex: 1; overflow-x: auto; }
+/* flex:1 fazia a faixa das abas ocupar a barra inteira, e o botao de nova
+   planilha ia parar na ponta direita, longe da ultima aba. Agora a faixa
+   ocupa so' o que precisa e o + fica logo depois da ultima. */
+.sheet-tabs { display: flex; align-items: flex-end; gap: 2px;
+  flex: 0 1 auto; min-width: 0; max-width: calc(100% - 44px); overflow-x: auto; }
 .sheet-tab {
   display: flex; align-items: center; gap: 6px;
   padding: 5px 14px 5px 14px;
@@ -2017,6 +2021,15 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   font-size: 11px; color: var(--text-2); font-family: var(--sans);
 }
 .gfilter-clear:hover { border-color: var(--danger); color: var(--danger); }
+/* Botão de criar filtro, agora em todas as abas. Discreto de propósito: quem
+   já tem filtro aplicado precisa ver os chips, não o botão. */
+.gfilter-abrir {
+  margin-left: auto; background: var(--bg-white); border: 1px solid var(--border);
+  border-radius: 4px; padding: 3px 12px; cursor: pointer; white-space: nowrap;
+  font-size: 11px; color: var(--text-2); font-family: var(--sans);
+}
+.gfilter-abrir:hover { border-color: var(--accent); color: var(--accent); }
+.gfilter-abrir + .gfilter-clear { margin-left: 6px; }
 .ana-presenting .gfilter-bar { display: none !important; }
 
 /* Alterações não salvas: pontinho âmbar no botão Salvar */

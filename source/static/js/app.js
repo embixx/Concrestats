@@ -69,14 +69,28 @@ const opLabel = v => (FILTER_OPS.find(o => o.v === v) || {}).l || v;
 function renderGlobalFilterBars() {
   document.querySelectorAll('.gfilter-bar').forEach(bar => {
     const rules = state.filters || [];
-    if (!rules.length) { bar.innerHTML = ''; bar.style.display = 'none'; return; }
+    // A barra some quando nao ha' filtro? Nao mais. O Naor pediu o botao de
+    // filtros em TODAS as abas: mostrar os filtros ja' aplicados resolvia
+    // metade, mas para CRIAR um ele ainda tinha de voltar para Planilhas.
+    const temPlanilha = (state.headers || []).length > 0;
+    if (!temPlanilha) { bar.innerHTML = ''; bar.style.display = 'none'; return; }
     bar.style.display = 'flex';
+    const abrir = `<button class="gfilter-abrir" type="button" ` +
+      `title="Criar ou editar filtros (leva para Planilhas)">⚲ Filtros</button>`;
+    if (!rules.length) {
+      bar.innerHTML = abrir + `<span class="gfilter-count">sem filtro — ` +
+        `${state.data.length} linhas</span>`;
+      bar.querySelector('.gfilter-abrir').addEventListener('click', abrirPainelDeFiltros);
+      return;
+    }
     const n = state.filterActive ? state.filteredData.length : state.data.length;
     bar.innerHTML = `<span class="gfilter-lab">Filtros:</span>` +
       rules.map((r, i) => `<span class="gfilter-chip" data-i="${i}" title="Remover este filtro">${
         escHtml(r.col)} ${escHtml(opLabel(r.op))} ${escHtml(r.val ?? '')} ✕</span>`).join('') +
       `<span class="gfilter-count">${n} de ${state.data.length} linhas</span>` +
+      abrir +
       `<button class="gfilter-clear" type="button">Limpar</button>`;
+    bar.querySelector('.gfilter-abrir').addEventListener('click', abrirPainelDeFiltros);
     bar.querySelectorAll('.gfilter-chip').forEach(ch => ch.addEventListener('click', () => {
       state.filters.splice(parseInt(ch.dataset.i), 1);
       recomputeFilters(); renderGrid(); syncFilterPanel(); notifyDataChanged('filter');
@@ -86,6 +100,13 @@ function renderGlobalFilterBars() {
     });
   });
 }
+// O painel de filtros vive na aba Planilhas. Chamado de outra aba, leva ate'
+// la' e abre — em vez de o botao existir e nao fazer nada fora dali.
+function abrirPainelDeFiltros() {
+  if (typeof ConcrestatsOpenModule === 'function') ConcrestatsOpenModule('spreadsheet');
+  setTimeout(() => document.getElementById('btn-filter')?.click(), 60);
+}
+
 // Reconstrói as regras do painel de Planilhas a partir de state.filters.
 function syncFilterPanel() {
   const box = document.getElementById('filter-rules');
