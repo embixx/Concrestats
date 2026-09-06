@@ -33,7 +33,7 @@ let state = {
 };
 
 // ── Toast ──────────────────────────────────────────
-function toast(msg, type = '') {
+function toast(msg, type = '', acao = null) {
   let tc = document.getElementById('toast-container');
   if (!tc) {
     tc = document.createElement('div');
@@ -43,8 +43,18 @@ function toast(msg, type = '') {
   const t = document.createElement('div');
   t.className = 'toast ' + type;
   t.textContent = msg;
+  // Aviso com botao: serve para oferecer a acao NA HORA em que ela faz
+  // sentido, em vez de esconder a opcao num menu que ninguem abre.
+  if (acao && acao.texto) {
+    const b = document.createElement('button');
+    b.className = 'toast-acao';
+    b.type = 'button';
+    b.textContent = acao.texto;
+    b.addEventListener('click', () => { t.remove(); acao.fn(); });
+    t.appendChild(b);
+  }
   tc.appendChild(t);
-  setTimeout(() => t.remove(), 3000);
+  setTimeout(() => t.remove(), acao ? 8000 : 3000);
 }
 
 // Expõe para outros módulos (receitas.js, etc.)
@@ -168,6 +178,7 @@ function renderGrid() {
   updateFooter();
   // Column resize (handles ficam no thead, recriado a cada render)
   initColResize();
+  aplicarLargurasSalvas();
   posicionarColunasFixas();
 }
 
@@ -254,7 +265,8 @@ function corDaRegra(ci, txt, row) {
 function salvarPrefsGrid() {
   try {
     fetch('/api/prefs', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ grid: { colunasFixas: state.colunasFixas, regrasCor: state.regrasCor } }) });
+      body: JSON.stringify({ grid: { colunasFixas: state.colunasFixas, regrasCor: state.regrasCor,
+                                     largurasPorAba: state.largurasPorAba } }) });
   } catch (_) {}
 }
 
@@ -1484,6 +1496,53 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Column resize ──────────────────────────────────
+//
+// A largura nao era guardada em lugar nenhum: bastava um render para voltar ao
+// tamanho de antes. Agora fica gravada por PLANILHA e por NOME de coluna - o
+// nome, e nao a posicao, para que planilhas mescladas com as mesmas colunas se
+// reconhecam mesmo em ordem diferente.
+function largurasDaAba(aba) {
+  state.largurasPorAba = state.largurasPorAba || {};
+  return (state.largurasPorAba[aba || state.activeSheet] ||= {});
+}
+
+// A largura escolhida vira REGRA de CSS, e nao estilo em cada celula.
+//
+// Dois motivos. O limite de 240px do CSS esta' no th E no td: mexer so' no
+// cabecalho nao adiantava, a coluna voltava para 240 e parecia que arrastar
+// nao funcionava - nunca deu para alargar uma coluna alem disso, para ninguem.
+// E as linhas sao recriadas conforme se rola a tela, entao estilo posto celula
+// a celula sumiria na primeira rolagem.
+function aplicarLargurasSalvas() {
+  let el = document.getElementById('larguras-colunas');
+  if (!el) {
+    el = document.createElement('style');
+    el.id = 'larguras-colunas';
+    document.head.appendChild(el);
+  }
+  const larg = largurasDaAba();
+  const regras = [];
+  state.headers.forEach((nome, i) => {
+    const w = larg[nome];
+    if (!w) return;
+    regras.push(`#data-table th[data-col="${i}"], #data-table td[data-col="${i}"]` +
+                `{width:${w}px;min-width:${w}px;max-width:${w}px}`);
+  });
+  el.textContent = regras.join(String.fromCharCode(10));
+}
+
+function espalharLarguras() {
+  const daAtual = largurasDaAba();
+  let quantas = 0;
+  (state.sheets || []).forEach(aba => {
+    if (aba === state.activeSheet) return;
+    Object.assign(largurasDaAba(aba), daAtual);
+    quantas++;
+  });
+  salvarPrefsGrid();
+  toast(`Larguras aplicadas em ${quantas} planilha(s)`, 'success');
+}
+
 function initColResize() {
   document.querySelectorAll('.col-resize').forEach(handle => {
     let startX, startWidth, th;
@@ -1499,10 +1558,26 @@ function initColResize() {
       const newW = Math.max(50, startWidth + (e.pageX - startX));
       th.style.minWidth = newW + 'px';
       th.style.width = newW + 'px';
+      th.style.maxWidth = newW + 'px';   // senao o limite de 240px do CSS trava
     }
     function onMouseUp() {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      if (!th) return;
+      const nome = state.headers[parseInt(th.dataset.col)];
+      if (nome) {
+        largurasDaAba()[nome] = parseInt(th.style.width) || th.offsetWidth;
+        aplicarLargurasSalvas();
+        salvarPrefsGrid();
+      }
+      // O Naor pediu que a opcao de igualar as planilhas ficasse APARENTE.
+      // Oferecida aqui, no momento em que ele acabou de ajustar a largura, em
+      // vez de escondida num menu.
+      const outras = (state.sheets || []).filter(a => a !== state.activeSheet).length;
+      if (outras) {
+        toast(`Largura de "${nome}" salva nesta planilha`, '',
+              { texto: `Aplicar nas outras ${outras}`, fn: espalharLarguras });
+      }
     }
   });
 }
@@ -2238,6 +2313,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (p && p.grid) {
       // Prefs antigas guardavam so' a contagem ("as N primeiras"). Converte
       // para a lista, senao quem ja' usava perderia o que tinha congelado.
+      if (p.grid.largurasPorAba && typeof p.grid.largurasPorAba === 'object') {
+        state.largurasPorAba = p.grid.largurasPorAba;
+      }
       state.colunasFixas = Array.isArray(p.grid.colunasFixas)
         ? p.grid.colunasFixas.filter(n => Number.isInteger(n) && n >= 0)
         : Array.from({ length: p.grid.congelarCols || 0 }, (_, i) => i);

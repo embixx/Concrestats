@@ -2493,6 +2493,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 }
 .ensaio-aviso b { display: block; margin-bottom: 2px; color: #4a3813; }
 
+/* Botão dentro do aviso. Existe para oferecer a ação no momento em que ela faz
+   sentido — logo depois de ajustar a largura de uma coluna — em vez de
+   esconder a opção num menu que ninguém abre. */
+.toast .toast-acao {
+  margin-left: 10px; padding: 3px 10px;
+  background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.4);
+  color: inherit; border-radius: 4px; cursor: pointer;
+  font-family: var(--sans); font-size: 11px; white-space: nowrap;
+}
+.toast .toast-acao:hover { background: rgba(255,255,255,.3); }
+
 /* ── Alertas automaticos ─────────────────────── */
 #btn-alertas .alr-conta {
   display: inline-flex; align-items: center; justify-content: center;
