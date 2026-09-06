@@ -436,12 +436,33 @@
 
   // Largura minima por barra para o nome embaixo continuar legivel.
   const PX_POR_GRUPO = 38;
+
+  // Passou do limite? As maiores ficam e o resto vira uma barra "Outros (N)".
+  // Esconder a cauda sem dizer que ela existe faria o total do grafico nao
+  // bater com o da tabela ao lado.
+  function limitarComOutros(dat, limite) {
+    if (!limite || dat.length <= limite) return dat;
+    const ficam = dat.slice(0, limite - 1);
+    const resto = dat.slice(limite - 1);
+    const soma = resto.reduce((a, x) => a + (isNaN(x.v) ? 0 : x.v), 0);
+    ficam.push({ k: 'Outros (' + resto.length + ')', v: soma,
+                 n: resto.reduce((a, x) => a + (x.n || 0), 0) });
+    return ficam;
+  }
   function esticarParaCaber(canvas, quantos) {
     if (!canvas) return;
     const area = canvas.parentElement;
     const disponivel = (area && area.clientWidth) || 600;
     const preciso = quantos * PX_POR_GRUPO;
-    canvas.style.width = preciso > disponivel ? preciso + 'px' : '100%';
+    const rola = preciso > disponivel;
+    canvas.style.width = rola ? preciso + 'px' : '100%';
+    // Diz ao desenho a largura, em vez de deixar ele medir.
+    //
+    // Medir logo depois de mexer no style devolve o valor ANTIGO - conferi no
+    // navegador: mudar para 100% e ler na linha seguinte ainda dava 2280. O
+    // desenho saia num bitmap de 588px e o CSS esticava para 2280: barra gorda
+    // e texto borrado, que e' a foto que o Naor mandou.
+    canvas.dataset.larguraAlvo = String(Math.round(rola ? preciso : disponivel));
   }
 
   function anexarInsights(f, it, body) {
@@ -570,11 +591,14 @@
     }
     if ((c.tipo === 'barra' || !c.tipo) && (c.series || []).length) return desenharCombo(f, it, canvas);
 
-    // O grafico agora ROLA de lado, entao nao precisa se limitar a poucas
-    // barras. A tabela continua enxuta; aqui a leitura ganha com o detalhe.
-    const cfgGraf = (!c.topN || c.topN === 12)
-      ? Object.assign({}, c, { topN: 60 }) : c;
-    const dat = agrupar(f, f.rows, cfgGraf);
+    // Ate' 60 barras, deixando a area rolar de lado. Nao funcionava: o desenho
+    // saia num bitmap do tamanho da area e o navegador esticava o resto, que e'
+    // a barra gorda e borrada que o Naor fotografou. E 60 barras em 590px sao
+    // 9px cada, com o nome de pe' - ilegivel mesmo quando desenhava certo.
+    //
+    // Agora e' o que o Dashboard ja' fazia: mostra as maiores e junta o resto
+    // numa barra so'. Cabe na area, nao estica, e da' para ler.
+    const dat = limitarComOutros(agrupar(f, f.rows, c), c.topN || 12);
     if (!dat.length) {
       body.innerHTML = '<p class="pan-vazio">Sem dados para os campos escolhidos.</p>';
       return;

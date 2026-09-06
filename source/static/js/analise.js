@@ -190,7 +190,12 @@
 
   function setupCanvas(canvas, fh) {
     const dpr = window.devicePixelRatio || 1;
-    const w = canvas.clientWidth || 700, h = canvas.clientHeight || fh;
+    // Quem chama pode dizer a largura em dataset.larguraAlvo. Vale mais do que
+    // medir: clientWidth logo depois de o style mudar ainda devolve o valor
+    // antigo, e ai' o desenho sai menor que a area e o navegador estica.
+    const alvo = parseFloat(canvas.dataset && canvas.dataset.larguraAlvo);
+    const w = (alvo > 0 ? alvo : canvas.clientWidth) || 700;
+    const h = canvas.clientHeight || fh;
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
     const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     return { ctx, w, h };
