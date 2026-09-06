@@ -53,6 +53,7 @@ dist/
 *.xls
 *.csv
 prefs.json
+receitas.json
 
 # --- configuracao local de ferramenta de editor ---------------------------
 .claude/

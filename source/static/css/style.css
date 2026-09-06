@@ -1094,6 +1094,50 @@ td.is-formula::after {
   outline-offset: -2px;
   position: relative;
 }
+/* No modo de edicao o widget inteiro e' arrastavel, e o canto redimensiona. */
+.graf-container.edit-mode .graf-widget { cursor: move; }
+.graf-widget-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 45%, var(--accent) 45%);
+  border-bottom-right-radius: 5px;
+  z-index: 5;
+}
+.graf-widget-resize:hover { filter: brightness(1.25); }
+
+/* Selo com o fck vindo do cadastro de receitas. */
+.graf-receita-fck {
+  font-family: var(--mono);
+  font-size: 10px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.graf-receita-fck.por-nome {
+  background: var(--bg-panel);
+  color: var(--text-3);
+}
+.graf-modal-aviso {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.5;
+}
+.graf-widget-unidade {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-3);
+  text-align: center;
+  margin-top: 2px;
+}
+
 .graf-container-empty {
   width: 100%;
   padding: 20px;
@@ -1176,11 +1220,11 @@ td.is-formula::after {
 }
 
 /* Widget de gráfico */
+/* O tamanho vem do proprio widget (Configurar > Largura/Altura, ou a alca do
+   canto no modo de edicao). O max-width que existia aqui prendia o grafico em
+   900px: pedir 1800 dava exatamente o mesmo resultado de pedir 1000. */
 .graf-widget-chart {
-  width: 900px;
-  height: 600px;
-  width: 100%;
-  max-width: 900px;
+  max-width: none;
 }
 .graf-widget-chart-actions {
   display: flex;

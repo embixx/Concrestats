@@ -22,6 +22,7 @@
     chartInstances:  {},
     recSearch:       '',
     separaPorVersao: false,
+    cadastro:        [], // receitas da aba Receitas (dosagem oficial)
   };
 
   const STATS = [
@@ -45,9 +46,26 @@
   }
   function fckRow(row) {
     const headers = grafState.sheetData?.headers || [];
+    const nomes = [];
+    if (grafState.colReceita) {
+      const i = headers.indexOf(grafState.colReceita);
+      if (i >= 0 && row) nomes.push(String(row[i]||''));
+    }
     for (const col of ['PRODUTO','RECEITA','NOME','TRAÇO','TRACO']) {
       const i = headers.findIndex(h => String(h).trim().toUpperCase() === col);
-      if (i >= 0 && row) { const m = String(row[i]||'').toUpperCase().match(/FCK\s*[-:_]*\s*(\d+(?:[\.,]\d+)?)/); if (m) return numBR(m[1]); }
+      if (i >= 0 && row) nomes.push(String(row[i]||''));
+    }
+    // Cadastro primeiro: no {FCK} dos filtros o valor tem de ser o oficial,
+    // não o que dá para adivinhar no nome do produto.
+    for (const nome of nomes) {
+      const v = versaoCadastrada(receitaCadastrada(nome));
+      if (!v) continue;
+      const direto = numBR(v.fck);
+      if (!isNaN(direto) && direto > 0) return direto;
+    }
+    for (const nome of nomes) {
+      const m = nome.toUpperCase().match(/FCK\s*[-:_]*\s*(\d+(?:[\.,]\d+)?)/);
+      if (m) return numBR(m[1]);
     }
     return NaN;
   }
@@ -56,6 +74,64 @@
     const m = String(nome||'').toUpperCase().match(/FCK\s*[-:_]*\s*(\d+(?:[\.,]\d+)?)/);
     return m ? numBR(m[1]) : NaN;
   }
+  /* ── RECEITAS CADASTRADAS ──────────────────────────────────────────
+   * Pedido do Naor: os gráficos deviam puxar os dados da aba Receitas.
+   * O cadastro é a fonte oficial da dosagem e do fck — antes o fck era
+   * adivinhado no nome da planilha, que nem sempre traz o valor certo.
+   */
+  function carregarCadastro() {
+    try {
+      const raw = localStorage.getItem('concrelab_receitas');
+      if (raw) grafState.cadastro = JSON.parse(raw) || [];
+    } catch(_) {}
+    try {
+      fetch('/api/receitas')
+        .then(r => r.ok ? r.json() : null)
+        .then(lista => {
+          if (!Array.isArray(lista)) return;
+          grafState.cadastro = lista;
+          if (grafState.colReceita && grafState.receitas.length) renderTodosContainers();
+        })
+        .catch(() => {});
+    } catch(_) {}
+  }
+  function chaveNome(s) {
+    return String(s||'').trim().toUpperCase().replace(/\s+/g,' ');
+  }
+  function receitaCadastrada(nome) {
+    const k = chaveNome(nome);
+    if (!k) return null;
+    return (grafState.cadastro||[]).find(r => chaveNome(r.nome) === k) || null;
+  }
+  function versaoCadastrada(rc) {
+    if (!rc || !Array.isArray(rc.versoes) || !rc.versoes.length) return null;
+    return rc.versoes.find(v => v.id === rc.versaoAtiva) || rc.versoes[0];
+  }
+  // Propriedades da versão em uso: [{nome, tipo, consumo, unidade}]
+  function propsCadastradas(nome) {
+    const v = versaoCadastrada(receitaCadastrada(nome));
+    return (v && Array.isArray(v.propriedades)) ? v.propriedades.filter(p => p && p.nome) : [];
+  }
+  // FCK com a procedência: o cadastro manda; o nome é só o último recurso.
+  function fckComOrigem(nome) {
+    const v = versaoCadastrada(receitaCadastrada(nome));
+    if (v) {
+      const direto = numBR(v.fck);
+      if (!isNaN(direto) && direto > 0) return { valor: direto, origem: 'cadastro' };
+      const p  = (v.propriedades||[]).find(x => /fck|resist/i.test(x.nome||''));
+      const pv = p ? numBR(p.consumo) : NaN;
+      if (!isNaN(pv) && pv > 0) return { valor: pv, origem: 'cadastro' };
+    }
+    const n = fckFromNome(nome);
+    return { valor: n, origem: isNaN(n) ? null : 'nome' };
+  }
+  function fckDaReceita(nome) { return fckComOrigem(nome).valor; }
+  function numeroBR(v) {
+    const n = Number(v);
+    if (!isFinite(n)) return String(v ?? '');
+    return (Math.round(n*100)/100).toLocaleString('pt-BR');
+  }
+
   // Índice da coluna de CP (corpo de prova) na planilha.
   function colCP(headers) {
     return (headers||[]).findIndex(h => String(h).trim().toUpperCase() === 'CP');
@@ -136,6 +212,7 @@
   /* ── INIT ─────────────────────────────────────── */
   function init() {
     carregarLayout();
+    carregarCadastro();
     bindToolbar();
     renderTemplatesList();
     window.addEventListener('concrestats:datachanged', () => { try { if (document.getElementById('module-graficos').style.display !== 'none') sincronizarComPlanilha(); } catch(_){} });
@@ -272,11 +349,22 @@
 
     const isEditing = grafState.editMode.has(rec.id);
 
+    // Mostra de onde saiu o fck usado nas contas (cadastro x nome da planilha).
+    const f = fckComOrigem(rec.nome);
+    const selo = (!isNaN(f.valor) && f.valor > 0)
+      ? `<span class="graf-receita-fck ${f.origem==='nome'?'por-nome':''}" title="${
+           f.origem==='cadastro'
+             ? 'fck vindo do cadastro de receitas'
+             : 'fck lido do nome — cadastre a receita para usar o valor oficial'
+         }">fck ${numeroBR(f.valor)} MPa · ${f.origem==='cadastro'?'cadastro':'pelo nome'}</span>`
+      : '';
+
     const header = document.createElement('div');
     header.className = 'graf-receita-header';
     header.innerHTML = `
       <span class="graf-receita-nome">${esc(rec.nome)}</span>
       <div class="graf-receita-actions">
+        ${selo}
         ${chipsHtml}
         <button class="graf-btn-add-widget">+ Dado</button>
         <button class="graf-btn-add-chart">+ Gráfico</button>
@@ -325,14 +413,9 @@
       return;
     }
 
-    let maxBottom = 0, maxRight = 0;
-    layout.forEach(item => {
-      const b = (item.y||0)+(item.h||100); if (b>maxBottom) maxBottom=b;
-      const r = (item.x||0)+(item.w||160); if (r>maxRight) maxRight=r;
-    });
-    container.style.minHeight = snapMin(maxBottom + GRID*2, 120) + 'px';
+    container.style.minHeight = alturaDoContainer(rec) + 'px';
     // largura mínima = widget mais largo (habilita o scroll horizontal)
-    container.style.minWidth = (maxRight + GRID*2) + 'px';
+    container.style.minWidth  = larguraDoContainer(rec) + 'px';
 
     layout.forEach(item => {
       const el = item.type === 'chart'
@@ -348,11 +431,48 @@
     if (grafState.editMode.has(rec.id)) ativarDragNoContainer(container, rec);
   }
 
+  // Espaço que o container precisa para caber tudo o que está dentro dele.
+  // Antes isto vivia solto em dois lugares, e o modo de edição sobrescrevia a
+  // conta com um valor fixo — era o que "fechava" o container ao desligar.
+  function alturaDoContainer(rec) {
+    let base = 0;
+    (grafState.layouts[rec.id]||[]).forEach(i => {
+      const b = (i.y||0) + (i.h||100); if (b > base) base = b;
+    });
+    return snapMin(base + GRID*2, 120);
+  }
+  function larguraDoContainer(rec) {
+    let base = 0;
+    (grafState.layouts[rec.id]||[]).forEach(i => {
+      const r = (i.x||0) + (i.w||160); if (r > base) base = r;
+    });
+    return base + GRID*2;
+  }
+
   /* ── WIDGET DADO ─────────────────────────────── */
   function criarWidgetDado(rec, item, versaoFiltro) {
-    const dados  = filtrarDadosReceita(rec.nome, item.config.coluna, versaoFiltro);
-    const res    = calcularEstatistica(dados, item.config.stat, fckFromNome(rec.nome));
-    const titulo = item.config.titulo || item.config.stat;
+    const cfg = item.config;
+    let titulo, valor, rotulo, unidade = '';
+
+    if (cfg.fonte === 'receita') {
+      // Valor de dosagem, lido direto do cadastro — não sai da planilha.
+      const p = propsCadastradas(rec.nome).find(x => chaveNome(x.nome) === chaveNome(cfg.prop));
+      titulo  = cfg.titulo || cfg.prop || 'Receita';
+      rotulo  = 'receita';
+      if (p && p.consumo !== null && p.consumo !== undefined && p.consumo !== '') {
+        valor   = numeroBR(p.consumo);
+        unidade = p.unidade || '';
+      } else {
+        valor   = '—';
+        unidade = p ? 'sem valor no cadastro' : 'não cadastrado';
+      }
+    } else {
+      const dados = filtrarDadosReceita(rec.nome, cfg.coluna, versaoFiltro);
+      const res   = calcularEstatistica(dados, cfg.stat, fckDaReceita(rec.nome));
+      titulo = cfg.titulo || cfg.stat;
+      valor  = res.valor;
+      rotulo = cfg.coluna || '—';
+    }
 
     const el = document.createElement('div');
     el.className   = 'graf-widget graf-widget-dado';
@@ -362,11 +482,26 @@
     el.innerHTML = `
       <div class="graf-widget-header">
         <span class="graf-widget-title">${esc(titulo)}</span>
-        <span class="graf-widget-col">${esc(item.config.coluna||'—')}</span>
+        <span class="graf-widget-col">${esc(rotulo)}</span>
       </div>
-      <div class="graf-widget-body"><div class="graf-stat-valor">${res.valor}</div></div>`;
+      <div class="graf-widget-body">
+        <div>
+          <div class="graf-stat-valor">${esc(valor)}</div>
+          ${unidade ? `<div class="graf-widget-unidade">${esc(unidade)}</div>` : ''}
+        </div>
+      </div>`;
     bindWidgetCtx(el, item, rec, 'dado');
     return el;
+  }
+
+  // O requestAnimationFrame nao dispara com a janela minimizada ou em segundo
+  // plano, e o widget ficava em branco ate' alguem forcar outro render. O
+  // timeout entra como rede: desenha de um jeito ou de outro, uma vez so'.
+  function noProximoQuadro(fn) {
+    let feito = false;
+    const uma = () => { if (feito) return; feito = true; fn(); };
+    requestAnimationFrame(uma);
+    setTimeout(uma, 60);
   }
 
   /* ── WIDGET GRÁFICO ──────────────────────────── */
@@ -402,7 +537,7 @@
     el.style.height = widgetH + 'px';
     bindWidgetCtx(el, item, rec, 'chart');
 
-    requestAnimationFrame(() => {
+    noProximoQuadro(() => {
       const ptsY   = pontosComReceita(rec.nome, cfg.colunaY, versaoFiltro);
       const dadosY = ptsY.map(p => p.v);
       const dadosX = cfg.colunaX
@@ -916,25 +1051,66 @@
     const cfg=itemExist?.config||{};
     const colOpts=headers.map(h=>`<option value="${esc(h)}" ${h===cfg.coluna?'selected':''}>${esc(h)}</option>`).join('');
     const stOpts=STATS.map(s=>`<option value="${s}" ${s===cfg.stat?'selected':''}>${s}</option>`).join('');
+
+    // Segunda fonte possível: a dosagem cadastrada na aba Receitas.
+    const props=propsCadastradas(rec.nome);
+    const fonte=cfg.fonte==='receita'?'receita':'planilha';
+    const propOpts=props.map(p=>{
+      const un=p.unidade?` (${esc(p.unidade)})`:'';
+      const marca=chaveNome(p.nome)===chaveNome(cfg.prop)?'selected':'';
+      return `<option value="${esc(p.nome)}" ${marca}>${esc(p.nome)}${un}</option>`;
+    }).join('');
+    const semCadastro=props.length?'':
+      `<p class="graf-modal-aviso">Esta receita ainda não está cadastrada na aba Receitas. Cadastre a dosagem lá e ela aparece aqui.</p>`;
+
     abrirModalGraf(itemExist?'Editar Dado':'Novo Dado',`
       <label>Título (opcional)</label>
       <input id="gw-titulo" type="text" value="${esc(cfg.titulo||'')}" placeholder="ex: Resistência 28d">
-      <label style="margin-top:14px">Coluna de dados</label>
-      <select id="gw-coluna"><option value="">— selecione —</option>${colOpts}</select>
-      <label style="margin-top:14px">Estatística</label>
-      <select id="gw-stat">${stOpts}</select>
+      <label style="margin-top:14px">De onde vem o valor</label>
+      <select id="gw-fonte">
+        <option value="planilha" ${fonte==='planilha'?'selected':''}>Planilha — ensaios</option>
+        <option value="receita"  ${fonte==='receita'?'selected':''}>Receita cadastrada — dosagem</option>
+      </select>
+      <div id="gw-bloco-planilha" style="display:${fonte==='planilha'?'block':'none'}">
+        <label style="margin-top:14px">Coluna de dados</label>
+        <select id="gw-coluna"><option value="">— selecione —</option>${colOpts}</select>
+        <label style="margin-top:14px">Estatística</label>
+        <select id="gw-stat">${stOpts}</select>
+      </div>
+      <div id="gw-bloco-receita" style="display:${fonte==='receita'?'block':'none'}">
+        <label style="margin-top:14px">Propriedade da receita</label>
+        <select id="gw-prop">${propOpts}</select>
+        ${semCadastro}
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
         <div><label>Largura (px)</label><input id="gw-w" type="number" value="${snap(itemExist?.w||160)}" min="100" max="3000" step="${GRID}"></div>
         <div><label>Altura (px)</label><input id="gw-h" type="number" value="${snap(itemExist?.h||100)}" min="60" max="800" step="${GRID}"></div>
       </div>`,()=>{
-      const coluna=document.getElementById('gw-coluna').value;
-      if(!coluna){showT('Selecione uma coluna','error');return;}
-      upsertItem(rec,{id:itemExist?.id||genId(),type:'dado',
-        config:{titulo:document.getElementById('gw-titulo').value.trim(),coluna,stat:document.getElementById('gw-stat').value},
-        x:itemExist?.x??0,y:itemExist?.y??autoY(rec.id,snap(itemExist?.h||100)),
+      const f=document.getElementById('gw-fonte').value;
+      const base={
+        id:itemExist?.id||genId(), type:'dado',
+        x:itemExist?.x??0, y:itemExist?.y??autoY(rec.id,snap(itemExist?.h||100)),
         w:snapMin(parseInt(document.getElementById('gw-w').value)||160,100),
-        h:snapMin(parseInt(document.getElementById('gw-h').value)||100,60)});
+        h:snapMin(parseInt(document.getElementById('gw-h').value)||100,60),
+      };
+      const titulo=document.getElementById('gw-titulo').value.trim();
+      if(f==='receita'){
+        const prop=document.getElementById('gw-prop').value;
+        if(!prop){showT('Cadastre a receita na aba Receitas para usar esta fonte','error');return;}
+        upsertItem(rec,{...base,config:{titulo,fonte:'receita',prop}});
+      }else{
+        const coluna=document.getElementById('gw-coluna').value;
+        if(!coluna){showT('Selecione uma coluna','error');return;}
+        upsertItem(rec,{...base,config:{titulo,fonte:'planilha',coluna,stat:document.getElementById('gw-stat').value}});
+      }
       fecharModalGraf(); renderWidgetsNoContainer(rec,container);
+    });
+
+    const selFonte=document.getElementById('gw-fonte');
+    selFonte.addEventListener('change',()=>{
+      const r=selFonte.value==='receita';
+      document.getElementById('gw-bloco-receita').style.display =r?'block':'none';
+      document.getElementById('gw-bloco-planilha').style.display=r?'none':'block';
     });
   }
 
@@ -945,6 +1121,15 @@
     const colY=headers.map(h=>`<option value="${esc(h)}" ${h===cfg.colunaY?'selected':''}>${esc(h)}</option>`).join('');
     const colX=headers.map(h=>`<option value="${esc(h)}" ${h===cfg.colunaX?'selected':''}>${esc(h)}</option>`).join('');
     const tOpts=CHART_TYPES.map(t=>`<option value="${t}" ${t===cfg.tipoGrafico?'selected':''}>${t}</option>`).join('');
+
+    // Gráfico novo já nasce com a linha do fck da receita cadastrada.
+    const fckRec=fckComOrigem(rec.nome);
+    const temFck=!itemExist && fckRec.origem==='cadastro' && !isNaN(fckRec.valor) && fckRec.valor>0;
+    const linhaSugerida =temFck?fckRec.valor:'';
+    const rotuloSugerido=temFck?'fck':'';
+    const notaFck=temFck
+      ? `<p class="graf-modal-aviso">Preenchido com o fck ${numeroBR(fckRec.valor)} MPa da receita cadastrada.</p>`
+      : '';
 
     abrirModalGraf(itemExist?'Editar Gráfico':'Novo Gráfico',`
       <label>Título (opcional)</label>
@@ -959,15 +1144,16 @@
         <p style="font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:10px">Linha de Referência (opcional)</p>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
           <div><label>Valor Y</label>
-            <input id="gc-linhaH" type="number" step="any" value="${esc(cfg.linhaH??'')}" placeholder="ex: 25">
+            <input id="gc-linhaH" type="number" step="any" value="${esc(cfg.linhaH??linhaSugerida)}" placeholder="ex: 25">
           </div>
           <div><label>Cor</label>
             <input id="gc-linhaHCor" type="color" value="${cfg.linhaHCor||'#e05c3a'}" style="width:100%;height:32px;border:1px solid var(--border);border-radius:3px;padding:2px;cursor:pointer">
           </div>
           <div><label>Rótulo</label>
-            <input id="gc-linhaHLabel" type="text" value="${esc(cfg.linhaHLabel||'')}" placeholder="ex: FCK mín">
+            <input id="gc-linhaHLabel" type="text" value="${esc(cfg.linhaHLabel||rotuloSugerido)}" placeholder="ex: FCK mín">
           </div>
         </div>
+        ${notaFck}
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
@@ -1048,17 +1234,22 @@
     btn.classList.toggle('active', nowEditing);
 
     container.classList.toggle('edit-mode', nowEditing);
-    container.style.position  = 'relative';
-    container.style.minHeight = nowEditing ? '300px' : '';
+    container.style.position = 'relative';
+    // A altura vem sempre do conteúdo. Antes ligar prendia em 300px e desligar
+    // apagava a altura de vez: os widgets altos ficavam cortados, que é o
+    // "fechando e diminuindo desproporcionalmente" que o Naor viu.
+    const altura = alturaDoContainer(rec);
+    container.style.minHeight = (nowEditing ? Math.max(altura, 300) : altura) + 'px';
+    container.style.minWidth  = larguraDoContainer(rec) + 'px';
 
     if (nowEditing) {
       ativarDragNoContainer(container, rec);
     } else {
-      // Desativar cursores grab nos headers dos widgets
-      container.querySelectorAll('.graf-widget-header').forEach(h => {
-        h.style.cursor = '';
-        h._dragBound   = false;
-      });
+      container.querySelectorAll('.graf-widget-header').forEach(h => { h.style.cursor = ''; });
+      container.querySelectorAll('.graf-widget-resize').forEach(a => a.remove());
+      // _dragBound continua marcado de propósito: o listener não é removido, e
+      // zerar a marca fazia cada ida e volta do modo de edição empilhar mais um
+      // — com três idas, o widget andava três vezes a cada arrasto.
     }
   }
 
@@ -1069,38 +1260,98 @@
     container.style.position='relative';
     container.querySelectorAll('.graf-widget').forEach(widget=>{
       const handle=widget.querySelector('.graf-widget-header');
+      if(handle)handle.style.cursor='grab';
+
+      // Alça do canto: redimensiona arrastando, em vez de digitar px no menu.
+      if(!widget.querySelector('.graf-widget-resize')){
+        const alca=document.createElement('div');
+        alca.className='graf-widget-resize';
+        alca.title='Arraste para redimensionar';
+        widget.appendChild(alca);
+        alca.addEventListener('mousedown',ev=>iniciarResize(ev,container,rec,widget));
+      }
+
       if(!handle||handle._dragBound)return;
-      handle._dragBound=true; handle.style.cursor='grab';
+      handle._dragBound=true;
       handle.addEventListener('mousedown',function onDown(e){
         if(!grafState.editMode.has(rec.id))return;
-        if(e.target.closest('.graf-widget-chart-type,.graf-widget-col'))return;
+        if(e.target.closest('.graf-widget-chart-type,.graf-widget-col,.graf-widget-resize'))return;
         e.preventDefault();
         const cr=container.getBoundingClientRect();
-        const offX=e.clientX-cr.left-(parseInt(widget.style.left)||0);
-        const offY=e.clientY-cr.top-(parseInt(widget.style.top)||0);
-        widget.style.zIndex='100'; handle.style.cursor='grabbing';
+        // Origem do conteúdo: com o container rolado na horizontal, o canto
+        // visível não é o zero das posições dos widgets.
+        const baseX=cr.left-container.scrollLeft;
+        const baseY=cr.top -container.scrollTop;
+        const offX=e.clientX-baseX-(parseInt(widget.style.left)||0);
+        const offY=e.clientY-baseY-(parseInt(widget.style.top)||0);
+        // Limite horizontal pelo conteúdo, não pela janela: um gráfico mais
+        // largo que a tela dava limite negativo e grudava no canto esquerdo.
+        const util=Math.max(container.scrollWidth,container.clientWidth);
+        const limX=Math.max(0,snap(util-widget.offsetWidth));
+        widget.style.zIndex='100'; if(handle)handle.style.cursor='grabbing';
         function onMove(ev){
-          if(!grafState.editMode)return;
-          let nl=snap(ev.clientX-cr.left-offX);
-          let nt=snap(ev.clientY-cr.top-offY);
-          nl=Math.max(0,Math.min(nl,snap(container.offsetWidth-widget.offsetWidth)));
-          nt=Math.max(0,Math.min(nt,Math.max(0,snap(container.offsetHeight-widget.offsetHeight))));
+          if(!grafState.editMode.has(rec.id))return;
+          let nl=snap(ev.clientX-baseX-offX);
+          let nt=snap(ev.clientY-baseY-offY);
+          nl=Math.max(0,Math.min(nl,limX));
+          nt=Math.max(0,nt);
           widget.style.left=nl+'px'; widget.style.top=nt+'px';
-          const needed=snap(nt+widget.offsetHeight+GRID*2);
-          if(needed>container.offsetHeight)container.style.minHeight=needed+'px';
+          const precisa=snap(nt+widget.offsetHeight+GRID*2);
+          if(precisa>container.offsetHeight)container.style.minHeight=precisa+'px';
         }
         function onUp(){
-          handle.style.cursor='grab'; widget.style.zIndex='';
+          if(handle)handle.style.cursor='grab';
+          widget.style.zIndex='';
           document.removeEventListener('mousemove',onMove);
           document.removeEventListener('mouseup',onUp);
-          const wid=widget.dataset.wid;
-          const itm=(grafState.layouts[rec.id]||[]).find(i=>i.id===wid);
-          if(itm){itm.x=snap(parseInt(widget.style.left)||0);itm.y=snap(parseInt(widget.style.top)||0);salvarLayout();}
+          const itm=(grafState.layouts[rec.id]||[]).find(i=>i.id===widget.dataset.wid);
+          if(itm){
+            itm.x=snap(parseInt(widget.style.left)||0);
+            itm.y=snap(parseInt(widget.style.top)||0);
+            salvarLayout();
+            container.style.minHeight=alturaDoContainer(rec)+'px';
+            container.style.minWidth =larguraDoContainer(rec)+'px';
+          }
         }
         document.addEventListener('mousemove',onMove);
         document.addEventListener('mouseup',onUp);
       });
     });
+  }
+
+  // Redimensionar pelo canto. O gráfico é redesenhado no tamanho novo ao
+  // soltar — durante o arrasto só a moldura acompanha, porque redesenhar a
+  // cada pixel trava com muitos pontos.
+  function iniciarResize(e,container,rec,widget){
+    if(!grafState.editMode.has(rec.id))return;
+    const item=(grafState.layouts[rec.id]||[]).find(i=>i.id===widget.dataset.wid);
+    if(!item)return;
+    e.preventDefault(); e.stopPropagation();
+    const minW=item.type==='chart'?200:100;
+    const minH=item.type==='chart'?100:60;
+    const x0=e.clientX, y0=e.clientY;
+    const w0=widget.offsetWidth, h0=widget.offsetHeight;
+    widget.style.zIndex='100';
+    function onMove(ev){
+      const w=snapMin(w0+(ev.clientX-x0),minW);
+      const h=snapMin(h0+(ev.clientY-y0),minH);
+      widget.style.width=w+'px'; widget.style.height=h+'px';
+      const alt=snap((parseInt(widget.style.top)||0)+h+GRID*2);
+      if(alt>container.offsetHeight)container.style.minHeight=alt+'px';
+      const larg=snap((parseInt(widget.style.left)||0)+w+GRID*2);
+      if(larg>container.scrollWidth)container.style.minWidth=larg+'px';
+    }
+    function onUp(){
+      document.removeEventListener('mousemove',onMove);
+      document.removeEventListener('mouseup',onUp);
+      widget.style.zIndex='';
+      item.w=snapMin(widget.offsetWidth,minW);
+      item.h=snapMin(widget.offsetHeight,minH);
+      salvarLayout();
+      renderWidgetsNoContainer(rec,container);
+    }
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
   }
 
   /* ── TEMPLATES ───────────────────────────────── */
@@ -1302,7 +1553,7 @@
 
   /* ── GLOBAL ──────────────────────────────────── */
   window.GraficosModule = {
-    onModuleEnter() { sincronizarComPlanilha(); renderTemplatesList(); },
+    onModuleEnter() { carregarCadastro(); sincronizarComPlanilha(); renderTemplatesList(); },
   };
 
   init();

@@ -797,6 +797,104 @@
       ir: () => ConcrestatsOpenModule('painel'),
     },
     {
+      id: 'grafico-largura',
+      grupo: G_VIS,
+      titulo: 'Gráfico largo fica largo mesmo',
+      olhar: 'Nos Gráficos, ponha 1800 de largura num gráfico: ele tem que ficar bem maior que a tela, com barra de rolagem.',
+      auto: async () => {
+        if (semAba('charts')) return pular('charts');
+        ConcrestatsOpenModule('charts');
+        await ate(() => document.querySelector('.graf-container'), 8000);
+        const c = document.querySelector('.graf-container');
+        if (!c) return { ok: false, msg: 'nenhuma receita na aba Gráficos' };
+        // Mede uma peça de mentira, do mesmo tipo, sem mexer no layout de
+        // ninguém. Havia um max-width de 900px: pedir 1800 dava 900, igual a
+        // pedir 1000, que foi o que o Naor viu.
+        const p = document.createElement('div');
+        p.className = 'graf-widget graf-widget-chart';
+        p.style.cssText = 'position:absolute;left:0;top:0;width:1400px;height:120px;visibility:hidden';
+        c.appendChild(p);
+        const larg = p.offsetWidth;
+        p.remove();
+        const ok = larg >= 1400;
+        return { ok, msg: ok ? 'pedi 1400px e recebi ' + larg + 'px'
+                             : 'pedi 1400px e a tela deu ' + larg + 'px (há um limite preso no CSS)' };
+      },
+      ir: () => ConcrestatsOpenModule('charts'),
+    },
+    {
+      id: 'grafico-edicao',
+      grupo: G_VIS,
+      titulo: 'Modo de edição não encolhe o quadro',
+      olhar: 'Nos Gráficos, ligue e desligue o "⊞ Layout": nada pode encolher, sumir ou ficar cortado.',
+      auto: async () => {
+        if (semAba('charts')) return pular('charts');
+        ConcrestatsOpenModule('charts');
+        await ate(() => document.querySelector('.graf-container .graf-widget'), 8000);
+        const wrap = [].slice.call(document.querySelectorAll('.graf-receita-wrap'))
+          .find(w => w.querySelector('.graf-container .graf-widget'));
+        if (!wrap) return { ok: true, pulou: true, msg: 'nenhum gráfico montado para medir' };
+        const c   = wrap.querySelector('.graf-container');
+        const btn = wrap.querySelector('.graf-btn-edit-layout');
+        const eraEdicao = c.classList.contains('edit-mode');
+        const antes = c.offsetHeight;
+        btn.click();  await espera(120);
+        const ligado = c.offsetHeight;
+        const alcas  = c.querySelectorAll('.graf-widget-resize').length;
+        const widgets = c.querySelectorAll('.graf-widget').length;
+        btn.click();  await espera(120);
+        const desligado = c.offsetHeight;
+        const sobrou    = c.querySelectorAll('.graf-widget-resize').length;
+        if (c.classList.contains('edit-mode') !== eraEdicao) btn.click();
+        const ok = ligado >= antes && desligado >= antes && alcas === widgets && sobrou === 0;
+        return {
+          ok,
+          msg: ok ? 'altura firme em ' + antes + 'px, com alça de redimensionar só na edição'
+                  : 'antes ' + antes + 'px, ligado ' + ligado + 'px, desligado ' + desligado +
+                    'px; alças ' + alcas + '/' + widgets + ', sobraram ' + sobrou
+        };
+      },
+      ir: () => ConcrestatsOpenModule('charts'),
+    },
+    {
+      id: 'grafico-receita',
+      grupo: G_VIS,
+      titulo: 'Gráficos usam o fck do cadastro de receitas',
+      olhar: 'Cadastre o fck de uma receita e veja o selo dela nos Gráficos dizer "cadastro".',
+      auto: async () => {
+        if (semAba('charts')) return pular('charts');
+        ConcrestatsOpenModule('charts');
+        await ate(() => document.querySelector('.graf-receita-wrap'), 8000);
+        const wraps = [].slice.call(document.querySelectorAll('.graf-receita-wrap'));
+        if (!wraps.length) return { ok: true, pulou: true, msg: 'nenhuma receita na planilha' };
+        let cad = [];
+        try {
+          const r = await fetch('/api/receitas');
+          if (r.ok) cad = await r.json();
+        } catch (e) { cad = []; }
+        const chave = x => String(x || '').trim().toUpperCase().replace(/\s+/g, ' ');
+        const nomes = (Array.isArray(cad) ? cad : []).map(r => chave(r.nome));
+        const comSelo = wraps.filter(w => w.querySelector('.graf-receita-fck')).length;
+        const casados = wraps.filter(w =>
+          nomes.indexOf(chave(w.querySelector('.graf-receita-nome') &&
+                              w.querySelector('.graf-receita-nome').textContent)) >= 0);
+        if (!casados.length) {
+          return { ok: comSelo > 0, pulou: comSelo > 0,
+                   msg: comSelo > 0
+                     ? comSelo + ' receitas mostram o fck lido do nome; nenhuma está cadastrada ainda'
+                     : 'nenhuma receita mostra o fck' };
+        }
+        const doCadastro = casados.filter(w => {
+          const sel = w.querySelector('.graf-receita-fck');
+          return sel && sel.textContent.indexOf('cadastro') >= 0;
+        }).length;
+        const ok = doCadastro === casados.length;
+        return { ok, msg: ok ? doCadastro + ' de ' + casados.length + ' receitas cadastradas usando o fck oficial'
+                             : 'só ' + doCadastro + ' de ' + casados.length + ' pegaram o fck do cadastro' };
+      },
+      ir: () => ConcrestatsOpenModule('charts'),
+    },
+    {
       id: 'analise-abre',
       grupo: G_VIS,
       titulo: 'Análise monta a tabela cruzada e os indicadores',
