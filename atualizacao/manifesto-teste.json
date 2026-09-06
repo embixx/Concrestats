@@ -1,10 +1,18 @@
 {
-  "versao": "05/09/2026 14:27",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-09-2026_14-27-teste.zip",
-  "sha256": "2c3fa5ae971a5b2f94978bbfc7ed069598fe478b499ca51eb2c32ea1758f0af4",
-  "assinatura": "wOwMW1wA4307GtUPYW/nBOkoaiBb0EkedxQFOPFB31xOgA+fuKkDXItQ/8EWIbgmQ9P/yR90cyqkygPWBi4wAQ==",
+  "versao": "06/09/2026 06:46",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-06-09-2026_06-46-teste.zip",
+  "sha256": "e6b2e4c08a3644faee822af1b4d4dd089e7baf1cf79d2e93b0246bb0d2dd9c12",
+  "assinatura": "66OyHdUBy//9l8JxvP2ZMzuyWMvvzVQqi4ymZvTqpAezcPaEbFjHwoXa7IYnZ34btGCOmEivx1FU/Vyi6n5YCA==",
   "novidades": [
-    "Arrumacao interna dos comentarios do codigo - nenhuma mudanca de comportamento",
+    "Congelar prende a coluna que voce escolheu, e da para soltar uma so",
+    "Barra de ferramentas na ordem pedida, e o filtro em todas as abas",
+    "Largura de coluna fica salva, e agora passa de 240px",
+    "Receitas com os nomes do ramo: agregado miudo, graudo, aglomerante, aditivo",
+    "Relatorio tecnico nao imprime mais 424 valores no lugar do cliente",
+    "Graficos: largura 1800 vale 1800 mesmo (antes travava em 900)",
+    "Modo de edicao dos graficos nao encolhe nem corta mais os quadros",
+    "Graficos usam o fck e a dosagem cadastrados na aba Receitas",
+    "Grafico do Painel nao estica mais: barras legiveis, sem queda falsa de 99,9%",
     "Este canal MANTEM a aba PAINEL"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
