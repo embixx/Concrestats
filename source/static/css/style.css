@@ -2475,6 +2475,24 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 }
 .atz-aviso-depois:hover { color: var(--text); }
 
+/* Certificado: campo sem valor fica discreto em vez de virar um traço. Doze
+   traços enfileirados eram a primeira coisa que se via no documento. */
+.ensaio-campo.vazio span { color: var(--text-3); }
+.ensaio-campo.vazio .ensaio-inp { background: repeating-linear-gradient(
+    90deg, transparent, transparent 3px, var(--border) 3px, var(--border) 4px)
+  bottom / 100% 1px no-repeat; }
+.ensaio-campo.vazio .ensaio-inp::placeholder { color: var(--text-3); opacity: .55; font-style: italic; }
+
+/* "424 valores" no lugar do nome do cliente não é certificado, é despejo de
+   dados. O aviso diz o que fazer, em vez de deixar o número no campo. */
+.ensaio-aviso {
+  margin: 0 0 14px; padding: 10px 14px;
+  background: #fdf6e3; border: 1px solid #e2c88a; border-left: 3px solid #c99a2e;
+  border-radius: 5px; font-family: var(--sans); font-size: 11.5px;
+  line-height: 1.55; color: #6b5320;
+}
+.ensaio-aviso b { display: block; margin-bottom: 2px; color: #4a3813; }
+
 /* ── Alertas automaticos ─────────────────────── */
 #btn-alertas .alr-conta {
   display: inline-flex; align-items: center; justify-content: center;

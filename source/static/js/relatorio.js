@@ -153,11 +153,22 @@ function aviso(msg, tipo) {
   }
 
   function uniqueVal(rows, idx){
-    if(idx < 0) return '—';
+    // Vazio devolve VAZIO, e nao um traco: quem monta o campo decide como
+    // mostrar a falta - e um traco preenchido parece resposta.
+    //
+    // E com varios valores devolve vazio TAMBEM. "424 valores" no campo
+    // CLIENTE de um certificado nao e' informacao, e' o programa dizendo que
+    // nao sabe - e sai com cara de preenchido. Melhor deixar em branco, com o
+    // aviso em cima explicando o que fazer.
+    if(idx < 0) return '';
     const vals = [...new Set(rows.map(r => String(r[idx] ?? '').trim()).filter(Boolean))];
-    if(vals.length === 0) return '—';
-    if(vals.length === 1) return vals[0];
-    return `${vals.length} valores`;
+    return vals.length === 1 ? vals[0] : '';
+  }
+
+  // Quantos valores distintos ha' na coluna — para saber se a selecao mistura.
+  function quantosDistintos(rows, idx){
+    if(idx < 0) return 0;
+    return new Set(rows.map(r => String(r[idx] ?? '').trim()).filter(Boolean)).size;
   }
 
   function sumMetric(rows, idx){
@@ -239,7 +250,7 @@ function aviso(msg, tipo) {
     const vol     = sumMetric(rows, idxM3);
     const media28 = avgMetric(rows, idxMPA28);
     const fckVals = [...new Set(rows.map(fckRow).filter(Boolean))];
-    const fckLabel= fckVals.length === 1 ? fckVals[0] + ' MPa' : (fckVals.length ? fckVals.length + ' valores' : '—');
+    const fckLabel= fckVals.length === 1 ? fckVals[0] + ' MPa' : '';
     const limit = 350;
     const previewRows = rows.slice(0, limit);
 
@@ -264,7 +275,31 @@ function aviso(msg, tipo) {
     const FIELDS = [['cliente','Cliente'],['obra','Obra'],['contato','Contato'],['email','E-mail'],['cnpj','CNPJ'],['fone','Fone'],['produto','Produto'],['fck','Fck'],['endereco','Endereço'],['cidade','Cidade'],['finalidade','Finalidade'],['dimensao','Dimensão CP']];
     // textarea auto-ajustável: o campo (e o cabeçalho) CRESCE quando o texto é
     // maior, em vez de cortar com "…" (pedido do Naor).
-    const formHtml = FIELDS.map(([f,lab]) => `<div><span>${lab}</span><textarea class="ensaio-inp" data-f="${f}" rows="1" placeholder="—">${esc(campo(f))}</textarea></div>`).join('');
+    const formHtml = FIELDS.map(([f,lab]) => {
+      const v = campo(f);
+      // Campo vazio fica DISCRETO em vez de virar um traço. Doze traços
+      // enfileirados eram a primeira coisa que se via no documento, e é ruído:
+      // laudo não precisa anunciar o que não tem.
+      const vazio = String(v).trim() ? '' : ' vazio';
+      return `<div class="ensaio-campo${vazio}"><span>${lab}</span>` +
+             `<textarea class="ensaio-inp" data-f="${f}" rows="1" ` +
+             `placeholder="clique para preencher">${esc(v)}</textarea></div>`;
+    }).join('');
+
+    // "424 valores" em CLIENTE não é certificado, é despejo de dados. O
+    // documento é de UM cliente: se a seleção pega vários, o lugar de dizer
+    // isso é aqui, com o caminho para resolver — e não deixando o campo com um
+    // número onde deveria estar um nome.
+    const misturado = [];
+    if (quantosDistintos(rows, idxCliente) > 1) misturado.push('clientes');
+    if (quantosDistintos(rows, idxProduto) > 1) misturado.push('produtos');
+    if (fckVals.length > 1) misturado.push('fck');
+    const avisoMistura = misturado.length ? `
+        <div class="ensaio-aviso">
+          <b>Esta seleção tem ${misturado.join(', ')} diferentes.</b>
+          O certificado de compressão é emitido para um cliente e um produto —
+          filtre por eles antes de exportar, ou preencha os campos à mão.
+        </div>` : '';
 
     let html = `
       <div class="report-paper report-ensaio">
@@ -277,6 +312,7 @@ function aviso(msg, tipo) {
           <div class="ensaio-empresa">USINOP SOLUÇÕES<br>EM CONCRETO LTDA.</div>
         </div>
 
+        ${avisoMistura}
         <div class="ensaio-form">${formHtml}</div>
 
         <div class="report-table-title">Corpos de prova · exibindo ${previewRows.length.toLocaleString('pt-BR')} de ${rows.length.toLocaleString('pt-BR')} registros</div>
