@@ -21,7 +21,12 @@ let state = {
   clipboard: null,   // { rows: [[...]] }
   undoStack: [],
   redoStack: [],
-  congelarCols: 0,      // quantas colunas ficam fixas ao rolar na horizontal
+  // Quais colunas ficam fixas ao rolar de lado. Era uma CONTAGEM ("as N
+  // primeiras"), e por isso congelar sempre pegava o CP - o Naor pedia para
+  // congelar a coluna que ele tinha escolhido, e para poder descongelar uma
+  // sem perder as outras. Guardadas por indice, em ordem de tela.
+  colunasFixas: [],
+  congelarCols: 0,      // compatibilidade: prefs antigas gravavam a contagem
   regrasCor: [],        // [{col, op, val, cor}] formatação condicional
   contextRow: -1,
   sortState: { col: -1, dir: 'asc' },
@@ -150,8 +155,8 @@ function renderHead() {
   let hRow = '<tr><th class="row-num row-num-header">№</th>';
   state.headers.forEach((h, i) => {
     const sortIcon = state.sortState.col === i ? (state.sortState.dir === 'asc' ? '↓' : '↑') : '';
-    const fx = i < state.congelarCols
-      ? ' col-fixa' + (i === state.congelarCols - 1 ? ' fixa-fim' : '') : '';
+    const fx = state.colunasFixas.includes(i)
+      ? ' col-fixa' + (i === state.colunasFixas[state.colunasFixas.length - 1] ? ' fixa-fim' : '') : '';
     hRow += `<th data-col="${i}" class="${fx.trim()}"><span>${escHtml(h)}</span><span class="sort-indicator">${sortIcon}</span><div class="col-resize" data-col="${i}"></div></th>`;
   });
   hRow += '</tr>';
@@ -228,7 +233,7 @@ function corDaRegra(ci, txt, row) {
 function salvarPrefsGrid() {
   try {
     fetch('/api/prefs', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ grid: { congelarCols: state.congelarCols, regrasCor: state.regrasCor } }) });
+      body: JSON.stringify({ grid: { colunasFixas: state.colunasFixas, regrasCor: state.regrasCor } }) });
   } catch (_) {}
 }
 
@@ -279,8 +284,8 @@ function renderBody() {
       const txt = isFormula ? String(valorDaFormula(val, row)) : String(val);
       const neg = ehNegativo(txt) ? ' cel-neg' : '';
       const hit = (busca.termo && txt.toLowerCase().includes(busca.termo)) ? ' cel-busca' : '';
-      const fx  = ci < state.congelarCols
-        ? ' col-fixa' + (ci === state.congelarCols - 1 ? ' fixa-fim' : '') : '';
+      const fx  = state.colunasFixas.includes(ci)
+        ? ' col-fixa' + (ci === state.colunasFixas[state.colunasFixas.length - 1] ? ' fixa-fim' : '') : '';
       const cor = corDaRegra(ci, txt, row);
       const est = cor ? ` style="background:${cor.fundo};color:${cor.texto}"` : '';
       html += `<td data-row="${ri}" data-col="${ci}" class="${isFormula ? 'is-formula' : ''}${active}${neg}${hit}${fx}"${est}>${escHtml(txt)}</td>`;
@@ -2109,41 +2114,96 @@ function abrirModalCores() {
 document.getElementById('btn-cores')?.addEventListener('click', abrirModalCores);
 
 // ── Congelar colunas ───────────────────────────────
-document.getElementById('btn-congelar')?.addEventListener('click', () => {
-  if (!state.headers.length) { toast('Abra uma planilha primeiro', 'error'); return; }
-  const max = Math.min(3, state.headers.length);
-  state.congelarCols = (state.congelarCols + 1) % (max + 1);   // 0 → 1 → 2 → 3 → 0
+function aplicarColunasFixas() {
+  state.colunasFixas.sort((a, b) => a - b);
   salvarPrefsGrid();
   renderGrid();
   const btn = document.getElementById('btn-congelar');
-  if (btn) btn.classList.toggle('ativo', state.congelarCols > 0);
-  if (!state.congelarCols) { toast('Colunas descongeladas'); return; }
-  const nomes = state.headers.slice(0, state.congelarCols).join(', ');
+  if (btn) btn.classList.toggle('ativo', state.colunasFixas.length > 0);
+}
+
+function avisoDeCongelamento(nome, congelou) {
+  if (!congelou) { toast(`${nome} descongelada`); return; }
   // Sem coluna fora da tela nao ha' o que congelar — e' o caso em que o botao
   // parece nao fazer nada. Melhor dizer isso do que deixar no ar.
   const sc = document.getElementById('grid-scroll');
   const rolaDeLado = sc && sc.scrollWidth > sc.clientWidth + 4;
   toast(rolaDeLado
-    ? `${nomes} ficam fixas ao rolar para o lado`
-    : `${nomes} marcadas. Esta planilha cabe inteira na tela, então o efeito só `
+    ? `${nome} fica fixa ao rolar para o lado`
+    : `${nome} marcada. Esta planilha cabe inteira na tela, então o efeito só `
       + `aparece quando houver coluna fora dela (ou com a janela menor).`,
     rolaDeLado ? 'success' : 'info');
+}
+
+// Congela a coluna ESCOLHIDA, e nao "as N primeiras" como antes - era por isso
+// que congelar sempre pegava o CP.
+document.getElementById('btn-congelar')?.addEventListener('click', () => {
+  if (!state.headers.length) { toast('Abra uma planilha primeiro', 'error'); return; }
+  const col = state.activeCell.col;
+  if (col < 0 || col >= state.headers.length) {
+    if (state.colunasFixas.length) { menuColunasFixas(); return; }
+    toast('Clique numa célula da coluna que você quer congelar', 'info');
+    return;
+  }
+  const i = state.colunasFixas.indexOf(col);
+  if (i >= 0) state.colunasFixas.splice(i, 1); else state.colunasFixas.push(col);
+  aplicarColunasFixas();
+  avisoDeCongelamento(state.headers[col], i < 0);
 });
+
+// Botao direito no Congelar: lista o que esta' congelado, para tirar uma sem
+// perder as outras ("manter CP congelado mas descongelar clientes").
+document.getElementById('btn-congelar')?.addEventListener('contextmenu', ev => {
+  ev.preventDefault();
+  menuColunasFixas(ev.clientX, ev.clientY);
+});
+
+function menuColunasFixas(x, y) {
+  document.getElementById('menu-congelar')?.remove();
+  if (!state.colunasFixas.length) { toast('Nenhuma coluna congelada', 'info'); return; }
+  const btn = document.getElementById('btn-congelar');
+  const r = btn ? btn.getBoundingClientRect() : { left: x || 0, bottom: y || 0 };
+  const m = document.createElement('div');
+  m.id = 'menu-congelar';
+  m.className = 'context-menu';
+  m.style.cssText = `display:block;left:${x || r.left}px;top:${y || r.bottom + 4}px`;
+  m.innerHTML = '<div class="context-title">Congeladas — clique para soltar</div>' +
+    state.colunasFixas.map(ci =>
+      `<div class="context-item" data-col="${ci}">✕ ${escHtml(state.headers[ci] || ('coluna ' + (ci + 1)))}</div>`).join('') +
+    '<div class="context-sep"></div><div class="context-item" data-col="todas">Descongelar todas</div>';
+  document.body.appendChild(m);
+  m.querySelectorAll('.context-item').forEach(el => el.addEventListener('click', () => {
+    const alvo = el.dataset.col;
+    if (alvo === 'todas') { state.colunasFixas = []; aplicarColunasFixas(); toast('Colunas descongeladas'); }
+    else {
+      const ci = parseInt(alvo);
+      state.colunasFixas = state.colunasFixas.filter(c => c !== ci);
+      aplicarColunasFixas();
+      toast(`${state.headers[ci]} descongelada`);
+    }
+    m.remove();
+  }));
+  const fora = e => { if (!e.target.closest('#menu-congelar')) { m.remove(); document.removeEventListener('mousedown', fora, true); } };
+  setTimeout(() => document.addEventListener('mousedown', fora, true), 0);
+}
 
 // Posiciona as colunas congeladas (o "left" depende da largura das anteriores).
 function posicionarColunasFixas() {
-  if (!state.congelarCols) return;
+  if (!state.colunasFixas.length) return;
   const head = document.querySelector('#data-table thead tr');
   if (!head) return;
-  const larguras = [];
+  // As fixas se encostam na esquerda na ordem em que aparecem na planilha,
+  // uma depois da outra - mesmo que nao sejam vizinhas (CP e CLIENTE, por
+  // exemplo). Cada uma comeca onde a anterior termina.
+  const esquerda = {};
   let acumulado = head.children[0]?.offsetWidth || 40;   // coluna do número
-  for (let i = 0; i < state.congelarCols; i++) {
-    larguras.push(acumulado);
-    acumulado += head.children[i + 1]?.offsetWidth || 0;
-  }
+  state.colunasFixas.forEach(ci => {
+    esquerda[ci] = acumulado;
+    acumulado += head.children[ci + 1]?.offsetWidth || 0;
+  });
   document.querySelectorAll('#data-table .col-fixa').forEach(el => {
     const ci = parseInt(el.dataset.col);
-    if (!isNaN(ci) && larguras[ci] !== undefined) el.style.left = larguras[ci] + 'px';
+    if (!isNaN(ci) && esquerda[ci] !== undefined) el.style.left = esquerda[ci] + 'px';
   });
   // a coluna do número também acompanha
   document.querySelectorAll('#data-table .row-num').forEach(el => {
@@ -2155,9 +2215,13 @@ function posicionarColunasFixas() {
 document.addEventListener('DOMContentLoaded', () => {
   window.prefsGet().then(p => {
     if (p && p.grid) {
-      state.congelarCols = p.grid.congelarCols || 0;
+      // Prefs antigas guardavam so' a contagem ("as N primeiras"). Converte
+      // para a lista, senao quem ja' usava perderia o que tinha congelado.
+      state.colunasFixas = Array.isArray(p.grid.colunasFixas)
+        ? p.grid.colunasFixas.filter(n => Number.isInteger(n) && n >= 0)
+        : Array.from({ length: p.grid.congelarCols || 0 }, (_, i) => i);
       const bc = document.getElementById('btn-congelar');
-      if (bc) bc.classList.toggle('ativo', state.congelarCols > 0);
+      if (bc) bc.classList.toggle('ativo', state.colunasFixas.length > 0);
       state.regrasCor = Array.isArray(p.grid.regrasCor) ? p.grid.regrasCor : [];
       if (state.headers.length) renderGrid();
     }

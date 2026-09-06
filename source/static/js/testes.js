@@ -161,7 +161,7 @@
     loadSheetData(res);
     state.headers = DEMO_HEADERS.slice();
     state.data = dadosDemo();
-    state.filters = []; state.regrasCor = []; state.congelarCols = 0;
+    state.filters = []; state.regrasCor = []; state.colunasFixas = [];
     recomputeFilters();
     renderGrid();
     await gravarAgora(nomeDemo, state.headers, state.data);
@@ -433,17 +433,36 @@
     {
       id: 'congelar',
       grupo: G_PLAN,
-      titulo: 'Congelar colunas ao rolar',
-      olhar: 'Clique em Congelar e role para o lado: a coluna CP fica parada.',
+      titulo: 'Congelar prende a coluna ESCOLHIDA',
+      olhar: 'Clique numa célula de CLIENTE e depois em Congelar: quem fica ' +
+        'parada ao rolar é CLIENTE, não o CP. Botão direito no Congelar lista ' +
+        'o que está preso, para soltar uma sem perder as outras.',
       auto: async () => {
-        state.congelarCols = 2; renderGrid();
-        await ate(() => { const t = document.querySelector('#data-table thead th.col-fixa'); return t && t.style.left !== ''; });
+        // Congelar pegava sempre "as N primeiras", entao prendia o CP mesmo
+        // quando o usuario tinha escolhido outra coluna. E' o que o Naor
+        // reportou em 05/09.
+        const alvo = Math.min(3, state.headers.length - 1);
+        const nome = state.headers[alvo];
+        state.colunasFixas = []; state.activeCell = { row: 0, col: alvo };
+        document.getElementById('btn-congelar').click();
+        await ate(() => document.querySelector('#data-table thead th.col-fixa'), 4000);
         const th = document.querySelector('#data-table thead th.col-fixa');
-        const ok = !!th && getComputedStyle(th).position === 'sticky' && th.style.left !== '';
-        state.congelarCols = 0; renderGrid();
-        return { ok, msg: ok ? 'colunas fixas posicionadas' : 'não ficaram fixas' };
+        const presa = th ? parseInt(th.dataset.col) : -1;
+        const fixou = presa === alvo && getComputedStyle(th).position === 'sticky';
+        // e soltar uma so' mantem as outras
+        state.activeCell = { row: 0, col: 0 };
+        document.getElementById('btn-congelar').click();   // congela a primeira tambem
+        await espera(120);
+        const duas = state.colunasFixas.length === 2;
+        state.colunasFixas = state.colunasFixas.filter(c => c !== 0);
+        renderGrid(); await espera(120);
+        const sobrou = state.colunasFixas.length === 1 && state.colunasFixas[0] === alvo;
+        state.colunasFixas = []; state.activeCell = { row: -1, col: -1 }; renderGrid();
+        const ok = fixou && duas && sobrou;
+        return { ok, msg: ok ? `prendeu ${nome}, e soltar uma manteve a outra`
+                             : `presa=${presa} esperada=${alvo} duas=${duas} sobrou=${sobrou}` };
       },
-      ir: () => { ConcrestatsOpenModule('spreadsheet'); state.congelarCols = 2; renderGrid(); },
+      ir: () => { ConcrestatsOpenModule('spreadsheet'); state.colunasFixas = [3]; renderGrid(); },
     },
     {
       id: 'formula',
@@ -1142,7 +1161,7 @@
     const antes = {
       filtros: JSON.parse(JSON.stringify(state.filters || [])),
       cores: JSON.parse(JSON.stringify(state.regrasCor || [])),
-      congelar: state.congelarCols,
+      congelar: state.colunasFixas.slice(),
       ordem: state.sortState ? JSON.parse(JSON.stringify(state.sortState)) : null,
     };
     try { await carregarDemo(true); } catch (e) {
@@ -1168,7 +1187,7 @@
     }
     // devolve o app como estava e APAGA a demonstração
     state.filters = antes.filtros; state.regrasCor = antes.cores;
-    state.congelarCols = antes.congelar; state.sortState = antes.ordem;
+    state.colunasFixas = antes.congelar; state.sortState = antes.ordem;
     try { await limparDemo(); } catch (e) {}
     recomputeFilters();
     ConcrestatsOpenModule('spreadsheet');
