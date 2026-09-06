@@ -22,6 +22,9 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import assinar_exe  # noqa: E402
+
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONTE = os.path.join(RAIZ, "source")
 EDICOES = os.path.join(RAIZ, "edicoes")
@@ -165,6 +168,16 @@ def main():
     if os.path.exists(saida):
         shutil.rmtree(saida)
     shutil.move(pronto, saida)
+
+    # Assinar e' o que tira o exe da lista de "programa desconhecido" dos
+    # antivirus. Sem certificado configurado isto so' avisa e segue: nao
+    # assinar nao pode impedir uma entrega de sair.
+    estado, detalhe_ass = assinar_exe.assinar(os.path.join(saida, "Concrestats.exe"))
+    if estado == "erro":
+        print("  ATENCAO: nao consegui assinar - " + detalhe_ass)
+    elif estado == "assinado":
+        print("  assinatura: " + detalhe_ass)
+
     limpar_entrega(saida)
 
     n = sum(len(f) for _, _, f in os.walk(saida))
