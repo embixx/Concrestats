@@ -59,7 +59,13 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    # upx=False de proposito. Compactar o executavel com UPX e' o padrao mais
+    # antigo de empacotamento de malware, e antivirus pontuam por isso — o
+    # Naor ja' recebeu um PDM:Trojan.Win32.Generic (veredito de comportamento
+    # do Kaspersky) neste programa. O UPX nao esta' instalado nesta maquina,
+    # entao o build de hoje nao foi compactado; a flag ficava ligada esperando
+    # alguem instalar o UPX e piorar a situacao sem perceber.
+    upx=False,
     console=False,           # False = app nativo sem janela de terminal (como Spotify).
                              # Troque para False se quiser um app sem janela de console.
     disable_windowed_traceback=False,
@@ -75,7 +81,7 @@ coll = COLLECT(
     a.binaries,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,          # mesma razao do EXE acima
     upx_exclude=[],
     name='Concrestats',
 )
