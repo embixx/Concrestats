@@ -1,11 +1,11 @@
 {
-  "versao": "07/09/2026 00:42",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-07-09-2026_00-42.zip",
-  "sha256": "87480bbf8d8f95f40e34b6fadb557a91c08313bea934ada003471956a89e1a3e",
-  "assinatura": "gCLa/NBtTqBtOYZ1/sBrAxLfx9I6WxfjjjOlRs629laFZoOWh2pGPVUaF5UpfWCKColjeSk4zXOaKLizskQGAA==",
+  "versao": "07/09/2026 02:33",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-07-09-2026_02-33.zip",
+  "sha256": "7b27ddda67215968d51617e57589afd4e201cd252544732e1f49d7f5fde742c6",
+  "assinatura": "TJC/eKkt/GDoUS9lwkOuESl1w+LWQZJ04tlXUbSbtml3+J07/kIgAnQVL++pRQ+cjFXy4JUjqHGFCw6JZcOyDw==",
   "novidades": [
-    "CORRECAO IMPORTANTE: o app fechava sozinho depois de algumas trocas de aba",
-    "Cada grafico deixava uma sobra invisivel na tela; agora nao deixa mais"
+    "O programa passa a registrar se fechar sozinho, com a hora e a aba",
+    "Em Testar, um item novo mostra isso e o caminho do arquivo para me mandar"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel",
@@ -15,7 +15,139 @@
       "ocultar": [
         "painel"
       ]
+    },
+    "CLAUDE.md": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "Concrestats": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "Concrestats.rar": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "Concrestats.zip": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "Concrestats1.rar": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "Concrestats_Nativo.STALE-browserfallback.zip": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "Concrestats_Nativo.zip": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "Concrestats_Tablet.apk": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "Concrestats_Tablet.apk.idsig": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "MENSALIDADE.md": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "_codigo_fonte": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "_entrega_naor": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "_entrega_notebook": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "_entrega_usinop": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "atualizacao": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "edicoes": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "exemplo_para_o_tablet.xlsx": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "mobile": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "naor_design": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "proposta": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "source": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    },
+    "tools": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
     }
   },
-  "assinatura_edicoes": "koK7JKdctzRDfvU+v0ned1hbqAw/2UX0wpf1/1B1lsilVRkJePAYX01bjB18YZ0IOIsCeeTLuWWSB0Smde0BAQ=="
+  "assinatura_edicoes": "YMHKKeiQDTaumbtcj3vnNLAOB1C6tUdIgHs/6XPoAKglb3J1m5qvHy8cFqUt7xb13g8H0wTYfZBzwcogaYsRBQ=="
 }
