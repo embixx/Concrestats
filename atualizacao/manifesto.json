@@ -1,18 +1,11 @@
 {
-  "versao": "06/09/2026 06:46",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-06-09-2026_06-46.zip",
-  "sha256": "31d79ccb0f184b9efcbe27da9c3a4c7499c1d68ed26027b961e6dad6b574d5cf",
-  "assinatura": "NslTas+LY7Ih1yrzKP9Qv2vwHuZW7V8+u1PjItQmpPeGeKN9nxmg/D4+YKv+mGJQtEIAtf6ajzixUhpp5qa0Bw==",
+  "versao": "07/09/2026 00:42",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-07-09-2026_00-42.zip",
+  "sha256": "87480bbf8d8f95f40e34b6fadb557a91c08313bea934ada003471956a89e1a3e",
+  "assinatura": "gCLa/NBtTqBtOYZ1/sBrAxLfx9I6WxfjjjOlRs629laFZoOWh2pGPVUaF5UpfWCKColjeSk4zXOaKLizskQGAA==",
   "novidades": [
-    "Congelar prende a coluna que voce escolheu, e da para soltar uma so",
-    "Barra de ferramentas na ordem pedida, e o filtro em todas as abas",
-    "Largura de coluna fica salva, e agora passa de 240px",
-    "Receitas com os nomes do ramo: agregado miudo, graudo, aglomerante, aditivo",
-    "Relatorio tecnico nao imprime mais 424 valores no lugar do cliente",
-    "Graficos: largura 1800 vale 1800 mesmo (antes travava em 900)",
-    "Modo de edicao dos graficos nao encolhe nem corta mais os quadros",
-    "Graficos usam o fck e a dosagem cadastrados na aba Receitas",
-    "Grafico do Painel nao estica mais: barras legiveis, sem queda falsa de 99,9%"
+    "CORRECAO IMPORTANTE: o app fechava sozinho depois de algumas trocas de aba",
+    "Cada grafico deixava uma sobra invisivel na tela; agora nao deixa mais"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel",
@@ -24,5 +17,5 @@
       ]
     }
   },
-  "assinatura_edicoes": "JmPA+W9+ln0YPKHP6CSGZyxvTH3YHxAuj+WjQekAiE20EC+TpelbOtcj3cKyLhQS5ZNL60cvAKXU3XRiJTASBw=="
+  "assinatura_edicoes": "koK7JKdctzRDfvU+v0ned1hbqAw/2UX0wpf1/1B1lsilVRkJePAYX01bjB18YZ0IOIsCeeTLuWWSB0Smde0BAQ=="
 }
