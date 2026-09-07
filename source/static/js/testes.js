@@ -797,6 +797,46 @@
       ir: () => ConcrestatsOpenModule('painel'),
     },
     {
+      id: 'trocar-aba-nao-vaza',
+      grupo: G_VIS,
+      titulo: 'Trocar de aba muitas vezes não entope o programa',
+      olhar: 'Passe de Planilhas para Gráficos e de volta umas dez vezes: o programa tem que continuar leve.',
+      auto: async () => {
+        // O Naor: "o app fica morrendo, acontece a cada algumas trocas de aba".
+        // Era o chart-lite: cada gráfico criava a sua caixinha de dica presa no
+        // <body> e o destroy() não a tirava. Com 61 receitas na tela, cada volta
+        // na aba deixava 61 <div> position:fixed para trás. Em seis trocas o
+        // <body> tinha 861 delas.
+        const conta = () => ({
+          dicas: document.querySelectorAll('.chart-lite-tooltip').length,
+          corpo: document.body.children.length,
+        });
+        const antes = conta();
+        for (let i = 0; i < 4; i++) {
+          ConcrestatsOpenModule('spreadsheet');
+          await espera(120);
+          ConcrestatsOpenModule(semAba('charts') ? 'analise' : 'charts');
+          await espera(320);
+        }
+        ConcrestatsOpenModule('spreadsheet');
+        await espera(120);
+        const depois = conta();
+        const cresceu = depois.corpo - antes.corpo;
+        // Uma caixinha de dica e' o certo: ela e' compartilhada por todos os
+        // graficos. Duas ja' significa que voltaram a criar uma por grafico.
+        const ok = depois.dicas <= 1 && cresceu <= 2;
+        return {
+          ok,
+          msg: ok
+            ? 'quatro idas e voltas sem sobra (' + depois.dicas + ' caixa de dica, ' +
+              depois.corpo + ' elementos)'
+            : 'sobrou lixo na tela: ' + depois.dicas + ' caixas de dica e ' +
+              cresceu + ' elementos a mais no corpo da página'
+        };
+      },
+      ir: () => ConcrestatsOpenModule('charts'),
+    },
+    {
       id: 'grafico-largura',
       grupo: G_VIS,
       titulo: 'Gráfico largo fica largo mesmo',

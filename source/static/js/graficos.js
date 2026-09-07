@@ -82,18 +82,40 @@
   function carregarCadastro() {
     try {
       const raw = localStorage.getItem('concrelab_receitas');
-      if (raw) grafState.cadastro = JSON.parse(raw) || [];
+      if (raw) {
+        grafState.cadastro = JSON.parse(raw) || [];
+        grafState.cadastroAssinatura = assinaturaDoCadastro(grafState.cadastro);
+      }
     } catch(_) {}
     try {
       fetch('/api/receitas')
         .then(r => r.ok ? r.json() : null)
         .then(lista => {
           if (!Array.isArray(lista)) return;
+          // Redesenhar 61 containers custa caro, e entrar na aba ja' desenha
+          // uma vez. So' vale repetir se o cadastro mudou de verdade — do
+          // contrario toda troca de aba desenhava tudo duas vezes.
+          const antes = grafState.cadastroAssinatura;
           grafState.cadastro = lista;
+          grafState.cadastroAssinatura = assinaturaDoCadastro(lista);
+          if (antes === grafState.cadastroAssinatura) return;
           if (grafState.colReceita && grafState.receitas.length) renderTodosContainers();
         })
         .catch(() => {});
     } catch(_) {}
+  }
+  // Resumo do que os graficos realmente usam do cadastro: nome, fck e
+  // consumos. Comparar o JSON cru nao servia — o servidor devolve as chaves em
+  // outra ordem que o localStorage, entao nunca batia e o redesenho acontecia
+  // do mesmo jeito.
+  function assinaturaDoCadastro(lista) {
+    return (lista || []).map(r => {
+      const v = versaoCadastrada(r);
+      const props = ((v && v.propriedades) || [])
+        .map(p => (p.nome||'') + '=' + (p.consumo ?? '') + (p.unidade||''))
+        .join('|');
+      return chaveNome(r && r.nome) + '#' + (v ? (v.fck ?? '') : '') + '#' + props;
+    }).sort().join('\n');
   }
   function chaveNome(s) {
     return String(s||'').trim().toUpperCase().replace(/\s+/g,' ');
@@ -497,9 +519,16 @@
   // O requestAnimationFrame nao dispara com a janela minimizada ou em segundo
   // plano, e o widget ficava em branco ate' alguem forcar outro render. O
   // timeout entra como rede: desenha de um jeito ou de outro, uma vez so'.
-  function noProximoQuadro(fn) {
+  function noProximoQuadro(el, fn) {
     let feito = false;
-    const uma = () => { if (feito) return; feito = true; fn(); };
+    const uma = () => {
+      if (feito) return;
+      feito = true;
+      // Entre agendar e desenhar, outro render pode ter trocado o widget.
+      // Desenhar num elemento que ja' saiu da tela so' gasta memoria.
+      if (el && !el.isConnected) return;
+      fn();
+    };
     requestAnimationFrame(uma);
     setTimeout(uma, 60);
   }
@@ -537,7 +566,7 @@
     el.style.height = widgetH + 'px';
     bindWidgetCtx(el, item, rec, 'chart');
 
-    noProximoQuadro(() => {
+    noProximoQuadro(el, () => {
       const ptsY   = pontosComReceita(rec.nome, cfg.colunaY, versaoFiltro);
       const dadosY = ptsY.map(p => p.v);
       const dadosX = cfg.colunaX

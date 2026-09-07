@@ -9,11 +9,31 @@ function num(v){const n=Number(v);return isFinite(n)?n:NaN;}
 function color(c,fb){return c||fb||'#2a5298';}
 function getDataset(cfg){return (cfg.data && cfg.data.datasets && cfg.data.datasets[0]) || {data:[]};}
 function getPoints(ds){return (ds.data||[]).map((p,i)=>typeof p==='object'?{x:num(p.x),y:num(p.y),raw:p,i}:{x:i,y:num(p),raw:p,i}).filter(p=>!isNaN(p.y));}
+// UMA tooltip para todos os graficos, criada na primeira vez e reaproveitada.
+//
+// Antes cada grafico criava a sua com document.body.appendChild, e o destroy()
+// tirava so' os listeners — a <div> ficava. Com 61 receitas na tela, cada ida e
+// volta na aba dos Graficos deixava 61 <div> position:fixed para tras, para
+// sempre. Medido: seis trocas de aba deixaram 861 delas no <body>. O navegador
+// nao aguenta manter milhares de camadas fixas e o app morre.
+let _tooltip = null;
+function tooltipCompartilhada(){
+  if (_tooltip && _tooltip.isConnected) return _tooltip;
+  const t = document.createElement('div');
+  t.className = 'chart-lite-tooltip';
+  t.style.cssText = 'position:fixed;z-index:99999;background:#1b1b18;color:#fff;'
+    + 'border:1px solid #555;padding:5px 7px;font:11px IBM Plex Mono,monospace;'
+    + 'display:none;pointer-events:none;border-radius:3px';
+  document.body.appendChild(t);
+  _tooltip = t;
+  return t;
+}
+function esconderTooltip(){ if (_tooltip) _tooltip.style.display = 'none'; }
 function niceRange(vals){let min=Math.min(...vals),max=Math.max(...vals); if(!isFinite(min)||!isFinite(max)){min=0;max=1;} if(min===max){min-=1;max+=1;} const pad=(max-min)*.08; return [min-pad,max+pad];}
 class ChartLite{
   constructor(canvas,cfg){this.canvas=canvas;this.ctx=canvas.getContext('2d');this.config=cfg||{};this.options=this.config.options||{};this.data=this.config.data||{};this.type=this.config.type||'line';this.plugins=this.config.plugins||[];this.__listeners=[];this.update();}
   update(){this.draw();}
-  destroy(){this.__listeners.forEach(([el,t,fn])=>el.removeEventListener(t,fn));this.__listeners=[];}
+  destroy(){this.__listeners.forEach(([el,t,fn])=>el.removeEventListener(t,fn));this.__listeners=[];esconderTooltip();}
   _size(){const dpr=window.devicePixelRatio||1;const r=this.canvas.getBoundingClientRect();
     // Usa o tamanho REAL do elemento. O minimo de 280px forcava o canvas do eixo Y
     // (56px) a desenhar em 280px e o navegador espremia tudo -> "grafico fantasma".
@@ -30,7 +50,7 @@ class ChartLite{
     const noLine=ds.borderWidth===0, noPts=ds.pointRadius===0;
     if(noLine&&noPts)return;
     ctx.save();ctx.beginPath();ctx.rect(ca.left,ca.top,ca.width,ca.height);ctx.clip();const col=color(ds.borderColor||ds.backgroundColor,'#2a5298');ctx.strokeStyle=col;ctx.fillStyle=color(ds.backgroundColor,col);ctx.lineWidth=2;if(this.type==='bar'){const barW=Math.max(2,Math.min(28,ca.width/Math.max(1,pts.length)*.7));pts.forEach(p=>{const x=this.scales.x.getPixelForValue(p.x)-barW/2;const y=this.scales.y.getPixelForValue(p.y);ctx.fillRect(x,y,barW,ca.bottom-y);});}else{const hasCor=pts.some(p=>p.raw&&p.raw.color);if(hasCor){for(let i=1;i<pts.length;i++){const x0=this.scales.x.getPixelForValue(pts[i-1].x),y0=this.scales.y.getPixelForValue(pts[i-1].y),x1=this.scales.x.getPixelForValue(pts[i].x),y1=this.scales.y.getPixelForValue(pts[i].y);ctx.beginPath();ctx.strokeStyle=(pts[i].raw&&pts[i].raw.color)||col;ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();}}else{ctx.beginPath();pts.forEach((p,i)=>{const x=this.scales.x.getPixelForValue(p.x),y=this.scales.y.getPixelForValue(p.y);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();if(ds.fill){ctx.lineTo(this.scales.x.getPixelForValue(pts.at(-1)?.x||0),ca.bottom);ctx.lineTo(this.scales.x.getPixelForValue(pts[0]?.x||0),ca.bottom);ctx.closePath();ctx.globalAlpha=.25;ctx.fill();ctx.globalAlpha=1;}}if(!noPts)pts.forEach(p=>{const x=this.scales.x.getPixelForValue(p.x),y=this.scales.y.getPixelForValue(p.y);ctx.beginPath();ctx.arc(x,y,Math.max(2,ds.pointRadius||2),0,Math.PI*2);ctx.fillStyle=(p.raw&&p.raw.color)||col;ctx.fill();});}ctx.restore();}
-  _bindTooltip(pts,ds){if(this._ttBound)return;this._ttBound=true;const canvas=this.canvas;const tip=document.createElement('div');tip.className='chart-lite-tooltip';tip.style.cssText='position:fixed;z-index:99999;background:#1b1b18;color:#fff;border:1px solid #555;padding:5px 7px;font:11px IBM Plex Mono,monospace;display:none;pointer-events:none;border-radius:3px';document.body.appendChild(tip);const move=e=>{const r=canvas.getBoundingClientRect();const x=e.clientX-r.left,y=e.clientY-r.top;let best=null,bd=18;pts.forEach(p=>{const px=this.scales.x.getPixelForValue(p.x),py=this.scales.y.getPixelForValue(p.y);const d=Math.hypot(px-x,py-y);if(d<bd){bd=d;best=p;}});if(!best){tip.style.display='none';return;}const rw=best.raw||{};const cp=(rw.cp!=null&&String(rw.cp).trim()!=='')?rw.cp:(best.i+1);const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');const fmtD=v=>{const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return m?`${m[3]}/${m[2]}/${m[1]}`:String(v||'');};const linhas=[`CP ${esc(cp)}`];if(rw.receita)linhas.push(`Receita: ${esc(rw.receita)}`);linhas.push(`${esc(ds.label||'Resistência')}: ${esc(best.y)}`);if(rw.data)linhas.push(`Data: ${esc(fmtD(rw.data))}`);tip.innerHTML=linhas.join('<br>');tip.style.left=e.clientX+12+'px';tip.style.top=e.clientY+12+'px';tip.style.display='block';};const leave=()=>tip.style.display='none';canvas.addEventListener('mousemove',move);canvas.addEventListener('mouseleave',leave);this.__listeners.push([canvas,'mousemove',move],[canvas,'mouseleave',leave]);}
+  _bindTooltip(pts,ds){if(this._ttBound)return;this._ttBound=true;const canvas=this.canvas;const tip=tooltipCompartilhada();const move=e=>{const r=canvas.getBoundingClientRect();const x=e.clientX-r.left,y=e.clientY-r.top;let best=null,bd=18;pts.forEach(p=>{const px=this.scales.x.getPixelForValue(p.x),py=this.scales.y.getPixelForValue(p.y);const d=Math.hypot(px-x,py-y);if(d<bd){bd=d;best=p;}});if(!best){tip.style.display='none';return;}const rw=best.raw||{};const cp=(rw.cp!=null&&String(rw.cp).trim()!=='')?rw.cp:(best.i+1);const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');const fmtD=v=>{const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return m?`${m[3]}/${m[2]}/${m[1]}`:String(v||'');};const linhas=[`CP ${esc(cp)}`];if(rw.receita)linhas.push(`Receita: ${esc(rw.receita)}`);linhas.push(`${esc(ds.label||'Resistência')}: ${esc(best.y)}`);if(rw.data)linhas.push(`Data: ${esc(fmtD(rw.data))}`);tip.innerHTML=linhas.join('<br>');tip.style.left=e.clientX+12+'px';tip.style.top=e.clientY+12+'px';tip.style.display='block';};const leave=()=>tip.style.display='none';canvas.addEventListener('mousemove',move);canvas.addEventListener('mouseleave',leave);this.__listeners.push([canvas,'mousemove',move],[canvas,'mouseleave',leave]);}
 }
 ChartLite.__isConcrestatsLite=true;window.Chart=ChartLite;
 })();
