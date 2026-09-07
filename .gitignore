@@ -54,6 +54,8 @@ dist/
 *.csv
 prefs.json
 receitas.json
+sessao.json
+quedas.txt
 
 # --- configuracao local de ferramenta de editor ---------------------------
 .claude/

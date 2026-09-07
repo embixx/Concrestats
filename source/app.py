@@ -55,6 +55,8 @@ UPLOADS_DIR = os.path.join(app_dir(), "uploads")
 EXPORTS_DIR = os.path.join(app_dir(), "exports")
 RECEITAS_FILE = os.path.join(app_dir(), "receitas.json")
 PREFS_FILE = os.path.join(app_dir(), "prefs.json")
+SESSAO_FILE = os.path.join(app_dir(), "sessao.json")
+QUEDAS_FILE = os.path.join(app_dir(), "quedas.txt")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 os.makedirs(EXPORTS_DIR, exist_ok=True)
 
@@ -149,12 +151,124 @@ def edicao():
             "ocultar": [str(x).strip().lower() for x in ocultar if str(x).strip()]}
 
 
+# ── SESSÕES E QUEDAS ────────────────────────────────────────────────────────
+# O programa não gravava NADA quando morria. O Naor relatou "o app fica
+# morrendo, acontece a cada algumas trocas de aba" e não havia um arquivo
+# sequer, aqui ou na máquina dele, que dissesse o que tinha acontecido — nem se
+# tinha sido o programa, nem o antivírus, nem quantas vezes. Corrigir no escuro
+# é adivinhar; e eu adivinhei uma vez.
+#
+# A ideia é a mais simples que funciona: enquanto o programa está aberto existe
+# um sessao.json. Ao fechar pela janela, ele é apagado. Se ele AINDA existe na
+# próxima abertura, a vez anterior não terminou — e o que ela estava fazendo
+# vai para quedas.txt.
+
+
+def _agora_texto():
+    return time.strftime("%d/%m/%Y %H:%M:%S")
+
+
+def _versao_instalada():
+    try:
+        with open(resource_path(os.path.join("static", "versao.json")),
+                  encoding="utf-8") as fh:
+            return (json.load(fh) or {}).get("versao") or "?"
+    except Exception:  # noqa: BLE001
+        return "?"
+
+
+def abrir_sessao():
+    """Registra a queda anterior (se houve) e marca esta sessão como aberta."""
+    anterior = None
+    try:
+        if os.path.exists(SESSAO_FILE):
+            with open(SESSAO_FILE, encoding="utf-8") as fh:
+                anterior = json.load(fh) or {}
+    except Exception:  # noqa: BLE001
+        anterior = {"aba": "?", "inicio": "?", "ultimo_sinal": "?", "sinais": 0}
+
+    if anterior:
+        try:
+            with open(QUEDAS_FILE, "a", encoding="utf-8") as fh:
+                fh.write(
+                    "%s | fechou sem avisar | aberto em %s | ultimo sinal %s | "
+                    "estava na aba %s | %s sinais | versao %s\n" % (
+                        _agora_texto(),
+                        anterior.get("inicio", "?"),
+                        anterior.get("ultimo_sinal", "?"),
+                        anterior.get("aba") or "?",
+                        anterior.get("sinais", 0),
+                        anterior.get("versao", "?")))
+        except OSError:
+            pass
+
+    try:
+        with open(SESSAO_FILE, "w", encoding="utf-8") as fh:
+            json.dump({"inicio": _agora_texto(), "ultimo_sinal": _agora_texto(),
+                       "aba": "", "sinais": 0, "versao": _versao_instalada()},
+                      fh, ensure_ascii=False)
+    except OSError:
+        pass
+    return anterior
+
+
+def fechar_sessao():
+    """Fechou pela janela: some com a marca, para não contar como queda."""
+    try:
+        os.remove(SESSAO_FILE)
+    except OSError:
+        pass
+
+
+def _quantas_quedas():
+    try:
+        with open(QUEDAS_FILE, encoding="utf-8") as fh:
+            return sum(1 for linha in fh if linha.strip())
+    except OSError:
+        return 0
+
+
+@app.route("/api/sinal", methods=["POST"])
+def api_sinal():
+    """Batida de coração da tela: diz que está viva e em que aba está."""
+    body = request.get_json(force=True, silent=True) or {}
+    try:
+        with open(SESSAO_FILE, encoding="utf-8") as fh:
+            dados = json.load(fh) or {}
+    except Exception:  # noqa: BLE001
+        dados = {"inicio": _agora_texto(), "sinais": 0,
+                 "versao": _versao_instalada()}
+    dados["ultimo_sinal"] = _agora_texto()
+    dados["aba"] = str(body.get("aba") or "")[:40]
+    dados["sinais"] = int(dados.get("sinais") or 0) + 1
+    try:
+        with open(SESSAO_FILE, "w", encoding="utf-8") as fh:
+            json.dump(dados, fh, ensure_ascii=False)
+    except OSError:
+        pass
+    return jsonify({"success": True})
+
+
+@app.route("/api/quedas")
+def api_quedas():
+    """As últimas quedas, em texto, para quem estiver ajudando a diagnosticar."""
+    linhas = []
+    try:
+        with open(QUEDAS_FILE, encoding="utf-8") as fh:
+            linhas = [x.strip() for x in fh if x.strip()][-20:]
+    except OSError:
+        pass
+    return jsonify({"quedas": linhas, "total": _quantas_quedas(),
+                    "arquivo": QUEDAS_FILE})
+
+
 @app.route("/api/ambiente")
 def api_ambiente():
     """O frontend usa isto para esconder botões que só existem no app de mesa."""
     e = edicao()
     return jsonify({"web": MODO_WEB, "versao": "2.0",
                     "dev": os.environ.get("CONCRE_DEV") == "1",
+                    "quedas": _quantas_quedas(),
                     "edicao": e["nome"], "ocultar": e["ocultar"]})
 
 
@@ -1738,6 +1852,13 @@ if __name__ == "__main__":
     # salvar no arquivo de origem, recarregar). Servido por gunicorn/host, o
     # módulo é só importado e MODO_WEB continua True.
     MODO_WEB = False
+    abrir_sessao()
+    # Saida limpa por qualquer caminho (janela fechada, Ctrl+C, sem janela)
+    # apaga a marca. Morte de verdade — processo derrubado pelo WebView2 ou
+    # encerrado pelo antivirus — nao roda isto, e e' assim que as duas coisas
+    # se distinguem no quedas.txt.
+    import atexit
+    atexit.register(fechar_sessao)
     # Flask sobe numa thread em segundo plano.
     threading.Thread(target=_run_server, daemon=True).start()
 
@@ -1811,6 +1932,9 @@ if __name__ == "__main__":
             storage_path=os.path.join(app_dir(), "webview_data"),
             icon=_ico if os.path.isfile(_ico) else None,
         )  # bloqueia até fechar a janela
+        # Chegou aqui: a janela foi fechada por quem estava usando. Isso NAO e'
+        # queda, entao a marca sai.
+        fechar_sessao()
     except Exception:  # noqa: BLE001 -- fallback: navegador
         threading.Timer(1.0, open_browser).start()
         try:

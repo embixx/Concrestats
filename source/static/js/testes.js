@@ -797,6 +797,30 @@
       ir: () => ConcrestatsOpenModule('painel'),
     },
     {
+      id: 'nao-fechou-sozinho',
+      grupo: G_ARQ,
+      titulo: 'O programa não fechou sozinho',
+      olhar: 'Se o programa sumiu da tela alguma vez, esta linha diz quando e em que aba — mande para mim.',
+      auto: async () => {
+        let j = null;
+        try { j = await (await fetch('/api/quedas')).json(); } catch (e) { j = null; }
+        if (!j) return { ok: true, pulou: true, msg: 'esta versão ainda não guarda esse registro' };
+        const n = j.total || 0;
+        if (!n) return { ok: true, msg: 'nenhuma vez desde que este registro começou' };
+        // Falha de proposito: fechar sozinho e' defeito, e ficar em verde com o
+        // numero escondido no meio do texto e' como isso passou despercebido
+        // ate' o Naor reclamar.
+        const ultimas = (j.quedas || []).slice(-3);
+        return {
+          ok: false,
+          msg: n + (n === 1 ? ' vez que o programa fechou sozinho' : ' vezes que o programa fechou sozinho')
+               + ' — arquivo: ' + (j.arquivo || 'quedas.txt'),
+          subs: ultimas.map(l => ({ ok: false, texto: l })),
+        };
+      },
+      ir: () => ConcrestatsOpenModule('spreadsheet'),
+    },
+    {
       id: 'trocar-aba-nao-vaza',
       grupo: G_VIS,
       titulo: 'Trocar de aba muitas vezes não entope o programa',

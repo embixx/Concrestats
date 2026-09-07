@@ -45,7 +45,8 @@ def _python():
 PASTAS_QUE_NAO_VAO = ("webview_data", "copias", "codigo", "codigo.quebrado",
                       "_antes_da_atualizacao")
 ARQUIVOS_QUE_NAO_VAO = ("prefs.json", "edicao.json", "canal.txt",
-                        "licenca.key", "recebedor.json", "receitas.json")
+                        "licenca.key", "recebedor.json", "receitas.json",
+                        "sessao.json", "quedas.txt")
 PASTAS_QUE_VAO_VAZIAS = ("uploads", "exports")
 
 
