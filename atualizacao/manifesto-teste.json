@@ -1,12 +1,17 @@
 {
-  "versao": "07/09/2026 00:42",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-07-09-2026_00-42-teste.zip",
-  "sha256": "02bb87d13f4cb85e022d1e5ef22912423458fe366886358637f305044b613c85",
-  "assinatura": "W8QUu/4QKdsOrnseZ0Gx4YmXh+3De72cuP8/oxq+7SllE5iub74qoAF7HfJrIjkPHHz72345ff9lf1Ev2SdTDw==",
+  "versao": "07/09/2026 02:33",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-07-09-2026_02-33-teste.zip",
+  "sha256": "7e5d2b91797dbe93aba7a5dbeade86d5c3db6c87b1098b482c1706a7e5fc3e92",
+  "assinatura": "EV9lS7C0i/cUi1EMEsNyy+sGlmPN8lx0xj16mFrVEIq6mFxD5mYez0j6EM2X/TanGEHIfvw3lRw6MR/ecimxAA==",
   "novidades": [
-    "CORRECAO IMPORTANTE: o app fechava sozinho depois de algumas trocas de aba",
-    "Cada grafico deixava uma sobra invisivel na tela; agora nao deixa mais",
-    "Este canal MANTEM a aba PAINEL"
+    "O programa passa a registrar se fechar sozinho, com a hora e a aba",
+    "Em Testar, um item novo mostra isso e o caminho do arquivo para me mandar",
+    "Este",
+    "canal",
+    "MANTEM",
+    "a",
+    "aba",
+    "PAINEL"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "teste"
