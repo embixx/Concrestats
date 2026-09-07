@@ -1,7 +1,7 @@
 {
-  "versao": "07/09/2026 00:42",
+  "versao": "07/09/2026 02:33",
   "novidades": [
-    "CORRECAO IMPORTANTE: o app fechava sozinho depois de algumas trocas de aba",
-    "Cada grafico deixava uma sobra invisivel na tela; agora nao deixa mais"
+    "O programa passa a registrar se fechar sozinho, com a hora e a aba",
+    "Em Testar, um item novo mostra isso e o caminho do arquivo para me mandar"
   ]
 }
