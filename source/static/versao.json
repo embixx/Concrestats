@@ -1,14 +1,7 @@
 {
-  "versao": "06/09/2026 06:46",
+  "versao": "07/09/2026 00:42",
   "novidades": [
-    "Congelar prende a coluna que voce escolheu, e da para soltar uma so",
-    "Barra de ferramentas na ordem pedida, e o filtro em todas as abas",
-    "Largura de coluna fica salva, e agora passa de 240px",
-    "Receitas com os nomes do ramo: agregado miudo, graudo, aglomerante, aditivo",
-    "Relatorio tecnico nao imprime mais 424 valores no lugar do cliente",
-    "Graficos: largura 1800 vale 1800 mesmo (antes travava em 900)",
-    "Modo de edicao dos graficos nao encolhe nem corta mais os quadros",
-    "Graficos usam o fck e a dosagem cadastrados na aba Receitas",
-    "Grafico do Painel nao estica mais: barras legiveis, sem queda falsa de 99,9%"
+    "CORRECAO IMPORTANTE: o app fechava sozinho depois de algumas trocas de aba",
+    "Cada grafico deixava uma sobra invisivel na tela; agora nao deixa mais"
   ]
 }
