@@ -1,11 +1,10 @@
 {
-  "versao": "07/09/2026 02:33",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-07-09-2026_02-33.zip",
-  "sha256": "7b27ddda67215968d51617e57589afd4e201cd252544732e1f49d7f5fde742c6",
-  "assinatura": "TJC/eKkt/GDoUS9lwkOuESl1w+LWQZJ04tlXUbSbtml3+J07/kIgAnQVL++pRQ+cjFXy4JUjqHGFCw6JZcOyDw==",
+  "versao": "08/09/2026 11:47",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-08-09-2026_11-47.zip",
+  "sha256": "7eed87932261d8a72a7a6c7771c57b8cc5edea05aa3d06290ca62b74880fce29",
+  "assinatura": "CUw6vbGkVPAyBZt8wXF74pEa33X8jj8X42vxlvb83JO0/pEMbZRQzHUPWETu0sv5M71kaunyX5QBA3fiLlLQCQ==",
   "novidades": [
-    "O programa passa a registrar se fechar sozinho, com a hora e a aba",
-    "Em Testar, um item novo mostra isso e o caminho do arquivo para me mandar"
+    "PAINEL: bloco largo voltou a poder ser arrastado (ficava preso no canto)"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel",
@@ -17,5 +16,5 @@
       ]
     }
   },
-  "assinatura_edicoes": "ALAkpfTkqwj+idoVe9zQEL2J/54AcT304/hvfQmpAC5q58ALKx/Zl/2svsq/Lcj0ffoOq8piHuxFVrdlwsbAAg=="
+  "assinatura_edicoes": "G5/TiKL1GQToUkoRDANAqXS/Dw3kVkFezXZ/rfUJFJ3741mhoVfEgNp68p0IruMvBIuiIDkQfD9RoPsiBekIDQ=="
 }
