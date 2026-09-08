@@ -735,6 +735,42 @@
       ir: () => ConcrestatsOpenModule('painel'),
     },
     {
+      id: 'painel-cabe-no-canvas',
+      grupo: G_VIS,
+      titulo: 'Bloco largo do Painel continua podendo ser arrastado',
+      olhar: 'No Painel, alargue um bloco até passar da tela e tente arrastá-lo para o lado: tem que andar.',
+      auto: async () => {
+        if (semAba('painel')) return pular('painel');
+        ConcrestatsOpenModule('painel');
+        await ate(() => document.querySelectorAll('.pan-widget').length > 0, 8000);
+        const c = document.getElementById('pan-canvas');
+        const blocos = [].slice.call(document.querySelectorAll('.pan-widget'));
+        if (!c || !blocos.length) return { ok: true, pulou: true, msg: 'painel vazio' };
+        // A causa do defeito: o limite do arrasto era
+        // (largura do canvas - largura do bloco). Com um bloco mais largo que o
+        // canvas isso da' negativo, e o bloco ficava preso no canto esquerdo
+        // sem andar um pixel. Basta o canvas acompanhar o conteudo para o
+        // limite nunca mais ser negativo.
+        let borda = 0, maisLargo = 0;
+        blocos.forEach(w => {
+          const x = parseInt(w.style.left) || 0;
+          borda = Math.max(borda, x + w.offsetWidth);
+          maisLargo = Math.max(maisLargo, w.offsetWidth);
+        });
+        const sobra = c.offsetWidth - borda;
+        const ok = sobra >= 0;
+        return {
+          ok,
+          msg: ok
+            ? 'canvas de ' + c.offsetWidth + 'px acompanha o bloco mais largo ('
+              + maisLargo + 'px)'
+            : 'o conteúdo chega a ' + borda + 'px e o canvas tem só '
+              + c.offsetWidth + 'px — blocos largos ficam presos no canto'
+        };
+      },
+      ir: () => ConcrestatsOpenModule('painel'),
+    },
+    {
       id: 'painel-foco',
       grupo: G_VIS,
       titulo: 'Clicar num gráfico filtra o painel inteiro',

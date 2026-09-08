@@ -319,16 +319,20 @@
     // CSS esticava para o tamanho de verdade. No "Volume por cliente" eram
     // 700px esticados para 2280: barra larga e texto borrado. Foi o que o
     // Naor fotografou.
-    let maxB = 0;
+    let maxB = 0, maxR = 0;
     const criados = [];
     L.forEach(it => {
       const el = criarWidget(f, it);
       canvas.appendChild(el);
       criados.push([el, it]);
       maxB = Math.max(maxB, (it.y || 0) + (it.h || 240));
+      maxR = Math.max(maxR, (it.x || 0) + (it.w || 360));
     });
     criados.forEach(([el, it]) => desenharWidget(f, it, el));
     canvas.style.minHeight = Math.max(maxB + GRID * 4, 380) + 'px';
+    // A largura tambem: sem isto o canvas ficava do tamanho da tela e um
+    // widget mais largo transbordava sem o canvas saber.
+    canvas.style.minWidth = Math.max(maxR + GRID * 2, 0) + 'px';
     canvas.addEventListener('contextmenu', e => {
       if (e.target.closest('.pan-widget')) return;
       e.preventDefault();
@@ -1188,10 +1192,20 @@
       const mover = e => {
         let nl = snap(e.clientX - cr.left - offX);
         let nt = snap(e.clientY - cr.top - offY);
-        nl = Math.max(0, Math.min(nl, snap(canvas.offsetWidth - el.offsetWidth)));
+        // Sem limite superior, igual ja' era na vertical. O limite antigo era
+        // (largura do canvas - largura do widget): num widget mais largo que a
+        // tela isso da' NEGATIVO, o Math.max(0, ...) zerava, e o widget ficava
+        // preso no canto esquerdo sem sair do lugar. Reproduzido: widget de
+        // 1640px num canvas de 1226px nao andava um pixel.
+        nl = Math.max(0, nl);
         nt = Math.max(0, nt);
         el.style.left = nl + 'px';
         el.style.top = nt + 'px';
+        // O canvas cresce junto para dar onde pousar (e onde rolar ate').
+        const precisaW = snap(nl + el.offsetWidth + GRID * 2);
+        if (precisaW > canvas.offsetWidth) canvas.style.minWidth = precisaW + 'px';
+        const precisaH = snap(nt + el.offsetHeight + GRID * 2);
+        if (precisaH > canvas.offsetHeight) canvas.style.minHeight = precisaH + 'px';
       };
       const soltar = () => {
         document.removeEventListener('mousemove', mover);
@@ -1211,11 +1225,16 @@
     const h = el.querySelector('.pan-w-resize');
     h.addEventListener('mousedown', ev => {
       ev.preventDefault(); ev.stopPropagation();
+      const canvas = $('pan-canvas');
       const x0 = ev.clientX, y0 = ev.clientY;
       const w0 = el.offsetWidth, h0 = el.offsetHeight;
       const mover = e => {
         el.style.width = Math.max(180, snap(w0 + e.clientX - x0)) + 'px';
         el.style.height = Math.max(110, snap(h0 + e.clientY - y0)) + 'px';
+        const precisaW = snap((parseInt(el.style.left) || 0) + el.offsetWidth + GRID * 2);
+        if (precisaW > canvas.offsetWidth) canvas.style.minWidth = precisaW + 'px';
+        const precisaH = snap((parseInt(el.style.top) || 0) + el.offsetHeight + GRID * 2);
+        if (precisaH > canvas.offsetHeight) canvas.style.minHeight = precisaH + 'px';
       };
       const soltar = () => {
         document.removeEventListener('mousemove', mover);
