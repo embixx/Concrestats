@@ -1,15 +1,15 @@
 {
-  "versao": "18/09/2026 10:45",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-18-09-2026_10-45.zip",
-  "sha256": "9fa95966106097b541bae959c2b497031505d761283d126f19d5a4efed244c7d",
-  "assinatura": "rce31u4mLEh6RA5odGqYppP8qDD5RyUuuJHI5lyYVUUyRKqAa4NhoxsPdY2oIxMi48KNOgkZC9U5l4pgxNBSAQ==",
+  "versao": "18/09/2026 12:15",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-18-09-2026_12-15.zip",
+  "sha256": "3c3461a1885caf258f2603efc73d730e826730f8055aea052f0db5e76dd9bc72",
+  "assinatura": "gDIMak5kSAFHBPIMlsxAIJfpzg0DXRVlxfYaD8PY8hU3Ijc8olG3HfHnbh7ytrMm3p5j06+o1DdwcZz5CtGGBA==",
   "novidades": [
-    "PREVISAO: quatro paineis, o custo em reais e a carta de controle",
-    "PREVISAO: aponta QUANDO a receita mudou de patamar, com data",
-    "PREVISAO: aba DADOS mostra o que ficou de fora das contas, e por que",
-    "RELATORIO DE CONFORMIDADE: documento pronto para o cliente, em PDF",
-    "AVISO NA HORA: o app avisa quando um ensaio novo vem abaixo do previsto",
-    "Tres defeitos corrigidos, achados rodando a bateria inteira"
+    "CORRIGIDO: a aba PREVISAO aparecia duas vezes na barra de cima",
+    "CORRIGIDO: a Previsao so' funcionava com a planilha da Usinop",
+    "Agora ela acha a coluna certa mesmo com acento, maiuscula ou espaco sobrando",
+    "E quando nao acha, PERGUNTA qual coluna e' qual - e guarda a resposta",
+    "A aba DADOS mostra de qual coluna sai cada numero, com botao para trocar",
+    "O fck pedido pode vir de uma coluna da planilha, nao so' do nome do produto"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel",
@@ -21,5 +21,5 @@
       ]
     }
   },
-  "assinatura_edicoes": "ZwiSyitVP1mbFRPR5xmZ6nA2ltSzK0pCQVljRnSHQJ3xp624HaHe0is2oVnxMwp8GXVpExOXeEHTQW6erBwACQ=="
+  "assinatura_edicoes": "y7/OzqrDOFi9ASVwpU61tyBU3pYi8YVpYdsOPRtgqIOla3yT3GyDmm+c/cqF+RfBhckzFUh/soEaJWvu0IptCw=="
 }
