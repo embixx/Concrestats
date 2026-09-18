@@ -1,15 +1,15 @@
 {
-  "versao": "18/09/2026 12:15",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-18-09-2026_12-15.zip",
-  "sha256": "3c3461a1885caf258f2603efc73d730e826730f8055aea052f0db5e76dd9bc72",
-  "assinatura": "gDIMak5kSAFHBPIMlsxAIJfpzg0DXRVlxfYaD8PY8hU3Ijc8olG3HfHnbh7ytrMm3p5j06+o1DdwcZz5CtGGBA==",
+  "versao": "18/09/2026 14:01",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-18-09-2026_14-01.zip",
+  "sha256": "262660d15ca3280bb59dfb1502137f7a375371eb631794065a372880d6ce0396",
+  "assinatura": "eUrckWOQhmsFluwLLj5k5M4iLcg5NdDNsg6rolBVAxKlju5PoRFUnhp7WoKuhNgLnOI2+PwZqcsPgkzBLCjFCQ==",
   "novidades": [
-    "CORRIGIDO: a aba PREVISAO aparecia duas vezes na barra de cima",
+    "CORRIGIDO DE VERDADE: a aba PREVISAO aparecia duas vezes",
+    "CORRIGIDO: o RELATORIO nao abria dentro do programa - agora imprime direto",
     "CORRIGIDO: a Previsao so' funcionava com a planilha da Usinop",
-    "Agora ela acha a coluna certa mesmo com acento, maiuscula ou espaco sobrando",
-    "E quando nao acha, PERGUNTA qual coluna e' qual - e guarda a resposta",
-    "A aba DADOS mostra de qual coluna sai cada numero, com botao para trocar",
-    "O fck pedido pode vir de uma coluna da planilha, nao so' do nome do produto"
+    "Acha a coluna certa mesmo com acento, maiuscula ou espaco sobrando",
+    "Quando nao acha, PERGUNTA qual coluna e' qual - e guarda a resposta",
+    "A aba DADOS mostra de qual coluna sai cada numero, com botao para trocar"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel",
@@ -21,5 +21,5 @@
       ]
     }
   },
-  "assinatura_edicoes": "y7/OzqrDOFi9ASVwpU61tyBU3pYi8YVpYdsOPRtgqIOla3yT3GyDmm+c/cqF+RfBhckzFUh/soEaJWvu0IptCw=="
+  "assinatura_edicoes": "8bZV+QWTNMK0SeWiGWwIG3g2Hibx6MqAIVUTO13uWIDB+K6nlEmwT3AJK5PME9rtkadO9Ghb94ZroRoBaGm1Bw=="
 }
