@@ -1,14 +1,13 @@
 {
-  "versao": "18/09/2026 07:18",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-18-09-2026_07-18-teste.zip",
-  "sha256": "6186fd9912fea5df7e4bba9e6996ae79ce8c63de389ddad49de74eab9d7a2abf",
-  "assinatura": "GTByaX99MYuqxA3Jf40iGCanw1uz8XBW8sSWMo4TlEZCJACWBsBcOHqbzs8x/Y+v2wv/bEe4PYVSkMBAPHN3Cw==",
+  "versao": "18/09/2026 08:17",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-18-09-2026_08-17-teste.zip",
+  "sha256": "17fe00768d32a219840f25bb66247f8b6aa3113a7e95a4033584163bc9ba2ce2",
+  "assinatura": "F9c8Zb/amGfr6uTFMhp0vuDdqik1UXJQJTh2oOP3pHb6fqsII2Y73GmDKhyO+15apr6RaBbYWBBXWgpYcXoJAA==",
   "novidades": [
-    "PREVISAO: condicao de preparo pela NBR 12655 - 14 receitas piores que C",
-    "O que a irregularidade custa: 23 receitas gastam 3,2 MPa de media a toa",
-    "Ensaios que decepcionaram: o corpo de prova suspeito, com CP e data",
-    "Diagnostico em texto: diz se o problema e o traco ou a irregularidade",
-    "Exportar a lista em Excel, com o diagnostico junto",
+    "PREVISAO reorganizada em cinco paineis, com contador em cada aba",
+    "O QUE CUSTA: informe kg de cimento por MPa e a tela mostra em toneladas e reais",
+    "CARTA DE CONTROLE: clique na receita e veja os ensaios na ordem, com as linhas de fck",
+    "DADOS: 63% das suas linhas estao sem defeito - as outras estao listadas com linha e CP",
     "Este canal MANTEM a aba PAINEL"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
