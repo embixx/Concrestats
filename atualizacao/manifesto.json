@@ -1,13 +1,15 @@
 {
   "versao": "18/09/2026 05:55",
   "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-18-09-2026_05-55.zip",
-  "sha256": "9049d0c667a3d2aeccbc381dd20bbf16ea24d67d83fe798a7810262cb867d935",
-  "assinatura": "+nAijQbBoziW9DQBwg7tMBnpKAfDAGevdhjihF5oOPyentPet+FkwlKJ/Q7JiT6yUgStQisXBDeh0vO/rmVbCQ==",
+  "sha256": "bf3b3fa209b81a55adc437ab64075e7b3f4978bbc3318676d2df77866f5cf2b8",
+  "assinatura": "D0usIN7F/Dyx8bP+xqmyaqM9+Tvq6xa1VPBg87j1ZgZBh3hSZC/7CZfjoFeeX++MbYQoM06phF5jWe749rqqDw==",
   "novidades": [
-    "Aba PREVISAO: estima o rompimento de 28 dias a partir do de 7, sempre com a margem",
-    "E aponta quais receitas estao abaixo do fck pedido (NBR 12655)",
-    "Procurar atualizacao deixou de incomodar o antivirus",
-    "PAINEL: bloco largo voltou a poder ser arrastado"
+    "PREVISAO: quatro paineis, o custo em reais e a carta de controle",
+    "PREVISAO: aponta QUANDO a receita mudou de patamar, com data",
+    "PREVISAO: aba DADOS mostra o que ficou de fora das contas, e por que",
+    "RELATORIO DE CONFORMIDADE: documento pronto para o cliente, em PDF",
+    "AVISO NA HORA: o app avisa quando um ensaio novo vem abaixo do previsto",
+    "Tres defeitos corrigidos, achados rodando a bateria inteira"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel",
@@ -19,5 +21,5 @@
       ]
     }
   },
-  "assinatura_edicoes": "opEEEjN27RtWWjyCGcEkZndYfuQM1loA8dm9/blSThhkVcBJ6QzbvIshfGRNOr+R0KfMNe5AQxvnq8hlaHMSAQ=="
+  "assinatura_edicoes": "QdHaSYZqI9eJ4dTvpIhhrTwTgXK/5H0QL1ytpO91HiWH0/VCW7LuQZuOUJLnL+TXIJGmzt3toKM/O+A3Nj+9Cg=="
 }
