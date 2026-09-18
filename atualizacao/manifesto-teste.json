@@ -1,13 +1,11 @@
 {
-  "versao": "18/09/2026 08:17",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-18-09-2026_08-17-teste.zip",
-  "sha256": "17fe00768d32a219840f25bb66247f8b6aa3113a7e95a4033584163bc9ba2ce2",
-  "assinatura": "F9c8Zb/amGfr6uTFMhp0vuDdqik1UXJQJTh2oOP3pHb6fqsII2Y73GmDKhyO+15apr6RaBbYWBBXWgpYcXoJAA==",
+  "versao": "18/09/2026 08:26",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-18-09-2026_08-26-teste.zip",
+  "sha256": "835f63ea8c4fa2b9d4d80eda764b6fe0423e8005d648c85d15ec9ecf669fbbee",
+  "assinatura": "chs3RTIUsFoWbkDUo0uRNe9RoeJNSv7X1QFRCm2wC+pcvmS/FGTpMnI3CtpglS4c33ujM7eeY2B67U82IkrvAQ==",
   "novidades": [
-    "PREVISAO reorganizada em cinco paineis, com contador em cada aba",
-    "O QUE CUSTA: informe kg de cimento por MPa e a tela mostra em toneladas e reais",
-    "CARTA DE CONTROLE: clique na receita e veja os ensaios na ordem, com as linhas de fck",
-    "DADOS: 63% das suas linhas estao sem defeito - as outras estao listadas com linha e CP",
+    "Carta de controle abria o grafico da receita errada quando duas tinham o mesmo diagnostico",
+    "Reiniciar o app em desenvolvimento nao conta mais como queda",
     "Este canal MANTEM a aba PAINEL"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
