@@ -1,0 +1,23 @@
+{
+  "versao": "18/09/2026 05:55",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-18-09-2026_05-55.zip",
+  "sha256": "9049d0c667a3d2aeccbc381dd20bbf16ea24d67d83fe798a7810262cb867d935",
+  "assinatura": "+nAijQbBoziW9DQBwg7tMBnpKAfDAGevdhjihF5oOPyentPet+FkwlKJ/Q7JiT6yUgStQisXBDeh0vO/rmVbCQ==",
+  "novidades": [
+    "Aba PREVISAO: estima o rompimento de 28 dias a partir do de 7, sempre com a margem",
+    "E aponta quais receitas estao abaixo do fck pedido (NBR 12655)",
+    "Procurar atualizacao deixou de incomodar o antivirus",
+    "PAINEL: bloco largo voltou a poder ser arrastado"
+  ],
+  "onde": "https://trello.com/c/QL8BmY8O",
+  "canal": "estavel",
+  "edicoes": {
+    "*": {
+      "nome": "Usinop",
+      "ocultar": [
+        "painel"
+      ]
+    }
+  },
+  "assinatura_edicoes": "opEEEjN27RtWWjyCGcEkZndYfuQM1loA8dm9/blSThhkVcBJ6QzbvIshfGRNOr+R0KfMNe5AQxvnq8hlaHMSAQ=="
+}
