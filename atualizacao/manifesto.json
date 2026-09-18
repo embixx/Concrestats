@@ -1,8 +1,8 @@
 {
-  "versao": "18/09/2026 05:55",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-18-09-2026_05-55.zip",
-  "sha256": "bf3b3fa209b81a55adc437ab64075e7b3f4978bbc3318676d2df77866f5cf2b8",
-  "assinatura": "D0usIN7F/Dyx8bP+xqmyaqM9+Tvq6xa1VPBg87j1ZgZBh3hSZC/7CZfjoFeeX++MbYQoM06phF5jWe749rqqDw==",
+  "versao": "18/09/2026 10:45",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-18-09-2026_10-45.zip",
+  "sha256": "9fa95966106097b541bae959c2b497031505d761283d126f19d5a4efed244c7d",
+  "assinatura": "rce31u4mLEh6RA5odGqYppP8qDD5RyUuuJHI5lyYVUUyRKqAa4NhoxsPdY2oIxMi48KNOgkZC9U5l4pgxNBSAQ==",
   "novidades": [
     "PREVISAO: quatro paineis, o custo em reais e a carta de controle",
     "PREVISAO: aponta QUANDO a receita mudou de patamar, com data",
@@ -21,5 +21,5 @@
       ]
     }
   },
-  "assinatura_edicoes": "QdHaSYZqI9eJ4dTvpIhhrTwTgXK/5H0QL1ytpO91HiWH0/VCW7LuQZuOUJLnL+TXIJGmzt3toKM/O+A3Nj+9Cg=="
+  "assinatura_edicoes": "ZwiSyitVP1mbFRPR5xmZ6nA2ltSzK0pCQVljRnSHQJ3xp624HaHe0is2oVnxMwp8GXVpExOXeEHTQW6erBwACQ=="
 }
