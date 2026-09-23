@@ -1,11 +1,12 @@
 {
-  "versao": "18/09/2026 14:59",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-18-09-2026_14-59.zip",
-  "sha256": "bd0248d0cec2af49d624b429a1aa2908b495e4076ba27b96a5a7aa801c724e50",
-  "assinatura": "UcRU7pH2ry2UG+BpaQkhXaHIM7wtzQLk1eXge5AnaSJgZUKqfLWRBdB8DPrkrWMWManL0RZObij/lE4J3gVWAw==",
+  "versao": "22/09/2026 21:12",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-22-09-2026_21-12.zip",
+  "sha256": "bd18e640fe644f99e59a6099c250bc77cf9a4df65f2ea3b30acc4d72a23f9c28",
+  "assinatura": "AoFwqGXXyp8e4k6Ddnz768vWEM1rG0nOULUSwlMl8Fnq0AdknY9LDJrsabr/+0HEqSl7DXCI9JmiBMS2ptHwDQ==",
   "novidades": [
-    "CORRIGIDO: Renomear nao fazia nada (widget de Graficos e versao de receita)",
-    "A caixa de renomear agora e' a do proprio app, e funciona na janela do programa"
+    "CORRIGIDO: o app nao reconhecia o arquivo de licenca que mandamos (licenca_SeuNome.key)",
+    "O botao Escolher o arquivo da licenca agora mostra os arquivos .key",
+    "A tela de licenca explica o que fazer com o arquivo"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel",
@@ -17,5 +18,5 @@
       ]
     }
   },
-  "assinatura_edicoes": "H4qWS+/7nd9Z7wSFn1SFgGFaGfrwmNfxcDOPN9dbztOL+Pzov0aiasaNGecW9nxDRe6axyWguFBd/vwhN9W2BQ=="
+  "assinatura_edicoes": "llT586dxOdMPVkUmY4cTw5DPwCndpnC2E0dARK0RJVjGSHQHgjjbZGjiX2LusSp02hikUVTgGpwN78a6BqmbAg=="
 }
