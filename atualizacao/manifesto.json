@@ -1,12 +1,13 @@
 {
-  "versao": "22/09/2026 21:12",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-22-09-2026_21-12.zip",
-  "sha256": "bd18e640fe644f99e59a6099c250bc77cf9a4df65f2ea3b30acc4d72a23f9c28",
-  "assinatura": "AoFwqGXXyp8e4k6Ddnz768vWEM1rG0nOULUSwlMl8Fnq0AdknY9LDJrsabr/+0HEqSl7DXCI9JmiBMS2ptHwDQ==",
+  "versao": "23/09/2026 07:32",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-23-09-2026_07-32.zip",
+  "sha256": "b6cb71bbbbe4c20a27bce797be0ab74e4ba7e9ed51dc6a231a74a7eb7b1cfbd1",
+  "assinatura": "eK3BjxCm8YxNARGt8CqaNxF1vKROVJ45bRa5vxlGjo8wTRIGHKEW1OEzw2gQQE6pDxqQfVsxdRS5jXSrP0OVAQ==",
   "novidades": [
-    "CORRIGIDO: o app nao reconhecia o arquivo de licenca que mandamos (licenca_SeuNome.key)",
-    "O botao Escolher o arquivo da licenca agora mostra os arquivos .key",
-    "A tela de licenca explica o que fazer com o arquivo"
+    "Aberto de dentro do .rar: o programa agora avisa que nada vai ficar salvo",
+    "A licenca e' encontrada tambem na pasta de cima do programa",
+    "O programa nao baixa mais a propria atualizacao - quem baixa e' a tela",
+    "Menos gravacao na pasta do programa, para o antivirus nao estranhar"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel",
@@ -18,5 +19,5 @@
       ]
     }
   },
-  "assinatura_edicoes": "llT586dxOdMPVkUmY4cTw5DPwCndpnC2E0dARK0RJVjGSHQHgjjbZGjiX2LusSp02hikUVTgGpwN78a6BqmbAg=="
+  "assinatura_edicoes": "l5epwIrNzDtyZEn9qAWtPGjToIxGqmGvxSgoYW33ENz0lAgTQ515Zc0Mzu7uiJEbejPIee97bjVWYHCnnZimCw=="
 }
