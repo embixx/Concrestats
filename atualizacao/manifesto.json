@@ -1,15 +1,12 @@
 {
-  "versao": "24/09/2026 15:06",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-24-09-2026_15-06.zip",
-  "sha256": "7957c27b472426c632cdbc219aca6a012db4c3589c469f92eb6513fc2b4647f5",
-  "assinatura": "eotf9PantBfPF29ay+K5LHmjLiL5PEI1M8da7AuXeGfpYVfMIPR79O3d4+HGJv1/AVOBaaUwnN20BxqJCeMQBQ==",
+  "versao": "24/09/2026 15:24",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-24-09-2026_15-24.zip",
+  "sha256": "9db7736989f50b0f28b219a0c0333cdfa63289a52272a388a2cb9fe0e9d4da95",
+  "assinatura": "93DeDoq4oTeICVeycIk96hgUAiE+c0EMDXEfh6J2y/vtBQiJkoEajXxWTwGcoqwBOZyPiXlLBvvzbPfs9KVUBA==",
   "novidades": [
+    "Relatório impresso sem a data e o título do navegador no topo da folha",
     "Relatório técnico refeito como documento: folha A4 deitada, igual na tela, na impressão (PDF) e no arquivo",
-    "Tabela do formulário do laboratório: 7 e 28 dias com os dois corpos de prova, valor do exemplar em destaque",
-    "Botão Imprimir / PDF; documento curto cabe numa página, longo numera as páginas",
-    "Visual Empresa: logotipo achado na própria planilha (ou em Campos fixos) e cores tiradas dele",
-    "Excel do relatório já sai formatado",
-    "Campos fixos: emitente, logotipo, responsável técnico e registro"
+    "Visual Empresa: logotipo achado na própria planilha (ou em Campos fixos) e cores tiradas dele"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel",
@@ -21,5 +18,5 @@
       ]
     }
   },
-  "assinatura_edicoes": "OS9LtR468n4PFdACBPFZXOHqdlK1UVgWRxxxP84JAR89+AAJb78q8abqE/XeJyhchJaGdZgkE0fGdj3OqjUyDA=="
+  "assinatura_edicoes": "urdTIyB5Ew21Q8HWhdBC08oj1YWzSz7smTHDOx4j0D8PtOjqbXYsVui/72NcSAykMHpzx9x1Ih0AaNRaOs+TDw=="
 }
