@@ -1,13 +1,15 @@
 {
-  "versao": "24/09/2026 11:15",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-24-09-2026_11-15.zip",
-  "sha256": "3909e1cbacba4bccfc03cddaa7f59b216e113739224c7d2de9473fb1d9a024b3",
-  "assinatura": "hTbIW0Z5666feS2mfMYRZywy93oRyHNfw0btFGcP6w95bXuItfsQC599A/XQBVn+s+v5iiw0QyfAPNoI/n+/Cg==",
+  "versao": "24/09/2026 15:06",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-24-09-2026_15-06.zip",
+  "sha256": "7957c27b472426c632cdbc219aca6a012db4c3589c469f92eb6513fc2b4647f5",
+  "assinatura": "eotf9PantBfPF29ay+K5LHmjLiL5PEI1M8da7AuXeGfpYVfMIPR79O3d4+HGJv1/AVOBaaUwnN20BxqJCeMQBQ==",
   "novidades": [
-    "Planilha com outros nomes de coluna agora funciona em todas as telas: botão Colunas na planilha para escolher de qual coluna cada tela lê o quê",
-    "Dashboard, Painel, Relatório, Gráficos e Previsão usam a mesma escolha, guardada para planilhas do mesmo modelo",
-    "fck pedido lido da coluna própria quando a planilha tem uma",
-    "Aviso no Dashboard quando não acho a coluna de 28 dias"
+    "Relatório técnico refeito como documento: folha A4 deitada, igual na tela, na impressão (PDF) e no arquivo",
+    "Tabela do formulário do laboratório: 7 e 28 dias com os dois corpos de prova, valor do exemplar em destaque",
+    "Botão Imprimir / PDF; documento curto cabe numa página, longo numera as páginas",
+    "Visual Empresa: logotipo achado na própria planilha (ou em Campos fixos) e cores tiradas dele",
+    "Excel do relatório já sai formatado",
+    "Campos fixos: emitente, logotipo, responsável técnico e registro"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel",
@@ -19,5 +21,5 @@
       ]
     }
   },
-  "assinatura_edicoes": "4yAxobRLEh5c/bNJDBBqE8LckyxQ6b8dFfz0cx9Jfv5hwze46Osu5b2kwfdW4C0P1ti3b903j0bkDO1B9bVkDg=="
+  "assinatura_edicoes": "OS9LtR468n4PFdACBPFZXOHqdlK1UVgWRxxxP84JAR89+AAJb78q8abqE/XeJyhchJaGdZgkE0fGdj3OqjUyDA=="
 }
