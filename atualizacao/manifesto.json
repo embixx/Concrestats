@@ -1,23 +1,13 @@
 {
-  "versao": "24/09/2026 17:19",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-24-09-2026_17-19.zip",
-  "sha256": "35e9347260932360e0e5f31cbf906d22b8637adf589730e9284a42e3855eb545",
-  "assinatura": "f2ET8f4Ei+52dVzcCpMh4I3knoQ5D/UmC7+InjxwpcXRydCv338jJSSpISyOfa0PBOZ4+W5fbHdUQTdJ7aWkDA==",
+  "versao": "24/09/2026 17:47",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-24-09-2026_17-47.zip",
+  "sha256": "ad31b56a208c64ed70143d7c43c9ad78f54acbb428294a210134ad9b96925137",
+  "assinatura": "XsOJuAY3UzM/GcyCEelso1p/R79sFMD0lYg4uEHaA0trp30m1gHwdFusBfhChoeKnPz61//eLj5IC1PwiJyXDg==",
   "novidades": [
+    "Relatório sem empresa de fábrica: preencha a empresa emissora, a prensa e o responsável em Campos fixos",
     "Relatório impresso com o timbre da empresa no rodapé de todas as páginas",
-    "Mais espaço para assinar à mão; nada de página só com o rodapé",
-    "Relatório impresso sem a data e o título do navegador no topo da folha",
     "Relatório técnico refeito como documento: folha A4 deitada, igual na tela, na impressão (PDF) e no arquivo"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
-  "canal": "estavel",
-  "edicoes": {
-    "*": {
-      "nome": "Usinop",
-      "ocultar": [
-        "painel"
-      ]
-    }
-  },
-  "assinatura_edicoes": "5y8/mr5pweZC03w1sftUvKGxN3aInvKr0VJW86FJbTxI3Ekvxp4evZjKWHBrgy6zeU8FMXSQA5oCtEbmPzIcAQ=="
+  "canal": "estavel"
 }
