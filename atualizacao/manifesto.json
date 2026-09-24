@@ -1,13 +1,13 @@
 {
-  "versao": "23/09/2026 23:29",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-23-09-2026_23-29.zip",
-  "sha256": "c73f518eb6d5f672ccb9efcb2d5a8ffbaebd36cfc38deb04b81658c890c31952",
-  "assinatura": "JDWd3DqAMMZSFspKb+BHVpNSRROMmpxf7sHLRorZXne8PVe6CZdBT3/Df8aozIPzAAdjRATjGYdTbdsf3ZxOAg==",
+  "versao": "24/09/2026 09:02",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-24-09-2026_09-02.zip",
+  "sha256": "7b59c530c681ac4766a57bce192beb0e55d749b53c91e0ceac773cc7366b22af",
+  "assinatura": "PQAatjjWGjb59MkoUeyvX2HG3ywiWVxrIwhlVY4QxUonmTYjM6rIDnwiuW3cHmAQWhvpCzbP7U+/zGQny1bXBw==",
   "novidades": [
-    "NOVO: botao Reportar problema no canto de cima de todas as telas",
-    "Ele monta sozinho o que aconteceu (tela, versao, ultimos passos, erros) - e' so' copiar e mandar",
-    "As perguntas 'tem certeza?' abrem dentro do programa (antes podiam ficar escondidas atras da janela)",
-    "CORRIGIDO: a tela da Previsao mostrava Graficos, Analise e Previsao sem acento"
+    "PREVISAO > Dados: opcao de usar o maior dos dois corpos de prova (MPA 28 e MPA 28.1), como manda a NBR 12655 - desligada ate' o laboratorio confirmar",
+    "A tela mostra quantas receitas mudam com e sem a opcao, antes de voce ligar",
+    "PREVISAO avisa quando a primeira linha da planilha e' um titulo, e nao o cabecalho",
+    "O Relatorio tecnico passa a marcar Planilhas na barra de cima"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel",
@@ -19,5 +19,5 @@
       ]
     }
   },
-  "assinatura_edicoes": "zF2syhsJiGIC3WMCZL04IBj5xG9LBVQETaCWUej0d3edwE6dDZtk7MSweYnNXOzt4CEVGWoHQcZeJ1tyEiVPBA=="
+  "assinatura_edicoes": "q6TYRL2FEMBLlddWXfJpYfqxFQOwWoy/D7KgKgVlUDzp9TbCLtnxEFOTbkA7LgFaGRGJ0J/dTsHMY4Rdv3S5AA=="
 }
