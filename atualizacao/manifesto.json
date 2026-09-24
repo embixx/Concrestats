@@ -1,13 +1,13 @@
 {
-  "versao": "23/09/2026 07:32",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-23-09-2026_07-32.zip",
-  "sha256": "b6cb71bbbbe4c20a27bce797be0ab74e4ba7e9ed51dc6a231a74a7eb7b1cfbd1",
-  "assinatura": "eK3BjxCm8YxNARGt8CqaNxF1vKROVJ45bRa5vxlGjo8wTRIGHKEW1OEzw2gQQE6pDxqQfVsxdRS5jXSrP0OVAQ==",
+  "versao": "23/09/2026 23:29",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-23-09-2026_23-29.zip",
+  "sha256": "c73f518eb6d5f672ccb9efcb2d5a8ffbaebd36cfc38deb04b81658c890c31952",
+  "assinatura": "JDWd3DqAMMZSFspKb+BHVpNSRROMmpxf7sHLRorZXne8PVe6CZdBT3/Df8aozIPzAAdjRATjGYdTbdsf3ZxOAg==",
   "novidades": [
-    "Aberto de dentro do .rar: o programa agora avisa que nada vai ficar salvo",
-    "A licenca e' encontrada tambem na pasta de cima do programa",
-    "O programa nao baixa mais a propria atualizacao - quem baixa e' a tela",
-    "Menos gravacao na pasta do programa, para o antivirus nao estranhar"
+    "NOVO: botao Reportar problema no canto de cima de todas as telas",
+    "Ele monta sozinho o que aconteceu (tela, versao, ultimos passos, erros) - e' so' copiar e mandar",
+    "As perguntas 'tem certeza?' abrem dentro do programa (antes podiam ficar escondidas atras da janela)",
+    "CORRIGIDO: a tela da Previsao mostrava Graficos, Analise e Previsao sem acento"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel",
@@ -19,5 +19,5 @@
       ]
     }
   },
-  "assinatura_edicoes": "l5epwIrNzDtyZEn9qAWtPGjToIxGqmGvxSgoYW33ENz0lAgTQ515Zc0Mzu7uiJEbejPIee97bjVWYHCnnZimCw=="
+  "assinatura_edicoes": "zF2syhsJiGIC3WMCZL04IBj5xG9LBVQETaCWUej0d3edwE6dDZtk7MSweYnNXOzt4CEVGWoHQcZeJ1tyEiVPBA=="
 }
