@@ -1,12 +1,11 @@
 {
-  "versao": "24/09/2026 17:47",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-24-09-2026_17-47.zip",
-  "sha256": "ad31b56a208c64ed70143d7c43c9ad78f54acbb428294a210134ad9b96925137",
-  "assinatura": "XsOJuAY3UzM/GcyCEelso1p/R79sFMD0lYg4uEHaA0trp30m1gHwdFusBfhChoeKnPz61//eLj5IC1PwiJyXDg==",
+  "versao": "12/10/2026 14:58",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-12-10-2026_14-58.zip",
+  "sha256": "63fd9e604696d25491dc7dd72d3026081a99247d1c9a6d417272ca6e9bce87c0",
+  "assinatura": "oqD7oC74EuY8DNMCoqfbnHGKEI9TbKofX7X20MJr2J2Atx9+k6YSS54jLedq6wRBxs5JUDDhbovrFUDHpNQ5AA==",
   "novidades": [
-    "Relatório sem empresa de fábrica: preencha a empresa emissora, a prensa e o responsável em Campos fixos",
-    "Relatório impresso com o timbre da empresa no rodapé de todas as páginas",
-    "Relatório técnico refeito como documento: folha A4 deitada, igual na tela, na impressão (PDF) e no arquivo"
+    "Preparação de recursos novos, ainda em teste",
+    "Ajustes internos"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel"
