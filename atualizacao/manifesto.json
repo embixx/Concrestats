@@ -1,8 +1,8 @@
 {
-  "versao": "12/10/2026 20:38",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-12-10-2026_20-38.zip",
-  "sha256": "95d05efc2bd621da99cd0d09ba24578a4a475d94b5f55213ee2933c52567a266",
-  "assinatura": "QLxDi1htO9uVG+vzWh1lVUjrt4RrnNTBhKJGAfF1kYb6eCB5iC+hAFymBtnygm9XglimONVPLfSb+xZ3KelrDg==",
+  "versao": "12/10/2026 20:49",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-12-10-2026_20-49.zip",
+  "sha256": "e85a437f0d42c3ffdc3f8588857c460c29098e78aeb8cce5caaa7d3a19905ef3",
+  "assinatura": "gnznYSSsaDoyvBgeEc+Z+dWS2msDDW1LXcx4MSyE2e5RXphPJQc9rF72K9DZcCmpF9Dq89TirBvhMAIa0jvcDQ==",
   "novidades": [
     "Preparação de recursos novos, ainda em teste",
     "Ajustes internos"
