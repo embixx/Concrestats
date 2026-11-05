@@ -1,15 +1,15 @@
 {
-  "versao": "05/11/2026 13:37",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-11-2026_13-37.zip",
-  "sha256": "62c2755e32c0f68c6ce8a585c5cb4db2fa5d27a5bf04711000833bec26bcd284",
-  "assinatura": "EPYolHAyEDAynZ6hBQd7Fi2d5WLNTBbJAdYOjMOkWze4ZkKlyG37cq3jfwkZ7s5J5Fe0wHMbBF3U26gMtS8HBA==",
+  "versao": "05/11/2026 17:27",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-11-2026_17-27.zip",
+  "sha256": "9e7838993472bdf0dfe7b7304c733bb0fd54f194a8ed077678a8fa9384e7cc61",
+  "assinatura": "Lah3x43w+ahDDhIcleW1HTrhyq0xODpEXCcuaDB/4EI1v7gyyXWIViWrvoEIoEij6UeuiRt6IrINpkd05kBNAA==",
   "novidades": [
     "O X da janela agora pergunta se quer salvar antes de fechar",
     "Relatório técnico por páginas, leve mesmo em planilha grande",
     "Colunas da planilha não mudam mais de largura ao rolar",
-    "Data solta, longe do período, não vira mês nos gráficos: fica de fora, com aviso",
-    "Eixos dos gráficos com números redondos, no Dashboard e na Análise",
-    "Dashboard: gráficos na largura da tela e números com separador de milhar",
+    "Data solta, longe do período, não vira mês nos gráficos: fica de fora, com aviso e botão para ver as linhas",
+    "Dashboard: crescimento pela média mensal, gráficos na largura da tela e separador de milhar",
+    "Abre arquivo .xls exportado por outros sistemas",
     "Análise: a categoria automática não pega mais coluna de data",
     "Preparação de recursos novos, ainda em teste"
   ],
