@@ -1,11 +1,15 @@
 {
-  "versao": "12/10/2026 20:52",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-12-10-2026_20-52.zip",
-  "sha256": "86da9937fb165a4c19f2a4fae51cbad90b02091a093e2e3c5a686e415bb7b65c",
-  "assinatura": "LQKnXlgDRADtxmmiIUDcuO3BjkRdrUmJdN6UcGB0l8TQ2DB9vkccJY+dG9Q1A9pD1bTB1ZJenJW+HbFs51kTCQ==",
+  "versao": "05/11/2026 12:20",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-11-2026_12-20.zip",
+  "sha256": "f1a630477500b3b4bd1c699ee7d4979f41fc4a85ab0859d9447f0cead52bce4b",
+  "assinatura": "HyaGKc5q1iE6ISi7pOoqMS/ovIAY+KuetOHJIayURB5oTh5G1TlqSfRJo3Xkfi4WTMyGxx8ge/1QkBm+M0bcCA==",
   "novidades": [
-    "Preparação de recursos novos, ainda em teste",
-    "Ajustes internos"
+    "O X da janela agora pergunta se quer salvar antes de fechar",
+    "Relatório técnico por páginas, leve mesmo em planilha grande",
+    "Eixos dos gráficos com números redondos, no Dashboard e na Análise",
+    "Dashboard: gráficos ocupam a largura da tela e números com separador de milhar",
+    "Análise: a categoria automática não pega mais coluna de data",
+    "Preparação de recursos novos, ainda em teste"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel"
