@@ -1,13 +1,15 @@
 {
-  "versao": "05/11/2026 12:20",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-11-2026_12-20.zip",
-  "sha256": "f1a630477500b3b4bd1c699ee7d4979f41fc4a85ab0859d9447f0cead52bce4b",
-  "assinatura": "HyaGKc5q1iE6ISi7pOoqMS/ovIAY+KuetOHJIayURB5oTh5G1TlqSfRJo3Xkfi4WTMyGxx8ge/1QkBm+M0bcCA==",
+  "versao": "05/11/2026 13:37",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-11-2026_13-37.zip",
+  "sha256": "62c2755e32c0f68c6ce8a585c5cb4db2fa5d27a5bf04711000833bec26bcd284",
+  "assinatura": "EPYolHAyEDAynZ6hBQd7Fi2d5WLNTBbJAdYOjMOkWze4ZkKlyG37cq3jfwkZ7s5J5Fe0wHMbBF3U26gMtS8HBA==",
   "novidades": [
     "O X da janela agora pergunta se quer salvar antes de fechar",
     "Relatório técnico por páginas, leve mesmo em planilha grande",
+    "Colunas da planilha não mudam mais de largura ao rolar",
+    "Data solta, longe do período, não vira mês nos gráficos: fica de fora, com aviso",
     "Eixos dos gráficos com números redondos, no Dashboard e na Análise",
-    "Dashboard: gráficos ocupam a largura da tela e números com separador de milhar",
+    "Dashboard: gráficos na largura da tela e números com separador de milhar",
     "Análise: a categoria automática não pega mais coluna de data",
     "Preparação de recursos novos, ainda em teste"
   ],
