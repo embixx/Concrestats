@@ -1,8 +1,8 @@
 {
-  "versao": "05/11/2026 17:30",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-11-2026_17-30.zip",
-  "sha256": "24e285d76b19c5c1458e9ef9ff2921bfff17ff85f3339563ab93dcc8b53efbc4",
-  "assinatura": "r5xGZtjK4YtAG0BtL9lQEw26ySqqDsvBx7jinUnwHvPKaUf9RmZJI9al9f3uPtpJy7EXPhybxYDnJnM4d6c8Ag==",
+  "versao": "05/11/2026 17:43",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-11-2026_17-43.zip",
+  "sha256": "2210ed216924b5b24be2d29cf2fb2b9294740e95fb99fcd71a99ea69324c8461",
+  "assinatura": "x/f+l/TLCC8MDYX4TXtCYNqklw/HI9PrFVDkMwyplnRjRoBSQtBhwqgGhvkZq8Ao0VnGQWfFkCumb9AbcffOBg==",
   "novidades": [
     "O X da janela agora pergunta se quer salvar antes de fechar",
     "Relatório técnico por páginas, leve mesmo em planilha grande",
