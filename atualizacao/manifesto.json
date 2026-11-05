@@ -1,17 +1,17 @@
 {
-  "versao": "05/11/2026 17:43",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-11-2026_17-43.zip",
-  "sha256": "2210ed216924b5b24be2d29cf2fb2b9294740e95fb99fcd71a99ea69324c8461",
-  "assinatura": "x/f+l/TLCC8MDYX4TXtCYNqklw/HI9PrFVDkMwyplnRjRoBSQtBhwqgGhvkZq8Ao0VnGQWfFkCumb9AbcffOBg==",
+  "versao": "05/11/2026 20:30",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-11-2026_20-30.zip",
+  "sha256": "38c89086574aaf47d0ce8baa39fa40d9a4ac3665af68f48947059f5dff4a0ab9",
+  "assinatura": "9m6plQJu+j19lmHJQ3ImBq8adEOsW7YRIrUe7n2B01ryuty6dnsz3z9hUlluufdGOdLdcIPkzqQtpoXcv4g6Dg==",
   "novidades": [
-    "O X da janela agora pergunta se quer salvar antes de fechar",
-    "Relatório técnico por páginas, leve mesmo em planilha grande",
-    "Colunas da planilha não mudam mais de largura ao rolar",
-    "Data solta, longe do período, não vira mês nos gráficos: fica de fora, com aviso e botão para ver as linhas",
-    "Dashboard: crescimento pela média mensal, gráficos na largura da tela e separador de milhar",
-    "Abre arquivo .xls exportado por outros sistemas",
-    "Análise: a categoria automática não pega mais coluna de data",
-    "Preparação de recursos novos, ainda em teste"
+    "Troca de aba sem piscada e mais rapida",
+    "Previsao: Por que deu baixo e custo do desvio contra a norma, mes a mes",
+    "Relatorio: QR de autenticidade, Conferir e Mandar para o cliente em PDF",
+    "Planilha: historico de alteracoes e importar da prensa",
+    "Acesso por funcao, primeiros passos e a cara da empresa no programa",
+    "Painel: comparar periodos; Analise e Dashboard agora moram dentro dele",
+    "Inicio: fechamento do mes; Recentes: banco de dados ou API",
+    "Corrigido: planilha com titulo em cima da tabela; laudo filtrado levava outras versoes"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel"
