@@ -1,17 +1,17 @@
 {
-  "versao": "05/11/2026 22:35",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-11-2026_22-35.zip",
-  "sha256": "50b4d98dbd87c8d231a2d5415691f7b48b5144cbd26f33eebbe947ab3adca2ff",
-  "assinatura": "XaiZx+ZOrcGRrGKQvx7IxnpePGn9Wu+iNQ3pn9UOtYKZ/sDFRoxiqxutovt2cir3B72krTMUyRCGXs1E6o6sBw==",
+  "versao": "05/11/2026 22:55",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-11-2026_22-55.zip",
+  "sha256": "7ed89e773254fdeda950c0e8783b6e7c6e4815a3864778baefc9c4f732d9cac6",
+  "assinatura": "znNOV/VJVGCg8ha2HH49GrYSp1H0KkGjAbaG6T2RSlEJygqUqT1aAdRXhOQYzf1zze0akiJBbwon7TIm+zPLBQ==",
   "novidades": [
+    "Relatorio de conformidade: so' o responsavel libera, e sai com QR",
     "Queda do programa nao perde mais edicao: ao abrir de novo, oferece Recuperar",
     "Troca de aba sem piscada e mais rapida",
     "Previsao: Por que deu baixo e custo do desvio contra a norma, mes a mes",
     "Relatorio: QR de autenticidade, Conferir e Mandar para o cliente em PDF",
     "Planilha: historico de alteracoes e importar da prensa",
     "Acesso por funcao, primeiros passos e a cara da empresa no programa",
-    "Painel: comparar periodos; Analise e Dashboard agora moram dentro dele",
-    "Inicio: fechamento do mes; Recentes: banco de dados ou API"
+    "Painel: comparar periodos; Analise e Dashboard agora moram dentro dele"
   ],
   "onde": "https://trello.com/c/QL8BmY8O",
   "canal": "estavel"
