@@ -1,8 +1,8 @@
 {
-  "versao": "05/11/2026 20:30",
-  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-11-2026_20-30.zip",
-  "sha256": "38c89086574aaf47d0ce8baa39fa40d9a4ac3665af68f48947059f5dff4a0ab9",
-  "assinatura": "9m6plQJu+j19lmHJQ3ImBq8adEOsW7YRIrUe7n2B01ryuty6dnsz3z9hUlluufdGOdLdcIPkzqQtpoXcv4g6Dg==",
+  "versao": "05/11/2026 20:35",
+  "arquivo": "https://raw.githubusercontent.com/embixx/Concrestats/main/atualizacao/patch-05-11-2026_20-35.zip",
+  "sha256": "2a6ede909105f60fd72f59ff571791a3011e0ed70988ef32b06b131c9b90c908",
+  "assinatura": "MKt4u1ixyeVuH7AGGEWU80I54wMGK4II+Xr7r6opXrijNqHGSCObKEbYKAxyPzIoMFGOi2rSuVDu9ggcBqliDQ==",
   "novidades": [
     "Troca de aba sem piscada e mais rapida",
     "Previsao: Por que deu baixo e custo do desvio contra a norma, mes a mes",
